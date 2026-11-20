@@ -1439,10 +1439,40 @@ namespace PhysicsBattler.Sandbox
         private float stumbleBashAt;
 
         /// <summary>How far off the other is put for each bash of "Stumble him" (metres at a Medium's size).</summary>
-        private static readonly float[] StumbleBashFrom = { 1f, 1.8f, 1.9f, 1.9f, 1.4f };
+        private static readonly float[] StumbleBashFrom = { 1f, 1.8f, 1.9f, 1.9f, 1.4f, 1.4f, 1.4f };
 
-        /// <summary>The place of "Kick him" in <see cref="StumbleBashFrom"/>: asked for and waited for as a bash is.</summary>
+        /// <summary>The place of "Kick him" in <see cref="StumbleBashFrom"/> (soft; medium and hard follow it): asked for and waited for as a bash is.</summary>
         private const int KickHim = 4;
+
+        /// <summary>The other is stood before him and bashed or kicked: at once, or once both are on their feet.</summary>
+        private void AskStumble(int kind, string name)
+        {
+            var basher = Duel.Mover != null ? Duel.Mover.Clip : null;
+            var other = Duel.Other != null ? Duel.Other.Clip : null;
+            if (basher == null)
+            {
+                message = name + ": not now (the lab is not set out).";
+            }
+            else if (kind < KickHim && basher.ShieldColliders.Count == 0)
+            {
+                message = name + ": he has no shield. \"Set out\" under the shield test gives both one.";
+            }
+            else if ((other != null && other.Fallen) || basher.Fallen)
+            {
+                stumbleWaits = kind;
+                message = name + ": waiting until both are on their feet.";
+            }
+            else if (Duel.PutOtherAt(StumbleBashFrom[kind]))
+            {
+                stumbleBash = kind;
+                stumbleBashAt = Time.time + 0.6f;
+                message = $"{name}: the other is stood {StumbleBashFrom[kind]:0.0} m before him.";
+            }
+            else
+            {
+                message = name + ": not now (the lab is not set out).";
+            }
+        }
 
         /// <summary>A bash asked for by "Stumble him" is thrown once the other has stood a moment where he was put.</summary>
         private void StepStumbleBash()
@@ -1483,9 +1513,9 @@ namespace PhysicsBattler.Sandbox
                 return;
             }
 
-            if (kind == KickHim)
+            if (kind >= KickHim)
             {
-                message = basher.KickAt(other, true) ? "Kick him: a front kick." : "Kick him: he could not kick (in a blow, a bash or another move, stumbling, or down).";
+                message = basher.KickAt(other, true, kind - KickHim) ? $"Kick him: a {PhysicsBattler.Locomotion.ClipFighter.KickNames[kind - KickHim]} front kick." : "Kick him: he could not kick (in a blow, a bash or another move, stumbling, or down).";
                 return;
             }
 
@@ -1497,6 +1527,22 @@ namespace PhysicsBattler.Sandbox
         private void StumbleButtons(PhysicsBattler.Locomotion.CombatFeel feel, bool inWindow)
         {
             Heading("Stumbles and falls", "What being bashed, kicked or struck hard does to a fighter. His body is a weight on legs: thrown by an impact it tips away from his feet, and only a foot put down ahead of it stops it. If his feet get there he keeps them, on one stumble step or several, and may be turned round. If his body outruns them he goes down. Both men of an impact can be thrown off balance: what goes in comes out. Nothing is drawn by lot.");
+            BeginRow();
+            Words(new GUIContent("Slow motion:", "How fast the game runs, to watch a stumble, a kick or a get-up closely. It is the same game, only slower: nothing in it changes. It stays until you put it back to full speed."));
+            float[] speeds = { 1f, 0.5f, 0.25f, 0.1f };
+            string[] speedNames = { "full speed", "half", "a quarter", "a tenth" };
+            for (int k = 0; k < speeds.Length; k++)
+            {
+                bool chosen = Mathf.Abs(timeScale - speeds[k]) < 0.01f;
+                if (Press(chosen ? "[" + speedNames[k] + "]" : speedNames[k], $"The game at {speeds[k]:0.##} of its speed."))
+                {
+                    timeScale = speeds[k];
+                    Time.timeScale = paused ? 0f : timeScale;
+                    message = speeds[k] >= 1f ? "Slow motion: off, full speed." : $"Slow motion: the game runs at {speedNames[k]} speed.";
+                }
+            }
+
+            EndRow();
             var basher = Duel.Mover != null ? Duel.Mover.Clip : null;
             var other = Duel.Other != null ? Duel.Other.Clip : null;
             string[] names = { "Small", "Medium", "Hard", "Extra hard" };
@@ -1513,54 +1559,28 @@ namespace PhysicsBattler.Sandbox
             {
                 if (Press(names[kind], tips[kind]))
                 {
-                    if (basher == null || basher.ShieldColliders.Count == 0)
-                    {
-                        message = "Stumble him: he has no shield. \"Set out\" under the shield test gives both one.";
-                    }
-                    else if ((other != null && other.Fallen) || basher.Fallen)
-                    {
-                        // (19 November: a man who was down or getting up was put on the spot at once, and bashed as he
-                        // rose. Seen in Renier's log: his body thrown 70 to 80 cm back onto its pose, three times in one
-                        // session. The button waits for both to stand.)
-                        stumbleWaits = kind;
-                        message = "Stumble him: waiting until both are on their feet.";
-                    }
-                    else if (Duel.PutOtherAt(StumbleBashFrom[kind]))
-                    {
-                        stumbleBash = kind;
-                        stumbleBashAt = Time.time + 0.6f;
-                        message = $"Stumble him: the other is stood {StumbleBashFrom[kind]:0.0} m before him.";
-                    }
-                    else
-                    {
-                        message = "Stumble him: not now (the lab is not set out).";
-                    }
+                    // (19 November: a man who was down or getting up was put on the spot at once, and bashed as he
+                    // rose. Seen in Renier's log: his body thrown 70 to 80 cm back onto its pose, three times in one
+                    // session. The button waits for both to stand.)
+                    AskStumble(kind, "Stumble him");
                 }
             }
 
             EndRow();
             BeginRow();
             Words(new GUIContent("Kick him:", "A kick at a standing fighter on demand (Combat Feel \"A Kick Throws A Body\"). The other is put 1.4 m straight before him, stands a moment, and is kicked: a front kick with the back foot, from the sword-and-shield recordings. Where the foot meets his body or his board he is thrown as by any impact. Pressed while either is down or stumbling, it waits until both stand. No fighter kicks by himself yet."));
-            if (Press("Front kick", "The other is stood 1.4 m before him and he kicks him chest high with his back foot. On a body: thrown back two stumble steps. On a board held in cover: less. \"Kick power\" higher: he goes down."))
+            string[] kicks = { "Soft kick", "Medium kick", "Hard kick" };
+            string[] kickTips =
             {
-                if (basher == null)
+                "The other is stood 1.4 m before him and he kicks him chest high with his back foot. On a body: thrown back a stumble step or two. On a board held in cover: less.",
+                "The same kick, harder (\"Medium kick power\"). He is thrown back stumbling hard: several stumble steps, and he may only just keep his feet.",
+                "The same kick with everything in it (\"Hard kick power\"). It is meant to knock him over backwards, through his board too.",
+            };
+            for (int kick = 0; kick < kicks.Length; kick++)
+            {
+                if (Press(kicks[kick], kickTips[kick]))
                 {
-                    message = "Kick him: not now (the lab is not set out).";
-                }
-                else if ((other != null && other.Fallen) || basher.Fallen)
-                {
-                    stumbleWaits = KickHim;
-                    message = "Kick him: waiting until both are on their feet.";
-                }
-                else if (Duel.PutOtherAt(StumbleBashFrom[KickHim]))
-                {
-                    stumbleBash = KickHim;
-                    stumbleBashAt = Time.time + 0.6f;
-                    message = $"Kick him: the other is stood {StumbleBashFrom[KickHim]:0.0} m before him.";
-                }
-                else
-                {
-                    message = "Kick him: not now (the lab is not set out).";
+                    AskStumble(KickHim + kick, "Kick him");
                 }
             }
 
@@ -1568,7 +1588,14 @@ namespace PhysicsBattler.Sandbox
             if (feel != null)
             {
                 feel.kickPower = Lever("Kick power", feel.kickPower, 0.5f, 6f, "How fast a kick throws a man of the kicker's own weight (m/s at a Medium's size). A medium bash throws at about 2.1, a hard one at about 4.3.");
+                feel.mediumKickPower = Lever("Medium kick power", feel.mediumKickPower, 0.5f, 8f, "How fast a medium kick throws a man of the kicker's own weight (m/s at a Medium's size).");
+                feel.hardKickPower = Lever("Hard kick power", feel.hardKickPower, 0.5f, 8f, "How fast a hard kick throws a man of the kicker's own weight (m/s at a Medium's size). Meant to knock him over backwards.");
                 feel.kickGoesIntoHim = Lever("Kicks into him", feel.kickGoesIntoHim, 0f, 0.6f, "How far past the other's front the kicking foot is aimed (metres at a Medium's size).");
+                BeginRow();
+                Words(new GUIContent("Not in his guard:", "What an impact does to a man who is not standing in a guard: a bare-handed man, for one (Combat Feel \"A Man Not In His Guard Stumbles And Falls Too\"). He stumbles and falls (new): his legs decide, as any fighter's do: stumble steps, caught or down. He is only shoved (old): however hard he is hit he goes back on quick little steps and never falls. To see it: \"Set out\" the target with nothing in his hands, then kick him soft, medium and hard."));
+                if (Press(feel.aManNotInHisGuardStumblesAndFallsToo ? "[he stumbles and falls]" : "he stumbles and falls", "His legs decide: stumble steps, caught or down.")) feel.aManNotInHisGuardStumblesAndFallsToo = true;
+                if (Press(!feel.aManNotInHisGuardStumblesAndFallsToo ? "[he is only shoved (old)]" : "he is only shoved (old)", "As before.")) feel.aManNotInHisGuardStumblesAndFallsToo = false;
+                EndRow();
             }
 
             if (feel != null)
@@ -1581,7 +1608,7 @@ namespace PhysicsBattler.Sandbox
                 feel.pounceReadsIn = Lever("Pounce reads in", feel.pounceReadsIn, 0f, 0.6f, "How soon he reads an opening and goes for it (seconds).");
             }
 
-            Readout(new GUIContent("His last pounce: " + Duel.Pounced + $" ({Duel.OpeningsSeen} openings seen, {Duel.PounceLeaps} leapt at, {Duel.PounceBlows} struck at).", "What opening he saw, how far off, whether he leapt in, and when he struck."), 2);
+            Readout(new GUIContent("His last pounce: " + Duel.Pounced + $" ({Duel.OpeningsSeen} openings seen, {Duel.PounceLeaps} gone for, {Duel.PounceBlows} struck at).", "What opening he saw, how far off, how far and fast he ran, where and how fast he was going as he threw the blow and as it landed, and what the blade met."), 3);
             BeginRow();
             Words(new GUIContent("A man who is down:", "What he does while the other lies off his feet (Combat Feel \"A Fighter Strikes A Man Who Is Down\"). He holds off (as the game is today): he lets him get up. He strikes him: as soon as he is free he goes to him and strikes down at his chest, with the blows there are today aimed at where it lies. \"Strike him where he lies\" asks for it once: fell the other first (\"Stumble him: Extra hard\", or \"Kick power\" at 4 and \"Front kick\")."));
             if (feel != null)
@@ -1597,7 +1624,28 @@ namespace PhysicsBattler.Sandbox
             }
 
             EndRow();
-            Readout(new GUIContent("His last blow at a man who was down: " + Duel.DownedStruck + $" ({Duel.DownedBlows} thrown).", "How long the other had been down, how far off and how low his chest lay, whether he leapt in, and whether the blade was expected to reach."), 2);
+            BeginRow();
+            Words(new GUIContent("Knock him down and strike him:", "The test for a man who is down, in one press. The other is stood before him and knocked off his feet; then he runs to him and strikes down at his chest as he arrives, in one motion: no stop between the run and the blow. Near: a hard kick, the other lands a few metres off. Far: an extra hard bash, he lands further (both need shields: \"Set out\" under the shield test). Watch the runner's feet as the blow goes out: they should not stop."));
+            if (Press("Near", "A hard kick knocks him over; then he is run at and struck where he lies."))
+            {
+                Duel.StrikeDownedOnce = true;
+                AskStumble(KickHim + 2, "Knock him down and strike him");
+            }
+
+            if (Press("Far", "An extra hard bash throws him metres back; then he is run after and struck where he lies."))
+            {
+                Duel.StrikeDownedOnce = true;
+                AskStumble(3, "Knock him down and strike him");
+            }
+
+            EndRow();
+            if (feel != null)
+            {
+                feel.heGoesForHimAt = Lever("He goes for him at", feel.heGoesForHimAt, 1.5f, 6f, "How fast he runs at a man he has an opening on, or one who is down (m/s at a Medium's size). He throws the blow while still running, so that it lands as he comes into reach.");
+            }
+
+            Readout(new GUIContent("Going for him now: " + (Duel.Going ? Duel.GoingNow : "no") + ".", "Whether he is running at the other now, and where the blow is."), 1);
+            Readout(new GUIContent("His last blow at a man who was down: " + Duel.DownedStruck + $" ({Duel.DownedBlows} thrown).", "How far off the other lay, how far and how fast he ran, where and how fast he was going as he threw the blow and as it landed, the slowest he went in between, and what the blade met."), 3);
             Readout(new GUIContent("His last kick: " + (basher != null && basher.LastKick.Length > 0 ? basher.LastKick + "." : "none yet."), "Where the foot landed, how fast it was going, and what it did to the other."), 2);
             if (feel == null)
             {

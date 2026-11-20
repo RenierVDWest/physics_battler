@@ -60,6 +60,14 @@ namespace PhysicsBattler.Locomotion
         /// </summary>
         public static bool On = true;
 
+        /// <summary>
+        /// Set for one asking: of the blows that can be thrown on the move, the best of those that land within this
+        /// many seconds is taken, if there is one (0: the best of all, as ever). A man running at another throws the
+        /// blow that lands as he arrives, not one with a wind-up he would have to stand and wait through
+        /// (<c>DuelLab.GoFor</c>, 20 November).
+        /// </summary>
+        public static float LandsWithin;
+
         /// <summary>How a blow on the move sits on the walk (the scene's Combat Feel, "Moving Blow ...").</summary>
         public static MoveBlowStyle Style = MoveBlowStyle.Plain;
 

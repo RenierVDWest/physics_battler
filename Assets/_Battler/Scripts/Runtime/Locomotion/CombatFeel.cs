@@ -361,6 +361,18 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("How fast a kick throws a man of the kicker's own weight, in m/s at a Medium's size. A medium bash throws at about 2.1, a hard one at about 4.3.")]
         [Range(0.5f, 6f)] public float kickPower = ClipFighter.DefaultKickPower;
 
+        [Tooltip("How fast a medium kick throws a man of the kicker's own weight, in m/s at a Medium's size. \"Kick Power\" above is the soft kick's. A medium kick is meant to throw him back stumbling hard, on his feet or only just.")]
+        [Range(0.5f, 8f)] public float mediumKickPower = ClipFighter.DefaultKickPowerMedium;
+
+        [Tooltip("How fast a hard kick throws a man of the kicker's own weight, in m/s at a Medium's size. A hard kick is meant to knock him over backwards. It also goes further through a board held before him than a soft one.")]
+        [Range(0.5f, 8f)] public float hardKickPower = ClipFighter.DefaultKickPowerHard;
+
+        [Tooltip("On: a man who is not standing in a guard is thrown off balance by an impact as any fighter is: he stumbles on real steps, and falls if his feet cannot catch him. A bare-handed man is one. Off (as it was): only a fighter in his guard can stumble or fall; anyone else is shoved back however hard he is hit, on quick little steps.")]
+        public bool aManNotInHisGuardStumblesAndFallsToo = true;
+
+        [Tooltip("How fast a fighter goes for a man he has an opening on, or one who is down, in m/s at a Medium's size: his run. He runs at him and throws the blow while he is still running, so that it lands as he comes into reach: one motion, no stop between the run and the blow.")]
+        [Range(1.5f, 6f)] public float heGoesForHimAt = PhysicsBattler.Sandbox.DuelLab.DefaultGoesForHimAt;
+
         [Tooltip("How far past the other's front the kicking foot is aimed, in metres at a Medium's size. More: he goes further in with his hips.")]
         [Range(0f, 0.6f)] public float kickGoesIntoHim = ClipFighter.DefaultKickGoesIn;
 
@@ -1810,6 +1822,10 @@ namespace PhysicsBattler.Locomotion
             PhysicsBattler.Sandbox.DuelLab.PounceReadsIn = Mathf.Clamp(pounceReadsIn, 0f, 0.6f);
             ClipFighter.KicksThrow = aKickThrowsABody;
             ClipFighter.KickPower = Mathf.Clamp(kickPower, 0.5f, 6f);
+            ClipFighter.KickPowerMedium = Mathf.Clamp(mediumKickPower, 0.5f, 8f);
+            ClipFighter.KickPowerHard = Mathf.Clamp(hardKickPower, 0.5f, 8f);
+            ClipFighter.UnguardedMenStumble = aManNotInHisGuardStumblesAndFallsToo;
+            PhysicsBattler.Sandbox.DuelLab.GoesForHimAt = Mathf.Clamp(heGoesForHimAt, 1.5f, 6f);
             ClipFighter.KickGoesIn = Mathf.Clamp(kickGoesIntoHim, 0f, 0.6f);
             ClipFighter.BodiesTakeImpacts = aBodyTakesAnImpactInItsKneesAndHips;
             ClipFighter.ContactTime = Mathf.Clamp(impactContactTime, 0.05f, 0.5f);

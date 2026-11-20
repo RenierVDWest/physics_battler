@@ -1654,6 +1654,17 @@ namespace PhysicsBattler.Locomotion
                     }
                 }
 
+                // (20 November: a man who stumbled and then fell kept, through the fall and the get-up, how far his
+                // arms were out for balance as he went down. As he stood they were put out again by that much, up to
+                // 36 cm in one step, and came back: the jump at the end of half the get-ups in Renier's logs of that
+                // morning (a hand or forearm at 8 to 13 m/s, one step after he stood), and of none of the lab's falls
+                // on demand, which fell him without a stumble. Seen headless only once a man was kicked down.)
+                if (ArmsOutForgottenOnceUp)
+                {
+                    armOut[0] = armOut[1] = 0f;
+                    armBehind = Vector3.zero;
+                }
+
                 // (From the body he has, not from the pose it was drawn to: the body lags its pose by some
                 // centimetres, and put on the stand's pose it crossed them in one step, the shield hand at 8 m/s.)
                 if (WholeBodyEasesOutOfGetUp && RoseFromTheBody)
@@ -1961,6 +1972,9 @@ namespace PhysicsBattler.Locomotion
         }
 
         /// <summary>Just up: the arms eased from where the get-up left them into the pose the fight has for them now, and what is seen of them measured a moment longer.</summary>
+        /// <summary>For the reports: each step of the easing out of a get-up.</summary>
+        public static System.Action<string> RoseTrace;
+
         private void EaseArmsFromGetUp(float dt)
         {
             if (roseAt >= 0f)
@@ -1969,6 +1983,7 @@ namespace PhysicsBattler.Locomotion
                 // (Not through a blow of its own: a strike has its arm at once.)
                 if (w >= 1f || clock < weaponArmHeldUntil)
                 {
+                    RoseTrace?.Invoke($"{FightUnit?.name} {clock - roseAt:0.000} s after he stood: the easing ended (w {w:0.00}, his weapon arm held for a blow {(clock < weaponArmHeldUntil ? "yes" : "no")}, striking {Striking}, legs {Loco.Current}, shot {(Loco.Shot != null ? Loco.Shot.Name : "none")})");
                     roseAt = -1f;
                 }
                 else
@@ -1987,6 +2002,7 @@ namespace PhysicsBattler.Locomotion
 
                     roseMix.MixToward(roseNow, id => IsArm(id) ? w : body);
                     roseMix.Apply(Anim, false);
+                    RoseTrace?.Invoke($"{FightUnit?.name} {clock - roseAt:0.000} s after he stood: arms {w:0.00}, body {body:0.00}; shield hand as he stood {rose.LimbEnd[0]}, as the stand has it {roseNow.LimbEnd[0]}, put at {Anim.Part(PartId.HandL).position}; the body's {Rig.Part(PartId.HandL).body.position}");
                 }
             }
 
@@ -5792,7 +5808,7 @@ namespace PhysicsBattler.Locomotion
                 FacesAt = enemy != null ? InOwnFrame(enemy.Loco.Position) : Vector3.zero,
             };
             var hold = Poser.Hold();
-            MadeAttack best = null;
+            MadeAttack best = null, quick = null;
             foreach (var clip in StrikeClips)
             {
                 var score = AttackScore.Of(clip);
@@ -5822,9 +5838,17 @@ namespace PhysicsBattler.Locomotion
                         {
                             best = plan;
                         }
+
+                        // (Asked to land soon, AttackOnTheMove.LandsWithin: the best of those that do.)
+                        if (AttackOnTheMove.LandsWithin > 0f && lands <= AttackOnTheMove.LandsWithin && (quick == null || plan.Cost < quick.Cost))
+                        {
+                            quick = plan;
+                        }
                     }
                 }
             }
+
+            best = quick ?? best;
 
             if (best == null)
             {
@@ -7463,6 +7487,21 @@ namespace PhysicsBattler.Locomotion
         /// </summary>
         public string ThrowBody(Vector3 change, Vector3 point, Vector3 impulse, string why)
         {
+            return ThrowBodyNow(change, point, impulse, why);
+        }
+
+        /// <summary>
+        /// A man not in a guard is thrown off balance as any other (Combat Feel "A Man Not In His Guard Stumbles And
+        /// Falls Too"; <c>FIGHT_UNGUARDED=0</c> for the old way). Before, only a fighter standing in his guard could
+        /// stumble or fall from an impact: a bare-handed man, or one walking with his guard down, was shoved however
+        /// hard he was hit, and went back fast on quick little steps. Seen by Renier, 20 November: "the unarmed dummy
+        /// stumbles back pretty far with legs moving pretty fast, where I would expect it to fall". Now his legs decide
+        /// for him too, on real stumble steps: caught, or down.
+        /// </summary>
+        public static bool UnguardedMenStumble = true;
+
+        private string ThrowBodyNow(Vector3 change, Vector3 point, Vector3 impulse, string why)
+        {
             change.y = 0f;
             if (Fallen)
             {
@@ -7485,7 +7524,7 @@ namespace PhysicsBattler.Locomotion
                 return "stumbled";
             }
 
-            if (Anchored || !Loco.Guarding || !Loco.Ready)
+            if (Anchored || !Loco.Ready || (!Loco.Guarding && !UnguardedMenStumble))
             {
                 Loco.Push(change);
                 return "shoved";
@@ -7598,6 +7637,26 @@ namespace PhysicsBattler.Locomotion
 
         public const float DefaultKickPower = 2.6f, DefaultKickGoesIn = 0.25f;
 
+        /// <summary>
+        /// A kick is soft, medium or hard (20 November; Renier: "Let's also have soft, medium and hard. The current one
+        /// is soft. I want hard to be hard enough to kick the enemy making it fall backwards"). How fast the medium and
+        /// the hard one throw a man of the kicker's own weight (m/s at a Medium's size: the levers "Medium kick power"
+        /// and "Hard kick power"); the soft one is <see cref="KickPower"/>. A harder kick also goes further through a
+        /// board (<see cref="KickOnBoardBy"/>).
+        /// </summary>
+        public static float KickPowerMedium = DefaultKickPowerMedium, KickPowerHard = DefaultKickPowerHard;
+
+        public const float DefaultKickPowerMedium = 3.3f, DefaultKickPowerHard = 5.2f;
+
+        /// <summary>How much of a soft, a medium and a hard kick a board held before him lets through.</summary>
+        public static readonly float[] KickOnBoardBy = { KickOnBoard, 0.75f, 0.9f };
+
+        public static readonly string[] KickNames = { "soft", "medium", "hard" };
+        private int kickKind;
+
+        /// <summary>How fast a kick of this kind throws (m/s at a Medium's size).</summary>
+        public static float KickPowerOf(int kind) => kind >= 2 ? KickPowerHard : kind == 1 ? KickPowerMedium : KickPower;
+
         /// <summary>The recording, when its foot is furthest out (seconds in), from when and until when it can land, how far ahead of where he began the foot then is and how far his hips have gone (leg lengths), how near the foot must come to the other's middle line or his board (metres at a Medium's size), how much of a kick a board takes, and how long before he may kick again.</summary>
         public const string KickClip = "sns_kick";
         public const float KickLandsAt = 0.57f, KickLandsFrom = 0.38f, KickLandsUntil = 0.68f, KickFootOut = 1.81f, KickHipsGo = 0.62f, KickMeetsBody = 0.24f, KickMeetsBoard = 0.3f, KickOnBoard = 0.6f, KickEvery = 2f;
@@ -7611,11 +7670,26 @@ namespace PhysicsBattler.Locomotion
         private Vector3 kickWay, kickFootWas;
 
         public bool Kicking => kickFor >= 0f;
+
+        /// <summary>His kick has landed and his foot is on its way back: the rest of it is dropped (for going for the man it threw). Nothing if it has not landed.</summary>
+        public void CutKickShort()
+        {
+            if (Kicking && kickStruck && kickFor >= kickLandedAt + KickComesBack && kickFor < kickEnds)
+            {
+                kickEnds = kickFor;
+                Loco.EndShotNow();
+            }
+        }
+
+        /// <summary>How long after a kick lands the rest of it may be dropped (seconds: the foot is drawn back under him).</summary>
+        public const float KickComesBack = 0.22f;
+        private float kickLandedAt;
         public int Kicks, KicksLanded, KickedTimes;
         public string LastKick = "";
 
         /// <summary>He kicks now, at this enemy (null: straight ahead, at nobody, to be seen). False: he cannot (down, stumbling, in a blow, a bash or another recording, or one just thrown).</summary>
-        public bool KickAt(ClipFighter at, bool whenever = false)
+        /// <param name="kind">0: soft, 1: medium, 2: hard.</param>
+        public bool KickAt(ClipFighter at, bool whenever = false, int kind = 0)
         {
             if (!KicksThrow || Kicking || Bashing || Fallen || Striking || Stagger.Active || !Loco.Ready || Loco.Current == Locomotor.Mode.OneShot || (!whenever && clock < kickReadyAt))
             {
@@ -7640,13 +7714,14 @@ namespace PhysicsBattler.Locomotion
             float turn = Mathf.DeltaAngle(Loco.Facing, Mathf.Atan2(kickWay.x, kickWay.z) * Mathf.Rad2Deg);
             Loco.PlayAimed(clip, stretch, turn, 0.25f);
             kickFor = 0f;
+            kickKind = Mathf.Clamp(kind, 0, 2);
             kickEnds = clip.Duration;
             kickAt = at;
             kickStruck = kickFootKnown = false;
             kickFootFastest = 0f;
             kickReadyAt = clock + KickEvery;
             Kicks++;
-            LastKick = string.Format(System.Globalization.CultureInfo.InvariantCulture, "a front kick{0}, his hips going in {1:0.00} of the recording's: under way", at != null ? $" from {gap:0.00} m" : " at nobody", stretch);
+            LastKick = string.Format(System.Globalization.CultureInfo.InvariantCulture, "a {2} front kick{0}, his hips going in {1:0.00} of the recording's: under way", at != null ? $" from {gap:0.00} m" : " at nobody", stretch, KickNames[kickKind]);
             if (Diagnostics.PlaytestTrace.Enabled)
             {
                 Diagnostics.PlaytestTrace.Note(FightUnit, "kick", (at != null ? $"at {at.FightUnit.name}, {gap:0.00} m off" : "asked for, at nobody") + "; " + LastKick);
@@ -7681,9 +7756,10 @@ namespace PhysicsBattler.Locomotion
                 if (board || bodyMet)
                 {
                     kickStruck = true;
+                    kickLandedAt = kickFor;
                     KicksLanded++;
                     float weights = Mass / Mathf.Max(1f, kickAt.Mass);
-                    float speed = KickPower * Mathf.Sqrt(Size) * Mathf.Min(weights, 1.5f) * (board && !bodyMet ? KickOnBoard : 1f);
+                    float speed = KickPowerOf(kickKind) * Mathf.Sqrt(Size) * Mathf.Min(weights, 1.5f) * (board && !bodyMet ? KickOnBoardBy[kickKind] : 1f);
                     Vector3 impulse = kickWay * (speed * kickAt.Mass);
                     string did = kickAt.Kicked(kickWay, speed, this, foot, impulse, board && !bodyMet);
                     // (What his leg met comes back up it: he is checked, and it presses him as any impact does.)
@@ -7863,6 +7939,9 @@ namespace PhysicsBattler.Locomotion
 
         private readonly float[] armOut = new float[2];
         private Vector3 armBehind;
+
+        /// <summary>How far his arms were out in the stumble that felled him is forgotten once he is up (<c>FIGHT_ARMSFORGOT=0</c>: kept, as the first build had it: the jump as he stood).</summary>
+        public static bool ArmsOutForgottenOnceUp = true;
 
         /// <summary>For the reports, of the stumble under way or the last one: how far apart his hands were as it began and at the widest (metres), and the furthest a hand was moved out (metres).</summary>
         public float StumbleHandsBegan, StumbleHandsWidest, StumbleArmOutMost;

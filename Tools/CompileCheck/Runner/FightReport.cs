@@ -1184,6 +1184,12 @@ internal static class FightReport
         PhysicsBattler.Locomotion.ClipFighter.BodiesTakeImpacts = Environment.GetEnvironmentVariable("FIGHT_PRESS") != "0";
         // (FIGHT_POUNCE=0: the duel's mover does not pounce on an opening, as before. FIGHT_POUNCEREADS=0.15: how soon he reads one.)
         PhysicsBattler.Sandbox.DuelLab.Pounces = Environment.GetEnvironmentVariable("FIGHT_POUNCE") != "0";
+        if (Environment.GetEnvironmentVariable("FIGHT_ROSETRACE") == "1") PhysicsBattler.Locomotion.ClipFighter.RoseTrace = line => Console.WriteLine("ROSE " + line);
+        PhysicsBattler.Locomotion.ClipFighter.ArmsOutForgottenOnceUp = Environment.GetEnvironmentVariable("FIGHT_ARMSFORGOT") != "0";
+        if (Environment.GetEnvironmentVariable("FIGHT_GOTRACE") == "1") PhysicsBattler.Sandbox.DuelLab.GoTrace = line => Console.WriteLine("GO " + line);
+        // (FIGHT_UNGUARDED=0: a man not in a guard is only ever shoved, as before. FIGHT_KICKKIND=soft|medium|hard.)
+        PhysicsBattler.Locomotion.ClipFighter.UnguardedMenStumble = Environment.GetEnvironmentVariable("FIGHT_UNGUARDED") != "0";
+        PhysicsBattler.Sandbox.DuelLab.GoesForHimAt = float.TryParse(Environment.GetEnvironmentVariable("FIGHT_GOESAT"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float goesAt) ? goesAt : PhysicsBattler.Sandbox.DuelLab.DefaultGoesForHimAt;
         // (FIGHT_DOWNED=1: the duel's mover strikes a man who is down. Off by default, as in the game.)
         PhysicsBattler.Sandbox.DuelLab.StrikesTheDowned = Environment.GetEnvironmentVariable("FIGHT_DOWNED") == "1";
         PhysicsBattler.Sandbox.DuelLab.PounceReadsIn = float.TryParse(Environment.GetEnvironmentVariable("FIGHT_POUNCEREADS"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float pounceReads) ? pounceReads : PhysicsBattler.Sandbox.DuelLab.DefaultPounceReadsIn;
@@ -1924,7 +1930,7 @@ internal static class FightReport
                                     var kickLevers = (Environment.GetEnvironmentVariable("FIGHT_KICKED") ?? "").Split(',');
                                     if (kickLevers.Length > 0 && float.TryParse(kickLevers[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float kickPower)) PhysicsBattler.Locomotion.ClipFighter.KickPower = kickPower;
                                     if (kickLevers.Length > 1 && float.TryParse(kickLevers[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float kickIn)) PhysicsBattler.Locomotion.ClipFighter.KickGoesIn = kickIn;
-                                    Console.WriteLine($"KICK {paceAt:0.00}: {(duel.Mover.Clip.KickAt(duel.Other.Clip, true) ? "begun" : "he could not")}, {bashGapWas:0.00} m apart");
+                                    Console.WriteLine($"KICK {paceAt:0.00}: {(duel.Mover.Clip.KickAt(duel.Other.Clip, true, (Environment.GetEnvironmentVariable("FIGHT_KICKKIND") ?? "soft").Trim().ToLowerInvariant() switch { "hard" => 2, "medium" => 1, _ => 0 }) ? "begun" : "he could not")}, {bashGapWas:0.00} m apart");
                                 }
                                 else
                                 Console.WriteLine($"BASH {paceAt:0.00}: {(duel.Mover.Clip.Bash(duel.Other.Clip, true, bashKind, false, bashExtraAsked) ? "begun" : "he could not")}, {bashGapWas:0.00} m apart");
@@ -1937,7 +1943,7 @@ internal static class FightReport
 
                             if (paceAt >= bashAt + 2.6f && paceAt - dt < bashAt + 2.6f)
                             {
-                                Console.WriteLine($"POUNCE {paceAt:0.00}: {duel.Pounced} ({duel.OpeningsSeen} openings seen, {duel.PounceLeaps} leapt at, {duel.PounceBlows} struck at); the other {(duel.Other.Clip.Fallen ? "is down" : duel.Other.Clip.Stumbling ? "is stumbling" : "stands")}, {Vector3.Distance(duel.Mover.Root.position, duel.Other.Root.position):0.00} m off");
+                                Console.WriteLine($"POUNCE {paceAt:0.00}: {duel.Pounced} ({duel.OpeningsSeen} openings seen, {duel.PounceLeaps} gone for, {duel.PounceBlows} struck at); the other {(duel.Other.Clip.Fallen ? "is down" : duel.Other.Clip.Stumbling ? "is stumbling" : "stands")}, {Vector3.Distance(duel.Mover.Root.position, duel.Other.Root.position):0.00} m off");
                             }
 
                             if (paceAt >= bashAt + 1.2f && paceAt - dt < bashAt + 1.2f)

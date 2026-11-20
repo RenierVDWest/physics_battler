@@ -597,20 +597,205 @@ namespace PhysicsBattler.Sandbox
         }
 
         /// <summary>One step of the lab (the physics step): the order turned into the velocity the mover is steered by.</summary>
+        // ---- Going for him in one motion (20 November, after Renier's look) ----
+
+        /// <summary>
+        /// Going for a man and striking him is one motion (Combat Feel "He Goes For Him At"; <c>FIGHT_GOESAT=3.6</c>).
+        /// Renier, 20 November, of the first build, which leapt in, landed, and then struck: "he ran, stopped then
+        /// attacked. That won't work. Similar to how the turn around and attack needed to be one motion so will this."
+        /// Now he runs at the spot, and while he is still running throws the blow so that it lands as he comes into
+        /// reach: thrown on the move, over his run (<see cref="PhysicsBattler.Locomotion.AttackOnTheMove"/>). He keeps
+        /// coming through the blow and stops at arm's length. From any distance: a man knocked far is run after.
+        /// Both the pounce and the blow at a man who is down go this way.
+        /// </summary>
+        public static float GoesForHimAt = DefaultGoesForHimAt;
+
+        /// <summary>How fast he goes for him (m/s at a Medium's size), how far from the spot the blow is meant to land from, and how long the blow is taken to need from thrown to landed (metres at a Medium's size; seconds): he throws it that long before he is in reach.</summary>
+        public const float DefaultGoesForHimAt = 3.6f, GoStrikesFrom = 1.1f, GoBlowTakes = 0.5f;
+
+        /// <summary>The blow he throws on the run is one that lands within this long, if he has one (seconds).</summary>
+        public const float GoBlowLandsWithin = 0.75f;
+
+        /// <summary>For the reports: each step of a blow thrown on the run, until it lands.</summary>
+        public static System.Action<string> GoTrace;
+
+        private bool going, goThrown, goLanded, goUpToSpeed;
+        private PhysicsBattler.Locomotion.AimSpot goSpot;
+        private PhysicsBattler.Locomotion.AttackClass goKind;
+        private float goFor, goUntil, goRan, goFastest, goThrownAt, goSlowest, goGapWas, goLandedGoing, goLandedFrom;
+        private string goWhy = "", goSaid = "", goMetBefore = "";
+        private System.Action<string, bool> goTold;
+        private System.Func<bool> goMayThrow, goOff;
+
+        /// <summary>He is going for the other now (the lab's orders wait).</summary>
+        public bool Going => going;
+
+        /// <summary>For the panel: what he is doing as he goes for him.</summary>
+        public string GoingNow => !going ? "" : goThrown ? (goLanded ? "the blow has landed" : "the blow is thrown, he keeps coming") : "running at him";
+
+        /// <param name="mayThrow">The blow waits for this (null: thrown as soon as he is near enough): until then he keeps coming, and stands at his striking distance.</param>
+        /// <param name="off">It is called off when this turns true before the blow is thrown (null: never).</param>
+        private void GoFor(string why, PhysicsBattler.Locomotion.AimSpot spot, PhysicsBattler.Locomotion.AttackClass kind, float atMost, float gap, System.Action<string, bool> told, System.Func<bool> mayThrow = null, System.Func<bool> off = null)
+        {
+            going = true;
+            goThrown = goLanded = goUpToSpeed = false;
+            goFor = goRan = goFastest = 0f;
+            goSlowest = float.MaxValue;
+            goUntil = atMost;
+            goWhy = why;
+            goSpot = spot;
+            goKind = kind;
+            goGapWas = gap;
+            goTold = told;
+            goMayThrow = mayThrow;
+            goOff = off;
+        }
+
+        private void EndGoing(string said, bool struck)
+        {
+            going = false;
+            var told = goTold;
+            goTold = null;
+            goMayThrow = goOff = null;
+            if (Mover != null)
+            {
+                Mover.DummyGo = null;
+                Mover.DummySpot = Mover.Root.position;
+            }
+
+            told?.Invoke(said, struck);
+        }
+
+        /// <summary>A step of going for him. True while it has the mover's legs (his order waits).</summary>
+        private bool StepGoing(float dt)
+        {
+            if (!going)
+            {
+                return false;
+            }
+
+            var mine = Mover != null ? Mover.Clip : null;
+            var his = Other != null ? Other.Clip : null;
+            goFor += dt;
+            var inv = System.Globalization.CultureInfo.InvariantCulture;
+            if (mine == null || his == null || mine.Fallen || mine.Stumbling)
+            {
+                EndGoing(goWhy + ": he could not go on (down or stumbling himself)", false);
+                return false;
+            }
+
+            Vector3 spot = PhysicsBattler.Locomotion.AimSpots.Point(his, goSpot);
+            Vector3 to = Flat(spot - Mover.Root.position);
+            float gap = to.magnitude;
+            Vector3 way = gap > 1e-3f ? to / gap : Vector3.forward;
+            float size = mine.Size, from = GoStrikesFrom * size, pace = GoesForHimAt * Mathf.Sqrt(Mathf.Max(0.1f, size));
+            float speed = Flat(mine.Loco.Velocity).magnitude;
+            mine.WalksOn = true;
+            // (His own bash or kick has done its work: he does not stand through the rest of it.)
+            mine.CutBashShort();
+            mine.CutKickShort();
+            if (!goThrown)
+            {
+                if (goOff != null && goOff())
+                {
+                    EndGoing(string.Format(inv, "{0}, {1:0.00} m off: he went {2:0.00} m toward him, and it was over before he was near enough", goWhy, goGapWas, goRan), false);
+                    return false;
+                }
+
+                if (goFor > goUntil)
+                {
+                    EndGoing(string.Format(inv, "{0}, {1:0.00} m off: he went {2:0.00} m toward him and was not in reach in {3:0.0} s", goWhy, goGapWas, goRan, goUntil), false);
+                    return false;
+                }
+
+                // (He runs at him, and does not run onto him: with the blow still to wait for, he comes to his striking distance and no nearer.)
+                Mover.DummyGo = way * Mathf.Clamp(4f * (gap - from), -0.5f * pace, pace);
+                goRan += speed * dt;
+                goFastest = Mathf.Max(goFastest, speed);
+                if (speed >= 0.6f * pace)
+                {
+                    goUpToSpeed = true;
+                    goSlowest = float.MaxValue;
+                }
+                else if (goUpToSpeed)
+                {
+                    goSlowest = Mathf.Min(goSlowest, speed);
+                }
+
+                bool free = !mine.Striking && !mine.Bashing && !mine.Kicking && mine.Loco.Ready && mine.Loco.Current != PhysicsBattler.Locomotion.Locomotor.Mode.OneShot;
+                // (Thrown while he is still coming, as long before he is in reach as the blow takes.)
+                if (free && gap <= from + speed * GoBlowTakes && (goMayThrow == null || goMayThrow()))
+                {
+                    goMetBefore = mine.Strikes != null ? mine.Strikes.Last : "";
+                    // (A blow that lands as he arrives: not one whose wind-up he would have to stand and wait through.)
+                    PhysicsBattler.Locomotion.AttackOnTheMove.LandsWithin = GoBlowLandsWithin;
+                    bool thrown = Mover.AimStrike(Other, goSpot, out string strike, out float miss, kind: goKind);
+                    PhysicsBattler.Locomotion.AttackOnTheMove.LandsWithin = 0f;
+                    if (thrown)
+                    {
+                        goThrown = true;
+                        goThrownAt = goFor;
+                        goSlowest = Mathf.Min(goSlowest, speed);
+                        goSaid = string.Format(inv, "{0}, {1:0.00} m off: he {2}, and threw the blow {3:0.00} s after he set off, {4:0.00} m from the spot ({5} cm over the ground), going {6:0.0} m/s ({7}{8}; {9})",
+                            goWhy, goGapWas, goRan > 0.3f ? string.Format(inv, "ran {0:0.00} m at up to {1:0.0} m/s", goRan, goFastest) : "was in reach",
+                            goFor, gap, Mathf.RoundToInt(100f * (spot.y - Mover.Root.position.y)), speed, strike,
+                            mine.MovedPlanted ? ", planted for it" : mine.Loco.ShotOverWalk ? ", thrown over his run" : ", thrown from his stand",
+                            miss > 0.005f ? string.Format(inv, "expected to fall {0:0} cm short", 100f * miss) : "expected to reach");
+                    }
+                }
+
+                return true;
+            }
+
+            // (Through the blow he keeps coming; once it has landed he stops.)
+            var made = mine.Made;
+            bool landed = made != null && mine.Loco.Current == PhysicsBattler.Locomotion.Locomotor.Mode.OneShot && mine.Loco.Shot == made.Clip && mine.Loco.ShotTime >= made.ContactAt;
+            if (!goLanded && (landed || !mine.Striking))
+            {
+                goLanded = true;
+                goLandedGoing = speed;
+                goLandedFrom = gap;
+            }
+
+            if (!goLanded)
+            {
+                goSlowest = Mathf.Min(goSlowest, speed);
+                // (He comes on so as to be at his striking distance as it lands, wherever the other has got to by then.)
+                float left = made != null && mine.Loco.Shot == made.Clip ? Mathf.Max(0.08f, (made.ContactAt - mine.Loco.ShotTime) / Mathf.Max(0.2f, Mathf.Abs(mine.Loco.ShotSpeed))) : 0.2f;
+                Mover.DummyGo = way * Mathf.Clamp((gap - from) / left, 0f, pace);
+                GoTrace?.Invoke(string.Format(inv, "{0:0.00} s: {1:0.00} m from the spot, going {2:0.00} m/s, asked {3:0.00}; the blow {4:0.00} s in, lands at {5:0.00}, speed {6:0.00}, planned to land in {7:0.00}; legs {8}, over his walk {9}",
+                    goFor - goThrownAt, gap, speed, Mover.DummyGo.Value.magnitude, mine.Loco.ShotTime, made != null ? made.ContactAt : -1f, mine.Loco.ShotSpeed, made != null ? made.Asked.LandIn : -1f, mine.Loco.Legs, mine.Loco.ShotOverWalk));
+            }
+            else
+            {
+                Mover.DummyGo = Vector3.zero;
+            }
+
+            if (!mine.Striking && goFor > goThrownAt + 0.25f)
+            {
+                string met = mine.Strikes != null && mine.Strikes.Last != goMetBefore ? mine.Strikes.Last : "";
+                EndGoing(goSaid + string.Format(inv, "; from up to speed until it landed he never went slower than {0:0.0} m/s; it landed with him going {1:0.0} m/s, {2:0.00} m from the spot; {3}",
+                    goSlowest > 1e6f ? speed : goSlowest, goLandedGoing, goLandedFrom, met.Length > 0 ? "it met: " + (met.Length > 90 ? met.Substring(0, 90) : met) : "it met nothing"), true);
+                return false;
+            }
+
+            return true;
+        }
+
         // ---- A man who is down (the Downed play plan, a first piece of its steps 0 and 1: 20 November) ----
 
         /// <summary>
         /// He strikes a man who is down (Combat Feel "A Fighter Strikes A Man Who Is Down"; off by default: he holds off,
         /// as the game does today, and whether fighters should is a decision of Renier's still open). On, or asked for
-        /// once from the lab ("Strike him where he lies"): while the other is off his feet and within 6 m, the mover,
-        /// as soon as he is free, goes to striking distance of his chest and strikes down at it with the blows there
-        /// are today, aimed at the spot where it lies. The plan's first question: can a made blow be aimed at the
-        /// ground at all. Once for each time he is down.
+        /// once from the lab ("Strike him where he lies", or the one-press "Knock him down and strike him"): once the
+        /// other lies off his feet, the mover runs to him from wherever he is and strikes down at his chest as he
+        /// arrives, in one motion (<see cref="GoesForHimAt"/>), with the blows there are today aimed at the spot where
+        /// it lies. Once for each time he is down.
         /// </summary>
         public static bool StrikesTheDowned = false;
 
-        /// <summary>From how far off he goes for a man who is down, and how far from the spot he strikes from (metres at a Medium's size). (A man kicked or bashed down lands 3.5 m and more off: the plan's "near", 3 m, would leave him be.)</summary>
-        public const float DownedNear = 6f, DownedStrikesFrom = 1.05f;
+        /// <summary>From how far off he goes for a man who is down (metres at a Medium's size): as far as a hard bash throws one, and more.</summary>
+        public const float DownedNear = 20f;
 
         /// <summary>Asked from the lab: the next time the other is down, he is struck once, whatever the switch says.</summary>
         public bool StrikeDownedOnce;
@@ -619,10 +804,9 @@ namespace PhysicsBattler.Sandbox
         public string DownedStruck { get; private set; } = "none yet";
         public int DownedBlows { get; private set; }
 
-        private bool downedDone, downedLeapt;
-        private int downedLeaps;
+        private bool downedDone;
 
-        /// <summary>How long he must have been down, and how low his chest must lie, before he is gone for (seconds; metres at a Medium's size).</summary>
+        /// <summary>How long he must have been down, and how low his chest must lie, before he is gone for (seconds; metres at a Medium's size): gone for while he was still in the air, the blow fell a metre short.</summary>
         public const float DownedLiesFor = 0.45f, DownedLiesUnder = 0.5f;
         private float downedFor = -1f;
 
@@ -632,65 +816,44 @@ namespace PhysicsBattler.Sandbox
             var his = Other != null ? Other.Clip : null;
             if (mine == null || his == null || !his.Fallen)
             {
-                downedDone = downedLeapt = false;
-                downedLeaps = 0;
+                downedDone = false;
                 downedFor = -1f;
                 return;
             }
 
             downedFor = downedFor < 0f ? 0f : downedFor + dt;
-            if (downedDone || !(StrikesTheDowned || StrikeDownedOnce))
+            if (downedDone || going || !(StrikesTheDowned || StrikeDownedOnce) || mine.Fallen || mine.Stumbling)
             {
                 return;
             }
 
             Vector3 spot = PhysicsBattler.Locomotion.AimSpots.Point(his, PhysicsBattler.Locomotion.AimSpot.Chest);
-            Vector3 to = Flat(spot - Mover.Root.position);
-            float gap = to.magnitude;
-            // (Not while he is still falling: gone for at once, the other was still in the air and slid on a metre and
-            // more, and the blow fell 78 to 115 cm short.)
-            if (gap > DownedNear * mine.Size || downedFor < DownedLiesFor || spot.y - Mover.Root.position.y > DownedLiesUnder * his.Size)
+            float gap = Flat(spot - Mover.Root.position).magnitude;
+            if (gap > DownedNear * mine.Size)
             {
                 return;
             }
 
-            bool free = !mine.Fallen && !mine.Stumbling && !mine.Striking && !mine.Kicking && mine.Loco.Ready
-                && mine.Loco.Current != PhysicsBattler.Locomotion.Locomotor.Mode.OneShot;
-            mine.CutBashShort();
-            if (!free)
-            {
-                return;
-            }
-
-            Vector3 way = gap > 1e-3f ? to / gap : Vector3.forward;
-            float from = DownedStrikesFrom * mine.Size;
-            if (gap > from + 0.2f * mine.Size && downedLeaps < 2)
-            {
-                float far = gap - from;
-                var quick = new PhysicsBattler.Locomotion.LeapStyle { Crouch = 0.5f, Height = 0.4f, Lean = 16f, Arms = 0f, Body = 0.6f, PrepTime = 0.08f, PushTime = 0.08f, LandTime = 0.08f, BackTime = 0.1f };
-                if (mine.LeapMade(way, far / mine.Size, Mathf.Clamp(far / PounceLeapSpeed, 0.15f, 0.5f), quick))
+            // (He sets off at once, while the other is still falling: the blow waits until he lies.)
+            downedDone = true;
+            StrikeDownedOnce = false;
+            GoFor("the other down", PhysicsBattler.Locomotion.AimSpot.Chest, PhysicsBattler.Locomotion.AttackClass.Plain,
+                gap / Mathf.Max(0.5f, GoesForHimAt) + 4f, gap, (said, struck) =>
                 {
-                    downedLeapt = true;
-                    downedLeaps++;
-                    DownedStruck = string.Format(System.Globalization.CultureInfo.InvariantCulture, "the other down {0:0.00} s, his chest {1:0.00} m off and {2:0} cm over the ground: he leapt {3:0.00} m in", downedFor, gap, 100f * (spot.y - Mover.Root.position.y), far);
-                }
+                    DownedStruck = said;
+                    if (struck)
+                    {
+                        DownedBlows++;
+                    }
 
-                return;
-            }
-
-            if (Mover.AimStrike(Other, PhysicsBattler.Locomotion.AimSpot.Chest, out string strike, out float miss))
-            {
-                downedDone = true;
-                StrikeDownedOnce = false;
-                DownedBlows++;
-                DownedStruck = (downedLeapt ? DownedStruck + ", and " : string.Format(System.Globalization.CultureInfo.InvariantCulture, "the other down {0:0.00} s: he ", downedFor))
-                    + string.Format(System.Globalization.CultureInfo.InvariantCulture, "struck down at his chest from {0:0.00} m, the spot {1:0} cm over the ground ({2}; {3})",
-                        gap, 100f * (spot.y - Mover.Root.position.y), strike, miss > 0.005f ? string.Format(System.Globalization.CultureInfo.InvariantCulture, "the blade expected to fall {0:0} cm short of it", 100f * miss) : "the blade expected to reach it");
-                if (PhysicsBattler.Diagnostics.PlaytestTrace.Enabled)
-                {
-                    PhysicsBattler.Diagnostics.PlaytestTrace.Note(Mover, "downed", DownedStruck);
-                }
-            }
+                    if (PhysicsBattler.Diagnostics.PlaytestTrace.Enabled)
+                    {
+                        PhysicsBattler.Diagnostics.PlaytestTrace.Note(Mover, "downed", said);
+                    }
+                },
+                () => Other != null && Other.Clip != null && downedFor >= DownedLiesFor
+                    && PhysicsBattler.Locomotion.AimSpots.Point(Other.Clip, PhysicsBattler.Locomotion.AimSpot.Chest).y - Mover.Root.position.y <= DownedLiesUnder * Other.Clip.Size,
+                () => Other == null || Other.Clip == null || !Other.Clip.Fallen);
         }
 
         // ---- The pounce (the fight rhythm plan's step 10: a first build, 20 November) ----
@@ -698,31 +861,26 @@ namespace PhysicsBattler.Sandbox
         /// <summary>
         /// He pounces on an opening (Combat Feel "A Fighter Pounces On An Opening"; the duel lab only until the fight of
         /// six takes it; <c>FIGHT_POUNCE=0</c> for the old way). The other stumbling, his guard knocked open, or his
-        /// back turned is an opening. The mover, as soon as he is free of what he was doing, goes for it: out of
-        /// reach he leaps in to striking distance, and in reach he strikes at once, a light blow at the chest. Once
-        /// for each opening. A man on the ground is not an opening here: that is Downed play. Before, he stood off at
-        /// his guard's distance after a bash and let the other find his feet.
+        /// back turned is an opening. The mover goes for it: he runs in and strikes as he arrives, in one motion
+        /// (<see cref="GoesForHimAt"/>), a light blow at the chest; in reach he strikes from where he stands. Once for
+        /// each opening. A man on the ground is not an opening here: that is Downed play. Before, he stood off at his
+        /// guard's distance after a bash and let the other find his feet.
         /// </summary>
         public static bool Pounces = true;
 
-        /// <summary>How soon he reads an opening (seconds: the lever "Pounce reads in"), from how far off he will go for it and how far off he strikes from (metres at a Medium's size), how fast his leap in is (m/s), and how far round the other must be turned from him for his back to count (degrees).</summary>
+        /// <summary>How soon he reads an opening (seconds: the lever "Pounce reads in"), from how far off he will go for it (metres at a Medium's size), how long he keeps coming once he has set off, and how far round the other must be turned from him for his back to count (degrees).</summary>
         public static float PounceReadsIn = DefaultPounceReadsIn;
 
-        public const float DefaultPounceReadsIn = 0.15f, PounceFromAtMost = 4.5f, PounceStrikesFrom = 1.35f, PounceLeapSpeed = 6f, PounceBackTurned = 120f;
+        public const float DefaultPounceReadsIn = 0.15f, PounceFromAtMost = 6f, PounceCommitted = 1.6f, PounceBackTurned = 120f;
 
-        /// <summary>For the panel and the reports: what the last pounce was, and how many openings were seen, leapt at and struck at.</summary>
+        /// <summary>For the panel and the reports: what the last pounce was, and how many openings were seen, gone for and struck at.</summary>
         public string Pounced { get; private set; } = "none yet";
         public int OpeningsSeen { get; private set; }
         public int PounceLeaps { get; private set; }
         public int PounceBlows { get; private set; }
 
         private float openFor = -1f;
-        private bool pounceLeapt, pounceStruck;
-        private string openWhy = "";
-        private float pounceGapWas, pounceLeaptAt;
-
-        /// <summary>How long after he leapt the blow may still follow though the opening has closed (seconds).</summary>
-        public const float PounceCommitted = 1.2f;
+        private bool pounceGone;
 
         private void StepPounce(float dt, Vector3 to)
         {
@@ -739,15 +897,11 @@ namespace PhysicsBattler.Sandbox
             Vector3 way = gap > 1e-3f ? to / gap : Vector3.forward;
             float turned = Mathf.Abs(Mathf.DeltaAngle(his.Loco.Facing, Mathf.Atan2(-way.x, -way.z) * Mathf.Rad2Deg));
             string why = his.Fallen ? "" : his.Stumbling ? "he was stumbling" : his.GuardOpen ? "his guard was knocked open" : turned >= PounceBackTurned ? "his back was turned" : "";
-            // (Once he has leapt he is committed: the blow follows as he lands, whether the other has found his feet by
-            // then or not, for a moment longer.)
-            bool committed = openFor >= 0f && pounceLeapt && !pounceStruck && openFor < pounceLeaptAt + PounceCommitted;
-            if (why.Length == 0 && !committed)
+            if (why.Length == 0)
             {
-                if (openFor >= 0f && !pounceStruck)
+                if (openFor >= 0f && !pounceGone)
                 {
-                    Pounced = pounceLeapt ? Pounced + "; the other had found his feet and stepped clear before he could strike"
-                        : $"an opening ({openWhy}) closed after {openFor:0.00} s before he was free to take it";
+                    Pounced = $"an opening closed after {openFor:0.00} s before he was free to take it";
                 }
 
                 openFor = -1f;
@@ -757,61 +911,33 @@ namespace PhysicsBattler.Sandbox
             if (openFor < 0f)
             {
                 openFor = 0f;
-                openWhy = why;
-                pounceLeapt = pounceStruck = false;
-                pounceGapWas = gap;
+                pounceGone = false;
                 OpeningsSeen++;
             }
 
             openFor += dt;
-            if (pounceStruck || openFor < PounceReadsIn || gap > PounceFromAtMost * mine.Size)
+            if (pounceGone || going || openFor < PounceReadsIn || gap > PounceFromAtMost * mine.Size || mine.Fallen || mine.Stumbling)
             {
                 return;
             }
 
-            // (His own bash has done its work: he does not stand through the rest of it.)
-            mine.CutBashShort();
-
-            // (Free of what he was doing: not down or stumbling himself, not in a blow, a bash, a kick or a leap.)
-            bool free = !mine.Fallen && !mine.Stumbling && !mine.Striking && !mine.Bashing && !mine.Kicking && mine.Loco.Ready
-                && mine.Loco.Current != PhysicsBattler.Locomotion.Locomotor.Mode.OneShot;
-            if (!free)
+            pounceGone = true;
+            PounceLeaps++;
+            GoFor(why, PhysicsBattler.Locomotion.AimSpot.Chest, PhysicsBattler.Locomotion.AttackClass.Light, PounceCommitted, gap, (said, struck) =>
             {
-                return;
-            }
-
-            float from = PounceStrikesFrom * mine.Size;
-            if (gap > from + 0.15f * mine.Size && !pounceLeapt)
-            {
-                float far = gap - from;
-                float flight = Mathf.Clamp(far / PounceLeapSpeed, 0.15f, 0.5f);
-                // (A quick, low leap: little crouch before it and little settling after, so the blow can follow at once.)
-                var quick = new PhysicsBattler.Locomotion.LeapStyle { Crouch = 0.5f, Height = 0.4f, Lean = 16f, Arms = 0f, Body = 0.6f, PrepTime = 0.08f, PushTime = 0.08f, LandTime = 0.08f, BackTime = 0.1f };
-                if (mine.LeapMade(way, far / mine.Size, flight, quick))
+                Pounced = said;
+                if (struck)
                 {
-                    pounceLeapt = true;
-                    pounceLeaptAt = openFor;
-                    PounceLeaps++;
-                    Pounced = string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0}, {1:0.00} m off: he leapt {2:0.00} m in {3:0.00} s after it began", openWhy, pounceGapWas, far, openFor);
+                    PounceBlows++;
                 }
 
-                return;
-            }
-
-            if (Mover.AimStrike(Other, PhysicsBattler.Locomotion.AimSpot.Chest, out string strike, out float miss, kind: PhysicsBattler.Locomotion.AttackClass.Light))
-            {
-                pounceStruck = true;
-                PounceBlows++;
-                Pounced = (pounceLeapt ? Pounced + ", and " : openWhy + string.Format(System.Globalization.CultureInfo.InvariantCulture, ", {0:0.00} m off: he ", pounceGapWas))
-                    + string.Format(System.Globalization.CultureInfo.InvariantCulture, "struck at his chest {0:0.00} s after it began, from {1:0.00} m ({2}{3}), the other {4}",
-                        openFor, gap, strike, miss > 0.005f ? string.Format(System.Globalization.CultureInfo.InvariantCulture, ", short by {0:0} cm", 100f * miss) : "",
-                        his.Stumbling ? "still stumbling" : his.GuardOpen ? "his guard still open" : turned >= PounceBackTurned ? "with his back still turned" : "on his feet again");
                 if (PhysicsBattler.Diagnostics.PlaytestTrace.Enabled)
                 {
-                    PhysicsBattler.Diagnostics.PlaytestTrace.Note(Mover, "pounce", Pounced);
+                    PhysicsBattler.Diagnostics.PlaytestTrace.Note(Mover, "pounce", said);
                 }
-            }
+            }, null, () => Other == null || Other.Clip == null || Other.Clip.Fallen);
         }
+
 
         /// <summary>What the mover leaves open to the other, as it is now (looked at ten times a second while the lab runs).</summary>
         public readonly System.Collections.Generic.List<PhysicsBattler.Locomotion.Openings.Seen> Open = new System.Collections.Generic.List<PhysicsBattler.Locomotion.Openings.Seen>();
@@ -1067,6 +1193,12 @@ namespace PhysicsBattler.Sandbox
             {
                 // (An order to walk up, back away or go round is a walk kept up: walked, not stepped.)
                 Mover.Clip.WalksOn = Now == Order.WalkTo || Now == Order.BackAway || Now == Order.CircleLeft || Now == Order.CircleRight;
+            }
+
+            // (Going for a man, his order waits: his legs are the run's.)
+            if (StepGoing(dt))
+            {
+                return;
             }
 
             if (leaping)
