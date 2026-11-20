@@ -217,7 +217,7 @@ Forehand and rising backhand run between two corners and back: that is the figur
 | Rising backhand, then forehand | 24 cm | Joins with a small loop: the point rolls over the shoulder |
 | Flat backhand, then chop | The blade ends out to the right, still moving at 3 to 7 m/s | Joins with a loop over the head |
 | Chop, then rising backhand | 37 to 53 cm | Joins as it is |
-| Thrust, then flat backhand | 22 to 25 cm | Joins. The thrust comes back high on the left |
+| Thrust, then spinning backhand | 22 to 25 cm | Joins. The thrust comes back high on the left |
 
 A first reading from the mocap takes, with the blade worked out from the hand's bones. The quick forehand is a take we own but have not baked yet.
 
@@ -270,7 +270,7 @@ Not chance. A combo starts when a light cut lands, or when something has opened 
 
 ## The first combos
 
-Eight combos can be built from recordings we already have. The first two need nothing new but the join.
+Eight combos can be built from recordings we already have. The first needs nothing new but the join.
 
 | Combo | The blows | What it still needs |
 | --- | --- | --- |
@@ -300,12 +300,12 @@ Seven steps, in the duel lab first and the dance after. Step 2 is the hard one: 
 | **3. Three blows and the big one** | Light, plain, heavy. The loops over the shoulder and over the head. The last blow's step, its longer freeze, its bigger throw, and how it grows with the blows before it. The chop and the spin as last blows. The stab follows a man who is floored | "Combo: 2 / 3 blows" and "Last blow: forehand / chop / spin" | 1.15 s or less from the first hit to the third. The last hit throws him at least twice as hard as the first. He is floored, or stumbles 3 m or more |
 | **4. Against a man who defends** | Each blow is aimed at what the last one opened. A blocked blow bounces into the next line. A clean parry, a blow into the last wind-up, or distance ends the combo. The last blow on a shield knocks the guard open | Dummy: "No guard / Shield up / Parries". "A blocked blow: flows on / backs out (old)" | Against a shield, more combos get a blow onto the body than single attacks do now. A parried combo always ends. No more of the sword passing through his own shield than today |
 | **5. The dance fights with combos** | Fighters start combos by themselves: after a bash or kick that opened him, after a light blow that landed, on his stumble, into his heavy wind-up. Each named dancer gets his own habits and his own combo length | "Combos (dance): on / off", and a readout for each dancer | Over four dances of 70 s: combos started and finished, the share of blows that land, men floored. The dance's budgets no worse than today |
-| **6. The show** | Streaks that grow with each blow, a swish that rises, the deep hit, a camera kick on the last blow, and a short slow-motion beat when it floors him | A switch for each | Mostly your eyes in Unity. Headless only counts that each cue fired |
+| **6. The show** | Streaks that grow with each blow, a swish that rises, the deep hit, a camera kick on the last blow, a short slow-motion beat when it floors him, and a spark and a ring when a blow is blocked | A switch for each | Mostly your eyes in Unity. Headless only counts that each cue fired |
 | **7. More cuts** | Bake the quick forehand, a flat forehand and a low cut from the packs we own. New combos: three flat cuts, high then low, a leg sweep as a last blow | The new cuts by name in the lab | The report from step 1, run again with the new cuts |
 
 Every step comes the usual way: a Combat Feel switch with a tooltip, old against new in the lab, headless numbers, a README entry, a note here, the briefing brought up to date, a commit and a push, the panel's "Look here" list, and a 3b2b.
 
-Only when you say: the fight of six, where a combo can spread across several men. Later still: Large and Small bodies, longer combos and special last blows by star level, bodies thrown into other men, and a player's hand on a fighter.
+Only when you say: the fight of six, where a combo can spread across several men. Later still: a parry that flows straight into the defender's own combo, Large and Small bodies, longer combos and special last blows by star level, bodies thrown into other men, and a player's hand on a fighter.
 
 One thing is settled before step 1. You decided today that a fighter goes for a man who is down. It becomes the default in the duel lab as well as the dance. It stays out of the fight of six.
 

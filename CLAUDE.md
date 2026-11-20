@@ -473,6 +473,7 @@ goes with the keys (old)". Waiting for his eye.
   forehand, rising backhand, thrust, spinning backhand, and two chops (a spinning leap and a 3.6 m lunge). The flat
   backhand exists only as a slice of the combo take. A blade's limit is 30 m/s (`PhysicalBladeSpeed`), paced for
   24.
+- Its film (3b2b, made by Opus at medium effort): https://claude.ai/artifact/T6S2n1EfFLszkRJWMsRRW7
 - **The old combo system** (`ComboPlayer`, `StrikeCores`, `StrikeCombos`, `UnitCombo`) is untouched and still runs
   in the fight of six. The new plan does not use it: it plays the cores of recorded clips as they are (from
   0.18 to 0.30 s before the hit to 0.18 to 0.35 s after it: `StrikeCores.ExitAfter`, `MostFollowThrough`) and fades

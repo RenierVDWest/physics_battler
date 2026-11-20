@@ -80,13 +80,27 @@ keep it in the dance for now".** Pushed about midday on the 20th, headless only,
 - The pounce goes for what is open, and a stumbling man cannot guard (duel lab and dance only: for everyone it
   broke the six's crossing budget).
 - In the dance, by themselves: pounces, kicks (for space, and as a guard-breaker), and going for a man who is down
-  (**on in the dance only**: whether fighters hold off is still my decision). `RunIn` in `DuelLab.cs` is the
-  running-in; each dancer has one.
+  (decided since: see below). `RunIn` in `DuelLab.cs` is the running-in; each dancer has one.
 - Its film: https://claude.ai/artifact/JfCuCLnTgYQgfyaUB1WJ3C
 - **Not reached, and I asked for it: the get-up leftovers** (the first three lines of "rough" below).
-- The panel's "Look here" list is that push (seven steps, fourteen names; all drawn in the duel lab).
+
+**I looked at the midday push (my log of 13:59) and said at 16:11: "all this looks fine for now. I do want a fighter
+to go for a man that is down."** So:
+- A fighter goes for a man who is down: now the default in the duel lab as well as the dance (Combat Feel "A Fighter
+  Goes For A Man Who Is Down"; lab row "A man who is down: he goes for him / he holds off (old)"). Not the fight of
+  six. In my log's dance a man went down 12 times and the other went for him 12 times; 8 stabs met body or head.
+- I asked for a deep research document and plan for combos, with five goals (one fluid motion; each blow starting
+  where the last one's blade ended; follow-through; epic and powerful; the last blow the biggest). It is written:
+  `Docs/Plans/2026-11-20-combos-that-flow-and-end-in-a-bang-research-and-plan.md`. **Nothing of it is built.**
+- Its film: https://claude.ai/artifact/T6S2n1EfFLszkRJWMsRRW7
+- The panel's "Look here" list is the decision's push (four steps, six names; all drawn).
 
 ## What to do now, in this order
+
+**0. Combos, when I say go:** step 1 of the combos plan (the blade's path drawn in the duel lab, and a headless
+report of every recording's corners and joins: `Tools/Mocap/Combat/flow` holds the scratch scripts it grows from),
+then step 2 (two blows as one swing). The plan's table has each step's lab buttons and pass marks, and the defaults
+I was told would be taken unless I say otherwise. Do not start it before I say go.
 
 **1. If I have looked and pushed logs:** work my notes in first, one at a time. Read my pose log step by step, not
 only the report lines: on 19 November the report said a get-up was fine while my log showed him falling off the
@@ -102,7 +116,8 @@ out of `units/*.pose.csv.gz`.
 - The pounce's blow is still stopped after a small or medium bash (two of four land).
 - A struck man's sword arm goes through his own board (the hit reaction): it is why a stumbling man's open guard
   could not go into the six, and it shows more in the dance now.
-- Going for a man who is down has not been seen in a dance (nobody went down in the test dances).
+- Going for a man who is down in a dance: seen only in my Unity log of 13:59 (12 of 12 gone for, 8 stabs landed, 3
+  met nothing, 1 too late; several landed on a man already rising). Never in a headless dance.
 - The kick lands 112 cm up for all three strengths (one recording): high for a front kick.
 
 **3. Left on the get-up plan:** the trunk's turn in the gather (`ClipFighter.GatherTurns`, built, off: at 0.25 it
