@@ -68,6 +68,7 @@ and striking must be one motion, and a man knocked far must be run after; and I 
 - The jump as he stands was last night's arms-out kept through a fall; mended. **The lab's falls on demand could
   not show it: measure a get-up after a real knock-down** (`FIGHT_KICK=1 FIGHT_KICKKIND=hard`).
 - "Slow motion" in the lab.
+- Its film: https://claude.ai/artifact/N5MwJrqpxuP8x1ZEeqDxs8
 - The panel's "Look here" list is this pass (seven steps, thirteen names; checked in the tubes and duel labs).
 
 ## What to do now, in this order

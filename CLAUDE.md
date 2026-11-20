@@ -258,6 +258,7 @@ smoothly, the shield giving way to the sword.
     without a stumble, so the measure of the night could not see it. Measure a get-up after a real knock-down.**
   - **Slow motion:** lab row in "Stumbles and falls" (full, half, a quarter, a tenth).
   - Sixes (40 s, seeds 5 and 7): all budgets kept (the old way was over on seed 5).
+  - Its film (3b2b, made by Opus at medium effort): https://claude.ai/artifact/N5MwJrqpxuP8x1ZEeqDxs8
 - **The night's two films** (3b2b, made by Opus at medium effort): the get-up,
   https://claude.ai/artifact/686Uo8dQEjeAjPCj1q8aHm ; the five first builds after it,
   https://claude.ai/artifact/KjzrrmCJAUsAwrSp4XBNnR . Their notes are the chat's morning update.
