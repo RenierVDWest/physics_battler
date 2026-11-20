@@ -7487,3 +7487,99 @@ headless bash and kick tests print a `DOWNED` line 4.4 s after).
   in the fight of six.
 - **Not seen in Unity.**
 
+
+### 20 November, 08:30: the second pass after his look: one motion, three kicks, a bare-handed man falls, the jump as he stands
+
+He looked at the night's work in Unity (three logs, 06:28 to 06:42) and said: the unarmed dummy "stumbles back
+pretty far with legs moving pretty fast, where I would expect it to fall"; the kick works, "let's also have soft,
+medium and hard. The current one is soft. I want hard to be hard enough to kick the enemy making it fall
+backwards"; a man who is down he saw once and wants a test scenario for; "if an enemy is knocked back far he needs
+to run after it", and "he ran, stopped then attacked. That won't work... his running at the fallen enemy, and
+attacking it must be one motion without a pause in between". All of it headless only below, unless it says his log.
+
+**1. Running in and striking is one motion** (`DuelLab.GoFor` / `StepGoing`; Combat Feel "He Goes For Him At",
+3.6 m/s; the lab lever of the same name; `FIGHT_GOESAT`; `FIGHT_GOTRACE=1` prints each step of the blow).
+
+- The first build leapt in, landed, and then struck (his log, 427.75 s: "leapt 0.29 m and struck from 1.36 m").
+  Now he runs at the spot, and **while he is still running** throws the blow, half a second's run before he is in
+  reach, over his run (the blow on the move that the walk already had, `AttackOnTheMove`). Through the blow he is
+  paced to be at his striking distance (1.1 m) as it lands; then he stops.
+- Both use it: the pounce on an opening, and the blow at a man who is down.
+- **A man who is down is run after from any distance** (was: within 6 m, after he lay). He sets off the moment
+  the other is off his feet; only the blow waits until he lies (down 0.45 s, chest under 50 cm).
+- Of the blows he could throw on the run he takes the best of those that **land within 0.75 s**
+  (`AttackOnTheMove.LandsWithin`, set for this asking only). Found on the way: left to itself the planner took a
+  rising cut that landed 1.32 s later, and he was at his distance and stood 0.5 s waiting for it: his "ran, stopped,
+  then attacked" again, by another road.
+- His own bash or kick is dropped once it has landed (`CutBashShort`, new `CutKickShort`), so he does not stand
+  through the rest of it.
+- **One-press tests** (his "we need to set up a test scenario"): duel lab, "Stumbles and falls", row "Knock him
+  down and strike him: Near / Far". Near is a hard kick. Far is a kick made only for the test (8 m/s), to land him
+  five metres off. Each also asks for the blow at the man who is down, once. A line "Going for him now" says where
+  he is in it.
+
+| Headless | Lay | He ran | Threw the blow | Slowest until it landed | As it landed | It met |
+| --- | --- | --- | --- | --- | --- | --- |
+| Down, near (hard kick, sword-only man) | 3.48 m off | 3.94 m at 3.6 m/s | 2.85 m from the spot, going 3.6 m/s | 2.4 m/s | going 2.2 m/s, 1.00 m from the spot | his left shin |
+| Down, far (the test's kick, sword-only) | 4.58 m | 4.07 m at 3.6 | 2.87 m, going 3.6 | 3.4 | 3.4 m/s, 1.28 m | his left upper arm |
+| Down, far (the same, shield man) | 4.18 m | 6.97 m at 3.6 | 2.88 m, going 3.6 | 3.2 | 3.2 m/s, 1.41 m | his left forearm |
+| Pounce after a small bash | 1.66 m | 0.38 m | 2.00 m, going 1.8 | 1.8 | 2.7 m/s | blocked by the shield |
+| Pounce after a medium bash | 2.30 m | (in reach) | 1.95 m, going 1.8 | 1.8 | 2.3 m/s | blocked by the shield |
+| Pounce after a hard bash (countered) | 3.07 m | 0.68 m | 2.48 m, going 2.8 | 2.0 | 1.8 m/s | nothing |
+| Pounce after a soft kick | 1.41 m | (in reach) | 1.49 m, going 0.8 | 0.8 | 1.7 m/s | blocked by the shield |
+
+- Every blow was "thrown over his run"; in none did he stop before it landed.
+- **Honest about it:** the blow at a man who is down is aimed at his chest and met a shin, an upper arm and a
+  forearm: whatever of him lay nearest. A man lying with a shield got it in the way once. The pounce's blow is
+  blocked three times in four, and after the hard bash the lab's dummy had walked back toward him and the blow
+  passed it. He does slow as the blow lands (from 3.6 to 2.2 m/s at the least). None of it seen in Unity.
+
+**2. Kicks: soft, medium, hard** (`ClipFighter.KickAt(at, whenever, kind)`; Combat Feel "Medium Kick Power" 3.3
+and "Hard Kick Power" 5.2, "Kick Power" 2.6 is the soft one; the lab's "Kick him: Soft kick / Medium kick / Hard
+kick" and the two new levers; `FIGHT_KICKKIND=soft|medium|hard|far`). One recording for all three. A harder kick
+goes further through a board (0.6, 0.75, 0.9 of it).
+
+| Headless, 1.2 s after | Soft (2.6 m/s) | Medium (3.3) | Hard (5.2) |
+| --- | --- | --- | --- |
+| A man with a sword only (on his body) | 2 stumble steps over 1.60 m, on his feet | 4 steps over 4.06 m, on his feet | **down**, 3.54 m off |
+| A man behind a shield (on his board) | thrown at 1.6: 0.39 m back | thrown at 2.5: 2 steps over 1.29 m | thrown at 4.7: **down**, 3.34 m |
+| A bare-handed man | 3 steps over 2.43 m, on his feet | **down**, 2.43 m | **down**, 3.61 m |
+
+- Medium was tried at 3.6 first: a sword-only man went down from it, so it is 3.3 (at 3.0: 3 steps over 2.80 m).
+
+**3. A man not in his guard stumbles and falls too** (Combat Feel "A Man Not In His Guard Stumbles And Falls
+Too"; lab row "Not in his guard: he stumbles and falls / he is only shoved (old)"; `FIGHT_UNGUARDED=0`).
+
+- The cause of what he saw: the door every impact goes through (`ThrowBody`) only let a fighter **standing in a
+  guard** stumble or fall. Anyone else was shoved, however hard: in his log the bare-handed target was "shoved back
+  at 2.6 to 6.0 m/s" by every kick and never stumbled.
+- Headless, a hard kick on a bare-handed man: old, shoved 2.05 m in 1.2 s, on his feet; new, down (table above).
+- It reaches the fight of six too: a fighter caught with his guard down can now stumble or fall there.
+
+**4. The jump as he stands: found and mended** (`ClipFighter.ArmsOutForgottenOnceUp`; `FIGHT_ARMSFORGOT=0` for
+the fault; `FIGHT_ROSETRACE=1` prints the easing step by step).
+
+- His logs: in half of this morning's get-ups a hand or forearm jumped 8 to 13 m/s one step after he stood. The
+  lab's falls on demand hardly showed it (0.7 to 3.9), the duel's fighters nearly always (8.5 to 12.2).
+- **The cause was last night's "arms out in a stumble".** A man who stumbled and then fell kept, through the fall
+  and the get-up, how far his arms were out as he went down. As he stood they were put out again by that much (up
+  to 36 cm, in one step) and came back. The lab's falls on demand fell him with no stumble, which is why last
+  night's measure did not see it. It is forgotten once he is up.
+- Headless, a man kicked down and getting up: 20.6 m/s (his left hand, one step after he stood) before; 5.4, 3.4,
+  4.2 and 5.1 after, and those are a foot or a shin taking a step a quarter of a second later.
+- The fights of six (40 s): seed 5, 19.0 m/s on average (27.2 at most) before, 1.8 (4.6) after; seed 7, 19.0
+  before, 2.0 after.
+
+**5. Slow motion** in the lab: "Stumbles and falls", row "Slow motion: full speed / half / a quarter / a tenth".
+The game's own clock slowed; nothing else changes. Only its drawing is checked headless.
+
+**The fights of six** (40 s, new against the old way of 3 and 4): seed 5: crossings on his feet 0.00% (old 0.57%,
+over its budget), board tremble 6.6% (old 8.7%, over); seed 7: crossings 0.33% (old 0.35%), tremble 7.7% (old
+6.3%; the budget is 8%). All budgets kept. Off his feet in seed 5 a shield was in its bearer for 0.20 s of 14.1 s
+(old 0.03 s of 9.3 s): more men fall now. No exceptions anywhere.
+
+**The panel:** "Look here" lists this pass (13 names; drawn and framed 13 of 13 in both labs).
+
+**Not done in this pass:** the kick lands 112 cm up for all three strengths (one recording); nothing kicks, pounces
+or strikes a man who is down outside the duel lab; the blow at a man who is down is still a standing blow aimed
+low. **None of this has been seen in Unity.**

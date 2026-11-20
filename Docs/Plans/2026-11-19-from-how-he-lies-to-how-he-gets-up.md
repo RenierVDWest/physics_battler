@@ -249,3 +249,17 @@ It needs step 4 first. Next: step 4, then the trunk again, then step 5.
   "Getting up, his shield: carried round him / as recorded (old)".
 - **Left on this plan:** his trunk's turn in the gather (built, off), and counting the board when a start is
   chosen (step 2, built, off).
+
+**20 November 2026, 08:30: the jump as he stands, found.** Headless only; waiting for your eye.
+
+- In half of your get-ups this morning a hand or forearm jumped (8 to 13 m/s) one step after he stood. Mostly the
+  duel's fighters, hardly ever the lab's falls on demand.
+- **The cause was last night's "arms out in a stumble", not the get-up.** A man who stumbled and then fell kept,
+  all through the fall and the get-up, how far his arms were out as he went down. As he stood they were put out
+  again by that much, up to 36 cm in one step, and came back. The lab's falls on demand fell him with no stumble,
+  so my measure of the night never saw it.
+- Mended: it is forgotten once he is up. In my tests, a man kicked down and getting up: 20.6 m/s before; 3.4 to 5.4
+  after, and that is a foot taking a step a quarter of a second later. In the fights of six: 19 on average before,
+  2 after.
+- To see it: Duel, "Stumbles and falls", "Knock him down and strike him: Near", and watch his arms the moment he
+  is back on his feet.

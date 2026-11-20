@@ -65,6 +65,13 @@ The rest are one-off comparisons from particular days, kept for reference.
 - `FIGHT_KICK=1`: at each `FIGHT_BASHAT` second the mover kicks the other instead of bashing him
   (`FIGHT_KICKED="2.6,0.25"`: the kick's power in m/s and how far into him in metres; `FIGHT_AIMKIT=sword|open`
   after `st.sh`'s name for a target without a shield). Lines `KICK` and `KICKED`.
+- `FIGHT_KICKKIND=soft|medium|hard|far`: which kick `FIGHT_KICK=1` throws (far: 8 m/s, the lab's test of a man
+  knocked far). `FIGHT_UNGUARDED=0`: a man not in a guard is only ever shoved (old). `FIGHT_GOESAT=3.6`: how fast
+  the duel's mover runs at a man he pounces on or who is down; `FIGHT_GOTRACE=1` prints `GO` lines, each step of
+  the blow thrown on that run. `FIGHT_ARMSFORGOT=0`: the jump as he stands after a stumble and a fall (the fault);
+  `FIGHT_ROSETRACE=1` prints `ROSE` lines, each step of the easing out of a get-up. **When running a script with
+  a time, put `SECS=12` before the script's name, not after it** (after, it is only passed on and the run takes
+  its full 80 s). **Two cores: no more than four runs at once.**
 - `FIGHT_POUNCE=0`: the duel's mover does not pounce on an opening (old). `FIGHT_POUNCEREADS=0.15`: how soon he
   reads one. Every bash or kick asked for with `FIGHT_BASHAT` prints a `POUNCE` line 2.6 s after it.
 - `FIGHT_DOWNED=1`: the duel's mover strikes a man who is down (off by default, as in the game). Every bash or

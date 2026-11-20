@@ -356,3 +356,18 @@ From the project itself: the three packs you attached, measured for this plan; t
   ground, rolls, the guard from his back, reading, victory laps.
 - To see it: Duel, "Stumbles and falls". Press "Strike him where he lies", then "Stumble him: Extra hard".
 
+## Progress, 20 November, 08:30: a second pass after your look. Headless only
+
+You saw it once and said: he ran, stopped, then attacked; that won't work; running at the fallen man and striking
+him must be one motion, and a man knocked far must be run after. And you wanted a test for it.
+
+- **One motion now.** He sets off the moment the other is off his feet, from any distance, at a run (3.6 m/s). He
+  throws the blow while he is still running, so that it lands as he arrives. He slows a little as it lands and
+  then stops. There is no leap and no stop before the blow any more.
+- **In my tests** (a man kicked down, lying 3.5 to 4.6 m off): he ran 3.9 to 7.0 m, threw the blow 2.9 m out while
+  going 3.6 m/s, and was never slower than 2.4 m/s before it landed. Every blow landed on the man.
+- **Rough, and I know:** it is aimed at his chest but met his shin, his upper arm, his forearm: whatever of him lay
+  nearest. It is still a standing blow aimed low. The stab and the low slash of this plan are what mends that.
+- **The test:** Duel, "Stumbles and falls", "Knock him down and strike him: Near" (a hard kick) and "Far" (a kick
+  made only for the test, to land him five metres off). One press each.
+- Still off unless asked for: whether fighters hold off while a man is down is your decision.

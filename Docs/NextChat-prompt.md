@@ -6,8 +6,9 @@ have my permission to push to that branch.
 1. Attach the repository with push access and clone it. (On 19 November the first ask for push access was refused
    and went through when asked again after I said "you may push" in the chat. If it is refused, tell me at once and
    carry on reading.) Read `CLAUDE.md` at its top first and follow it: it is the briefing, and it is up to date as
-   of 20 November 2026, 02:20. `README.md` is the build log (over 7,500 lines: search it, never read it whole). The
-   last entries, from "### 19 November, 22:10" on, are the night of 19 to 20 November.
+   of 20 November 2026, 08:30. `README.md` is the build log (over 7,500 lines: search it, never read it whole). The
+   last entries, from "### 19 November, 22:10" on, are the night of 19 to 20 November; "### 20 November, 08:30" is
+   the second pass after my look.
 2. Read the plan for the work in hand: `Docs/Plans/2026-11-19-from-how-he-lies-to-how-he-gets-up.md`, with its
    progress notes at the end. Its live version is https://claude.ai/artifact/FAVSQjVZCbJ87jf6aargPa: add your own
    progress notes there with the Docs tools (insert at the end), and to the copy in the repository.
@@ -53,8 +54,21 @@ have a first build pushed. I have seen none of it.** Everything is headless only
 - **A man who is down:** "Strike him where he lies", on demand. Off unless asked: whether fighters hold off is my
   decision, still open.
 - The film for the five after the get-up: https://claude.ai/artifact/KjzrrmCJAUsAwrSp4XBNnR
-- The panel's "Look here" list covers the whole night (thirteen steps; the names are checked in the tubes and duel
-  labs).
+
+**On the morning of 20 November I looked** (three logs) and said: knees fine; the kick works, and I want soft,
+medium and hard, with hard knocking him over backwards; the bare-handed dummy runs backwards on fast legs where I
+would expect it to fall; of a man who is down, "he ran, stopped then attacked. That won't work": running at him
+and striking must be one motion, and a man knocked far must be run after; and I want a test scenario for it.
+
+**The second pass (pushed 08:30, headless only, I have not seen it):**
+- Running in and striking is one motion, for the pounce and for a man who is down (`DuelLab.GoFor`): he throws
+  the blow while still running, to land as he arrives. One-press tests: "Knock him down and strike him: Near / Far".
+- Kicks soft, medium, hard. Hard knocks him over, through a shield too.
+- A man not in his guard stumbles and falls as any fighter does (before, only a man standing in a guard could).
+- The jump as he stands was last night's arms-out kept through a fall; mended. **The lab's falls on demand could
+  not show it: measure a get-up after a real knock-down** (`FIGHT_KICK=1 FIGHT_KICKKIND=hard`).
+- "Slow motion" in the lab.
+- The panel's "Look here" list is this pass (seven steps, thirteen names; checked in the tubes and duel labs).
 
 ## What to do now, in this order
 
@@ -69,15 +83,16 @@ out of `units/*.pose.csv.gz`.
 - One get-up in three from his front or right starts with a small kick of a shin (he is taken up while the gather
   still moves that leg to its kneel).
 - As the shield turns up, about 1.3 s into a get-up from his front, its rim is 3 to 5 cm in the ground for 0.1 s.
-- The pounce is late after his own bash or kick: a blow should be able to start out of the end of a leap or a kick.
-- The kick lands 112 cm up (where the recording has the foot): high for a front kick.
+- The pounce's blow is blocked three times in four (he is on time now; the other gets his shield to it).
+- The blow at a man who is down is aimed at his chest and meets whatever of him lies nearest (a shin, an arm).
+- The kick lands 112 cm up for all three strengths (one recording): high for a front kick.
 
 **3. Left on the get-up plan:** the trunk's turn in the gather (`ClipFighter.GatherTurns`, built, off: at 0.25 it
 does not finish the gathers; try more strength or a longer gather), and step 2 (count the board in what a start
 costs).
 
 **4. Left on the night's other steps:** feet crossing in a stumble to the side; a sword blow's throw worked out as
-a bash's is; of the impacts plan's step 4: feet that slide, the head lagging, a slow-motion button; more kicks
+a bash's is; of the impacts plan's step 4: feet that slide, the head lagging; more kicks
 (**the kick pack's five standing kicks and the Capoeira kicks are not in the repository: ask me for them**), and
 fighters kicking by themselves; the rest of the Downed play plan (stab and low slash as their own blows, low
 kicks, rolls, the guard from his back, reading, victory laps).

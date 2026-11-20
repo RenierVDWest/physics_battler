@@ -210,3 +210,11 @@ He played the stumbles: "this looks pretty good so far"; it reads as a stumble. 
   "An impact, his knees and hips: give / stand stiff (old)". Levers: "Contact time", "Knees give to it", "Trunk
   folds to it".
 
+## Progress, 20 November, 08:30: a second pass after your look. Headless only
+
+- **The door lets everyone through now.** Every impact goes through one door, and it only let a fighter standing in
+  a guard stumble or fall. A bare-handed man, or anyone with his guard down, was shoved however hard he was hit.
+  That is what you saw ("stumbles back pretty far with legs moving pretty fast, where I would expect it to fall").
+  Now his legs decide for him too. It reaches the fight of six.
+- **Slow motion is in the lab** (this plan's step 4 asked for it): Duel, "Stumbles and falls", "Slow motion: full
+  speed / half / a quarter / a tenth".

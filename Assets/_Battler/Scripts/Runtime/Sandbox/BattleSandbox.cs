@@ -1439,7 +1439,10 @@ namespace PhysicsBattler.Sandbox
         private float stumbleBashAt;
 
         /// <summary>How far off the other is put for each bash of "Stumble him" (metres at a Medium's size).</summary>
-        private static readonly float[] StumbleBashFrom = { 1f, 1.8f, 1.9f, 1.9f, 1.4f, 1.4f, 1.4f };
+        private static readonly float[] StumbleBashFrom = { 1f, 1.8f, 1.9f, 1.9f, 1.4f, 1.4f, 1.4f, 1.4f };
+
+        /// <summary>How fast the test's kick for a man knocked far throws him (m/s at a Medium's size): harder than any kick a fighter has, to land him metres off.</summary>
+        private const float FarKickThrows = 8f;
 
         /// <summary>The place of "Kick him" in <see cref="StumbleBashFrom"/> (soft; medium and hard follow it): asked for and waited for as a bash is.</summary>
         private const int KickHim = 4;
@@ -1515,7 +1518,8 @@ namespace PhysicsBattler.Sandbox
 
             if (kind >= KickHim)
             {
-                message = basher.KickAt(other, true, kind - KickHim) ? $"Kick him: a {PhysicsBattler.Locomotion.ClipFighter.KickNames[kind - KickHim]} front kick." : "Kick him: he could not kick (in a blow, a bash or another move, stumbling, or down).";
+                bool far = kind - KickHim > 2;
+                message = basher.KickAt(other, true, Mathf.Min(kind - KickHim, 2), far ? FarKickThrows : 0f) ? (far ? "Knock him down and strike him: a kick harder than any he has, for the test." : $"Kick him: a {PhysicsBattler.Locomotion.ClipFighter.KickNames[kind - KickHim]} front kick.") : "Kick him: he could not kick (in a blow, a bash or another move, stumbling, or down).";
                 return;
             }
 
@@ -1601,7 +1605,7 @@ namespace PhysicsBattler.Sandbox
             if (feel != null)
             {
                 BeginRow();
-                Words(new GUIContent("An opening:", "What he does when the other stumbles, has his guard knocked open, or has his back turned (Combat Feel \"A Fighter Pounces On An Opening\"). Pounces (new): as soon as he is free he goes for it: out of reach he leaps in, in reach he strikes at once, a light blow at the chest. Once for each opening. Stands off (old): he keeps his guard's distance and lets the other find his feet."));
+                Words(new GUIContent("An opening:", "What he does when the other stumbles, has his guard knocked open, or has his back turned (Combat Feel \"A Fighter Pounces On An Opening\"). Pounces (new): as soon as he is free he goes for it: he runs in and throws a light blow at the chest while he is still running, so that it lands as he arrives, in one motion; in reach he strikes at once. Once for each opening. Stands off (old): he keeps his guard's distance and lets the other find his feet."));
                 if (Press(feel.aFighterPouncesOnAnOpening ? "[he pounces]" : "he pounces", "He goes for it.")) feel.aFighterPouncesOnAnOpening = true;
                 if (Press(!feel.aFighterPouncesOnAnOpening ? "[he stands off (old)]" : "he stands off (old)", "As before.")) feel.aFighterPouncesOnAnOpening = false;
                 EndRow();
@@ -1610,14 +1614,14 @@ namespace PhysicsBattler.Sandbox
 
             Readout(new GUIContent("His last pounce: " + Duel.Pounced + $" ({Duel.OpeningsSeen} openings seen, {Duel.PounceLeaps} gone for, {Duel.PounceBlows} struck at).", "What opening he saw, how far off, how far and fast he ran, where and how fast he was going as he threw the blow and as it landed, and what the blade met."), 3);
             BeginRow();
-            Words(new GUIContent("A man who is down:", "What he does while the other lies off his feet (Combat Feel \"A Fighter Strikes A Man Who Is Down\"). He holds off (as the game is today): he lets him get up. He strikes him: as soon as he is free he goes to him and strikes down at his chest, with the blows there are today aimed at where it lies. \"Strike him where he lies\" asks for it once: fell the other first (\"Stumble him: Extra hard\", or \"Kick power\" at 4 and \"Front kick\")."));
+            Words(new GUIContent("A man who is down:", "What he does while the other lies off his feet (Combat Feel \"A Fighter Strikes A Man Who Is Down\"). He holds off (as the game is today): he lets him get up. He strikes him: he runs to him, from however far he was thrown, and strikes down at his chest as he arrives, in one motion, with the blows there are today aimed at where it lies. \"Strike him where he lies\" asks for it once: fell the other first (\"Stumble him: Extra hard\", or \"Kick power\" at 4 and \"Front kick\")."));
             if (feel != null)
             {
                 if (Press(!feel.aFighterStrikesAManWhoIsDown ? "[he holds off]" : "he holds off", "As the game is today.")) feel.aFighterStrikesAManWhoIsDown = false;
                 if (Press(feel.aFighterStrikesAManWhoIsDown ? "[he strikes him]" : "he strikes him", "Every time the other is down.")) feel.aFighterStrikesAManWhoIsDown = true;
             }
 
-            if (Press(Duel.StrikeDownedOnce ? "[Strike him where he lies]" : "Strike him where he lies", "Once: the next time the other is down (or now, if he is), he goes to him and strikes down at his chest."))
+            if (Press(Duel.StrikeDownedOnce ? "[Strike him where he lies]" : "Strike him where he lies", "Once: the next time the other is down (or now, if he is), he runs to him and strikes down at his chest as he arrives."))
             {
                 Duel.StrikeDownedOnce = !Duel.StrikeDownedOnce;
                 message = Duel.StrikeDownedOnce ? "A man who is down: he will be struck where he lies, once." : "A man who is down: not asked for any more.";
@@ -1625,17 +1629,17 @@ namespace PhysicsBattler.Sandbox
 
             EndRow();
             BeginRow();
-            Words(new GUIContent("Knock him down and strike him:", "The test for a man who is down, in one press. The other is stood before him and knocked off his feet; then he runs to him and strikes down at his chest as he arrives, in one motion: no stop between the run and the blow. Near: a hard kick, the other lands a few metres off. Far: an extra hard bash, he lands further (both need shields: \"Set out\" under the shield test). Watch the runner's feet as the blow goes out: they should not stop."));
+            Words(new GUIContent("Knock him down and strike him:", "The test for a man who is down, in one press. The other is stood before him and knocked off his feet; then he runs to him and strikes down at his chest as he arrives, in one motion: no stop between the run and the blow. Near: a hard kick, the other lands about three metres off. Far: a kick harder than any a fighter has, only for this test, so that he lands five metres and more off and has to be run after. Watch the runner's feet as the blow goes out: they should not stop."));
             if (Press("Near", "A hard kick knocks him over; then he is run at and struck where he lies."))
             {
                 Duel.StrikeDownedOnce = true;
                 AskStumble(KickHim + 2, "Knock him down and strike him");
             }
 
-            if (Press("Far", "An extra hard bash throws him metres back; then he is run after and struck where he lies."))
+            if (Press("Far", "A kick harder than any he has throws him metres back; then he is run after and struck where he lies."))
             {
                 Duel.StrikeDownedOnce = true;
-                AskStumble(3, "Knock him down and strike him");
+                AskStumble(KickHim + 3, "Knock him down and strike him");
             }
 
             EndRow();
@@ -4063,40 +4067,30 @@ namespace PhysicsBattler.Sandbox
         // Names are matched whole, without a chosen button's square brackets; capitals do not matter.
 
         /// <summary>Names this push's list. Change it with every push that needs his eye: his "highlights off" is kept by tag, so a new list is shown again.</summary>
-        private const string LookTag = "The night of 19 to 20 November: getting up (knees, sword hand, shield, the end), arms in a stumble, knees that take an impact, a kick, the pounce, a man who is down";
+        private const string LookTag = "20 November, the second pass: running in and striking in one motion, kicks soft medium and hard, a bare-handed man who falls, the jump as he stands";
 
         /// <summary>What to do, in order, in plain words.</summary>
         private static readonly string[] LookSteps =
         {
-            "GETTING UP (four pushes, 22:10 to 00:30):",
-            "1. Go to \"Tubes\" (the bar of labs at the top) and open \"Falls and getting up\".",
-            "2. Fell him: \"Falls on demand\": Forward (the worst case), then Back. Watch the one with the shield.",
-            "3. His knees as he pushes up from his front: they should rest on the ground, not sink into it.",
-            "4. His sword whenever his sword hand is on the ground: it should lie still. It still moves while the hand is in the air and as he stands up.",
-            "5. His shield as he pushes up from his front: it should lie out to his side, his hand on it, and swing up round his side. It should not stand in his chest.",
-            "6. The moment he is up: he should go into his stand smoothly, with no jump of his arms.",
-            "7. To compare, fell him the same way with the old way of each: \"Getting up, his knees\", \"While it is pinned\", \"Getting up, his shield\", \"The end of a get-up\".",
-            "STUMBLES (pushed 00:30):",
-            "8. Go to \"Duel\" and find \"Stumbles and falls\". Press \"Stumble him: Medium\", then \"Hard\".",
-            "9. Watch his arms: his hands should go out to his sides as he stumbles and come back as he catches himself. To compare: \"Stumbling, his arms: hold his guard (old)\". The lever \"Arms go out by\" makes it more or less.",
-            "KICKS (pushed 01:40; a first build):",
-            "11. Same place. Press \"Kick him: Front kick\". He kicks the other chest high with his back foot; the other is thrown back and stumbles. Try \"Kick power\" at 4: he should go down. \"Set out\" the target without a shield to see it land on a body.",
-            "THE POUNCE (pushed 02:00; a first build):",
-            "12. Same place. Press \"Stumble him: Small\", then \"Medium\". As the other stumbles, the basher should go for him: strike at once if he is in reach, or leap in and strike. To compare: \"An opening: he stands off (old)\". After a medium or hard bash he is late, and the other blocks: I know.",
-            "A MAN WHO IS DOWN (pushed 02:20; a first piece):",
-            "13. Same place. Press \"Strike him where he lies\", then \"Stumble him: Extra hard\" (the other goes down). Once he lies, the basher should go to him and strike down at his chest. This is off unless you ask: fighters still hold off by themselves.",
-            "AN IMPACT (pushed 01:15):",
-            "10. Same place. Press \"Stumble him: Hard\" and watch the legs of the one who bashes: his knees should give and his hips drop as his board lands, then he comes up. To compare: \"An impact, his knees and hips: stand stiff (old)\". Levers: \"Knees give to it\", \"Contact time\", \"Trunk folds to it\".",
+            "1. Go to \"Duel\" (the bar of labs at the top) and find \"Stumbles and falls\". Everything below is there. \"Slow motion: a quarter\" makes it easy to watch.",
+            "A MAN WHO IS DOWN:",
+            "2. Press \"Knock him down and strike him: Near\". He kicks the other over, runs to him, and strikes down at him as he arrives. Watch his feet: he should not stop before the blow goes out. He slows a little as it lands.",
+            "3. Press \"Far\". The other is kicked much further (a kick made only for this test) and he runs after him.",
+            "THE POUNCE:",
+            "4. Press \"Stumble him: Medium\". As the other stumbles he should run in and strike in one go: no leap, no stop. The other often gets his shield to it: I know.",
+            "KICKS:",
+            "5. Press \"Kick him: Soft kick\", then \"Medium kick\", then \"Hard kick\". Soft: a stumble step or two. Medium: he stumbles far and only just keeps his feet. Hard: he goes over backwards.",
+            "A BARE-HANDED MAN:",
+            "6. Give the target empty hands (the aim test's \"Holds:\" button, until it reads \"open hands\") and kick him soft, medium and hard. He should stumble on real steps, and fall from the medium and the hard kick. Before, he ran backwards on quick little steps and never fell. To compare: \"Not in his guard: he is only shoved (old)\".",
+            "GETTING UP:",
+            "7. After any knock-down above, watch his arms the moment he is back on his feet: they should not jump out and back. That jump was in half your get-ups this morning.",
         };
 
         /// <summary>The names of what he is to press and watch.</summary>
         private static readonly string[] LookHere =
         {
-            "Tubes", "Falls and getting up", "Falls on demand", "Falls on demand>Back", "Falls on demand>Forward",
-            "Getting up, his knees:", "While it is pinned:", "Getting up, his sword hand:", "Getting up, his shield:", "The end of a get-up:",
-            "Duel", "Stumbles and falls", "Stumble him:", "Stumbling, his arms:", "Arms go out by",
-            "An impact, his knees and hips:", "Contact time", "Knees give to it", "Trunk folds to it",
-            "Kick him:", "Kick power", "Kicks into him", "An opening:", "Pounce reads in", "A man who is down:",
+            "Duel", "Stumbles and falls", "Slow motion:", "Knock him down and strike him:", "He goes for him at", "A man who is down:",
+            "Stumble him:", "An opening:", "Kick him:", "Kick power", "Medium kick power", "Hard kick power", "Not in his guard:",
         };
 
         /// <summary>For the panel check (headless): the names of <see cref="LookHere"/> that were really drawn, and every section taken as open while it looks.</summary>

@@ -1930,7 +1930,7 @@ internal static class FightReport
                                     var kickLevers = (Environment.GetEnvironmentVariable("FIGHT_KICKED") ?? "").Split(',');
                                     if (kickLevers.Length > 0 && float.TryParse(kickLevers[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float kickPower)) PhysicsBattler.Locomotion.ClipFighter.KickPower = kickPower;
                                     if (kickLevers.Length > 1 && float.TryParse(kickLevers[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float kickIn)) PhysicsBattler.Locomotion.ClipFighter.KickGoesIn = kickIn;
-                                    Console.WriteLine($"KICK {paceAt:0.00}: {(duel.Mover.Clip.KickAt(duel.Other.Clip, true, (Environment.GetEnvironmentVariable("FIGHT_KICKKIND") ?? "soft").Trim().ToLowerInvariant() switch { "hard" => 2, "medium" => 1, _ => 0 }) ? "begun" : "he could not")}, {bashGapWas:0.00} m apart");
+                                    Console.WriteLine($"KICK {paceAt:0.00}: {(duel.Mover.Clip.KickAt(duel.Other.Clip, true, (Environment.GetEnvironmentVariable("FIGHT_KICKKIND") ?? "soft").Trim().ToLowerInvariant() switch { "hard" => 2, "far" => 2, "medium" => 1, _ => 0 }, (Environment.GetEnvironmentVariable("FIGHT_KICKKIND") ?? "").Trim().ToLowerInvariant() == "far" ? 8f : 0f) ? "begun" : "he could not")}, {bashGapWas:0.00} m apart");
                                 }
                                 else
                                 Console.WriteLine($"BASH {paceAt:0.00}: {(duel.Mover.Clip.Bash(duel.Other.Clip, true, bashKind, false, bashExtraAsked) ? "begun" : "he could not")}, {bashGapWas:0.00} m apart");

@@ -4,10 +4,9 @@ This is the briefing a new chat reads first. It is kept short on purpose. The fu
 (over 6,000 lines: search it, never read it whole). Update this file at the end of every milestone or step:
 the "Where things stand" and "Roadmap" sections must always be true.
 
-Last updated: 20 November 2026, 02:20 (the night's work, all headless only and waiting for his eye: the get-up
-mended four ways after he called it a mess, and the floor's edge; arms that go out in a stumble; knees and hips
-that take an impact; a first kick; a first pounce on an opening; a first blow at a man who is down. All six items
-of the order he set before bed have a first build pushed: see "Roadmap").
+Last updated: 20 November 2026, 08:30 (the second pass after his morning look at the night's work: running in and
+striking is one motion, kicks soft, medium and hard, a bare-handed man stumbles and falls, the jump as he stands
+found and mended, slow motion in the lab. Headless only, waiting for his eye: see "Where things stand").
 
 ## The project in a few lines
 
@@ -232,6 +231,33 @@ smoothly, the shield giving way to the sword.
   "A man who is down" and button "Strike him where he lies" (duel lab, "Stumbles and falls");
   `DuelLab.StepDowned`. Headless: today's made blows, aimed at the chest of a man lying 13 to 16 cm up, reach and
   land (two of two): the plan's first question answered yes. The rest of that plan is not built.
+- **The second pass, after his look (20 November, 08:30; the README's entry of that time has the tables):**
+  - **He saw (Unity, three logs of 06:28 to 06:42):** knees fine; the kick works; the bare-handed dummy "stumbles
+    back pretty far with legs moving pretty fast, where I would expect it to fall"; of a man who is down, "he ran,
+    stopped then attacked. That won't work": running at him and striking "must be one motion without a pause",
+    as the turn-and-strike had to be, and a man knocked far must be run after. He wants a test scenario for it.
+  - **One motion:** `DuelLab.GoFor` / `StepGoing`: he runs at the spot (Combat Feel and lever "He Goes For Him
+    At", 3.6 m/s) and throws the blow while still running, over his run, half a second's run before he is in
+    reach; of the blows he can throw on the run, the best that lands within 0.75 s
+    (`AttackOnTheMove.LandsWithin`). The pounce and the blow at a man who is down both use it; the leap is gone.
+    A man who is down is run after from any distance, from the moment he is off his feet. Headless: every blow
+    thrown over his run, never slower than 2.4 m/s before it landed (down), 0.8 to 2.0 (pounce, from near).
+    **Rough:** aimed at the chest of a man lying, it met a shin, an arm; the pounce's blow is mostly blocked.
+  - **One-press tests:** lab row "Knock him down and strike him: Near / Far" (Far is a kick of 8 m/s made only
+    for the test).
+  - **Kicks soft, medium, hard:** `KickAt(at, whenever, kind)`; Combat Feel "Kick Power" 2.6 (soft), "Medium
+    Kick Power" 3.3, "Hard Kick Power" 5.2; three lab buttons. Headless: soft a step or two; medium four stumble
+    steps over 4 m, on his feet (a bare-handed man goes down); hard down, through a board too.
+  - **A man not in his guard stumbles and falls too:** `ClipFighter.UnguardedMenStumble`; Combat Feel of that
+    name; lab row "Not in his guard". The door (`ThrowBody`) had only let a man standing in a guard stumble or
+    fall; anyone else was shoved however hard. It reaches the fight of six.
+  - **The jump as he stands:** in half his morning's get-ups a hand jumped 8 to 13 m/s one step after he stood.
+    Cause: the night's arms-out kept, through a fall, how far his arms were out as he went down, and put them
+    out again as he stood. Forgotten once he is up (`ArmsOutForgottenOnceUp`). Headless (a man kicked down): 20.6
+    m/s to 3.4 to 5.4; the sixes 19.0 on average to 1.8 to 2.0. **A lesson: the lab's falls on demand fell him
+    without a stumble, so the measure of the night could not see it. Measure a get-up after a real knock-down.**
+  - **Slow motion:** lab row in "Stumbles and falls" (full, half, a quarter, a tenth).
+  - Sixes (40 s, seeds 5 and 7): all budgets kept (the old way was over on seed 5).
 - **The night's two films** (3b2b, made by Opus at medium effort): the get-up,
   https://claude.ai/artifact/686Uo8dQEjeAjPCj1q8aHm ; the five first builds after it,
   https://claude.ai/artifact/KjzrrmCJAUsAwrSp4XBNnR . Their notes are the chat's morning update.
@@ -435,7 +461,13 @@ most stumbles)
 2. Bodies that absorb: knees give, hips drop, the arm folds, feet slide. **Not built.** Needs his eye.
 3. Off balance: built as stumbles (19 November). Left of it: a leap landing on someone, kicks built on the door.
 
-**Fight Rhythm, still to come**: walking step 6; kicks (on `ThrowBody`); pounce on an opening; Downed play; combos; the fight of six.
+**The second pass of 20 November (08:30) waits for his eye.** After his look, next on each: a blow of its own
+for a man who is down (the plan's stab and low slash: today's is a standing blow aimed low and meets whatever of
+him is nearest); the pounce's blow that is mostly blocked (a second blow, or one at what is open); kicks at more
+than one height (one recording today, 112 cm up); then taking kick, pounce and the blow at a man who is down out
+of the duel lab into the fight of six (each is the duel's mover only).
+
+**Fight Rhythm, still to come**: walking step 6; kicks, the pounce and Downed play beyond their first builds (above); combos; the fight of six.
 
 **Waiting on a decision from him**: what being fooled by a fake costs (today: nothing); whether real attacks
 should be more frequent; whether a fighter holds off while his enemy is down.

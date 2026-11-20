@@ -860,3 +860,19 @@ README's entry of 19 November, "his second look", has the figures.
 - To see them: Duel, "Stumbles and falls": "Kick him: Front kick"; "Stumble him: Small" with "An opening: he
   pounces".
 
+## Progress, 20 November, 08:30: a second pass on steps 9b and 10 after your look. Headless only
+
+- **Kicks are soft, medium and hard now** (you: "the current one is soft; I want hard to be hard enough to kick the
+  enemy making it fall backwards"). Three buttons, one recording. In my tests, on a man with a sword only: soft, a
+  stumble step or two; medium, four stumble steps over four metres and he keeps his feet; hard, he goes down and
+  lands 3.5 m off. Through a shield: soft hardly moves him, medium two stumble steps, hard he goes down. All three
+  land at the same height (112 cm): one recording.
+- **The pounce is one motion now**, like the blow at a man who is down: he runs in and throws the blow while still
+  running, so that it lands as he arrives. The leap is gone. In my tests he never stopped before the blow. The
+  blow is still blocked three times in four: that is next.
+- **A man not in his guard stumbles and falls too.** The cause of your bare-handed dummy running backwards on
+  quick little steps: only a fighter standing in a guard could stumble or fall; anyone else was shoved, however
+  hard. In my tests a bare-handed man now keeps his feet from a soft kick (three stumble steps) and goes down from
+  a medium or hard one.
+- To see them: Duel, "Stumbles and falls": "Kick him", "Stumble him: Medium", "Not in his guard", and "Slow
+  motion" to watch closely.

@@ -7653,6 +7653,7 @@ namespace PhysicsBattler.Locomotion
 
         public static readonly string[] KickNames = { "soft", "medium", "hard" };
         private int kickKind;
+        private float kickThrowsAt;
 
         /// <summary>How fast a kick of this kind throws (m/s at a Medium's size).</summary>
         public static float KickPowerOf(int kind) => kind >= 2 ? KickPowerHard : kind == 1 ? KickPowerMedium : KickPower;
@@ -7689,7 +7690,8 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>He kicks now, at this enemy (null: straight ahead, at nobody, to be seen). False: he cannot (down, stumbling, in a blow, a bash or another recording, or one just thrown).</summary>
         /// <param name="kind">0: soft, 1: medium, 2: hard.</param>
-        public bool KickAt(ClipFighter at, bool whenever = false, int kind = 0)
+        /// <param name="throwsAt">Over 0: how fast it throws, whatever the levers say (m/s at a Medium's size): the lab's test of a man knocked far.</param>
+        public bool KickAt(ClipFighter at, bool whenever = false, int kind = 0, float throwsAt = 0f)
         {
             if (!KicksThrow || Kicking || Bashing || Fallen || Striking || Stagger.Active || !Loco.Ready || Loco.Current == Locomotor.Mode.OneShot || (!whenever && clock < kickReadyAt))
             {
@@ -7715,6 +7717,7 @@ namespace PhysicsBattler.Locomotion
             Loco.PlayAimed(clip, stretch, turn, 0.25f);
             kickFor = 0f;
             kickKind = Mathf.Clamp(kind, 0, 2);
+            kickThrowsAt = throwsAt;
             kickEnds = clip.Duration;
             kickAt = at;
             kickStruck = kickFootKnown = false;
@@ -7759,7 +7762,7 @@ namespace PhysicsBattler.Locomotion
                     kickLandedAt = kickFor;
                     KicksLanded++;
                     float weights = Mass / Mathf.Max(1f, kickAt.Mass);
-                    float speed = KickPowerOf(kickKind) * Mathf.Sqrt(Size) * Mathf.Min(weights, 1.5f) * (board && !bodyMet ? KickOnBoardBy[kickKind] : 1f);
+                    float speed = (kickThrowsAt > 0f ? kickThrowsAt : KickPowerOf(kickKind)) * Mathf.Sqrt(Size) * Mathf.Min(weights, 1.5f) * (board && !bodyMet ? KickOnBoardBy[kickKind] : 1f);
                     Vector3 impulse = kickWay * (speed * kickAt.Mass);
                     string did = kickAt.Kicked(kickWay, speed, this, foot, impulse, board && !bodyMet);
                     // (What his leg met comes back up it: he is checked, and it presses him as any impact does.)
