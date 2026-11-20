@@ -843,3 +843,20 @@ fighters keep apart while one is off his feet (two who fell together no longer g
 lab's "Stumble him" waits until both stand; a held thing caught on the wrong side of his body is let through. A new
 plan, "From how he lies to how he gets up", for the first moment of a get-up, waits on five answers of his. The
 README's entry of 19 November, "his second look", has the figures.
+
+## Progress, 20 November (night): steps 9b and 10, first builds. Headless only
+
+- **Step 9b, kicks: one kick, from the lab.** A front kick with the back foot, built from the sword-and-shield
+  pack's kick recording, the only kick recording in the repository. Where the foot meets his body or his board he
+  is thrown as by any impact. In my tests: on a body it lands 112 cm up and throws him at 2.6 m/s (two stumble
+  steps); on a shield 1.6 m/s; with "Kick power" at 4.2 he goes down. No fighter kicks by himself yet. **For more
+  kicks I need the kick pack's standing kicks and the Capoeira kicks: they are not in the repository.**
+- **Step 9c, stumbles:** his hands now go out for balance as he stumbles.
+- **Step 10, the pounce: in the duel lab.** When the other stumbles, has his guard knocked open or has his back
+  turned, he strikes at once if in reach, or leaps in and strikes. In my tests it lands after a small bash (the
+  blow is thrown 0.2 s after the opening began). After a medium or hard bash or a kick he is not free for 0.7 to
+  1.0 s, arrives late, and is blocked. Making it quicker means a blow that can start out of the end of a leap or a
+  kick: not built.
+- To see them: Duel, "Stumbles and falls": "Kick him: Front kick"; "Stumble him: Small" with "An opening: he
+  pounces".
+
