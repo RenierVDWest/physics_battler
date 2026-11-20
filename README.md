@@ -8133,3 +8133,4 @@ standing and the pair is as good as standing: the chest, 10 to 16 cm).
 
 Checks: 0 errors; the panel's look list; `flow.sh`; the standing pair unchanged (17 and 8 cm from the spot).
 
+**The night's film** (20 to 21 November; 3b2b, made by Opus at medium effort; 7 scenes, about 3 minutes 40): https://claude.ai/artifact/32AGujgomksYWrM7JgmTXW

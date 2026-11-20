@@ -556,6 +556,8 @@ by him: the blows' part done, above** (a first build exists from 20 November, 01
 folds; not built: a sword's blow pressing the struck man, feet sliding before the first step, the head lagging);
 (4) more cuts baked (quick forehand, flat forehand, low cut) and the blade report on them; (5) the step back
 measured; (6) stumble leftovers; (7) get-up leftovers; (8) old bugs; (9) kicks at more heights, the low slash.
+**Stopped at 00:20 on the 21st with (1), (2) and the blows' part of (3) done and pushed; (4) to (9) not reached.
+The night's film: https://claude.ai/artifact/32AGujgomksYWrM7JgmTXW**
 **Not tonight (needs him):** combos step 3 and later; where the shield goes in a get-up; anything in the six. He gets
 one short list in the morning, the panel's look list for the whole night, and one film.
 - Its film: https://claude.ai/artifact/T38Pqw9FVNzxGAafWvJvw7
