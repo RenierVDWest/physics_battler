@@ -488,8 +488,11 @@ most stumbles)
 **The push of 20 November, 11:52, waits for his eye** (the stab, the pounce at what is open, the dance by itself).
 **Next, in this order:** (1) the get-up leftovers he asked for and I did not reach: the sword moving while its
 hand is in the air and as he stands; a small kick of a shin at the start of one get-up in three from his front or
-right; the shield's rim 3 to 5 cm in the ground for 0.1 s as it turns up (the pose already lifts it,
-`GroundClamp.Gap` in `HoldShieldUp`: look at the seen body, not the pose). (2) The hit reaction that puts a struck
+right; the shield's rim 3 to 5 cm in the ground for 0.1 s about 1.3 s in (**tried on the 20th and taken out again:**
+it is in the pose itself, "-3 cm as posed"; raising the hand at the end of `HoldShieldUp` by what the rim was under
+changed nothing at that moment, whether gated on the place having come in or not, so the dip is put in after
+`HoldShieldUp`: look at what `Compose` does after it, the mix toward the stand first. Raised in the gather as well
+it changed the start and so the whole get-up, which looked like a fix and was not). (2) The hit reaction that puts a struck
 man's sword arm through his own board: it is why a stumbling man's open guard cannot go into the six. (3) The low
 slash; a second blow when a pounce is stopped; kicks at more than one height (needs the kick pack's recordings,
 not in the repository). (4) Only when he says: any of it in the fight of six.
