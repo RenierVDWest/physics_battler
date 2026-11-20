@@ -1611,6 +1611,12 @@ namespace PhysicsBattler.Sandbox
                 if (Press(!feel.aFighterPouncesOnAnOpening ? "[he stands off (old)]" : "he stands off (old)", "As before.")) feel.aFighterPouncesOnAnOpening = false;
                 EndRow();
                 feel.pounceReadsIn = Lever("Pounce reads in", feel.pounceReadsIn, 0f, 0.6f, "How soon he reads an opening and goes for it (seconds).");
+                BeginRow();
+                Words(new GUIContent("After he goes for him:", "What the swordsman does once a pounce, or a blow at a man who is down, is over and you have given him no order to move (Combat Feel \"After Going For Him He Takes His Distance Again\"). He steps back (new): to the distance he stood at before he went, so your next blow starts from the lab's distance again. He stands there (old): where the going ended; the target, walking back to its own spot, then comes right up against him."));
+                if (Press(feel.afterGoingForHimHeTakesHisDistanceAgain ? "[he steps back]" : "he steps back", "To the distance he stood at.")) feel.afterGoingForHimHeTakesHisDistanceAgain = true;
+                if (Press(!feel.afterGoingForHimHeTakesHisDistanceAgain ? "[he stands there (old)]" : "he stands there (old)", "As before.")) feel.afterGoingForHimHeTakesHisDistanceAgain = false;
+                EndRow();
+                Readout(new GUIContent($"Their distance: the two are {Duel.Gap:0.00} m apart; he keeps {Duel.StoodOff:0.00} m. After his last going: " + (Duel.TookDistance.Length > 0 ? Duel.TookDistance : "nothing yet") + ".", "How far apart the two are now, root to root; the distance he keeps (between the two spots, as last seen with both standing still on them); and what he did when his last pounce or blow at a man who was down was over."), 2);
             }
 
             if (feel != null)
@@ -4130,21 +4136,21 @@ namespace PhysicsBattler.Sandbox
         // Names are matched whole, without a chosen button's square brackets; capitals do not matter.
 
         /// <summary>Names this push's list. Change it with every push that needs his eye: his "highlights off" is kept by tag, so a new list is shown again.</summary>
-        private const string LookTag = "20 November, evening: combos, step 1: the blade's path, drawn (a view only: nobody fights differently yet)";
+        private const string LookTag = "20 November, night: the blade's path again; after a pounce the swordsman now steps back to his distance";
 
         /// <summary>What to do, in order, in plain words.</summary>
         private static readonly string[] LookSteps =
         {
-            "1. Go to \"Duel\" (the bar of labs at the top) and find \"Strike at\". Under the body's buttons, press \"The blade's path: drawn\".",
-            "2. Under \"Move him\" press \"Circle left\" so that he walks. Then, under \"Strike at\", press a part of the body: \"Chest\", say.",
-            "3. The pale blue line is the path his blade was planned to take: thick through the cut, to where the blade turns. The white bar is the blade as it was planned to land, the yellow cross the spot you pressed. The orange line is where the blade really went, with a dark dot for every step of the game's clock: dots close together mean the blade is slow. They stay until his next attack: pause, or use \"Slow motion: a quarter\" under \"Stumbles and falls\", and look from the side and from above.",
-            "4. \"His last blade path\" under the row says it in numbers. What I would like to hear: do the blue and the orange lie close together? Right after the white bar, do the dots bunch up, as if the blade sticks at the body for a moment before it sweeps on? And is this drawing clear enough to judge a combo's flow by?",
+            "1. New: after he pounces by himself, the swordsman steps back to the distance he stood at. Before, he stood where the pounce ended and the target walked right up against him. Go to \"Duel\" and find \"Strike at\"; press \"The blade's path: drawn\".",
+            "2. Press \"Chest\". If the target stumbles, the swordsman runs in and strikes again by himself (the pounce). Watch what he does after it: he should step back, and the readout \"Their distance\" (under \"After he goes for him:\", further down) should come back to about 1.5 m. Then press \"Chest\" again, a good few times.",
+            "3. The pale blue line is the path his blade was planned to take; the white bar is where it was planned to land. The orange line is where the blade really went, with a dark dot for every step of the game's clock: dots close together mean the blade is slow. \"Slow motion: a quarter\" under \"Stumbles and falls\" helps.",
+            "4. What I would like to hear: does he step back each time, and does it look natural? Do blue and orange lie close together now? Right after the white bar, do the dots bunch up, as if the blade sticks at the body? To compare with before: \"After he goes for him: he stands there (old)\".",
         };
 
         /// <summary>The names of what he is to press and watch.</summary>
         private static readonly string[] LookHere =
         {
-            "Duel", "Strike at", "The blade's path:", "His last blade path", "Move him", "Circle left", "Chest", "Slow motion:",
+            "Duel", "Strike at", "The blade's path:", "His last blade path", "Chest", "After he goes for him:", "Their distance", "Slow motion:",
         };
 
         /// <summary>For the panel check (headless): the names of <see cref="LookHere"/> that were really drawn, and every section taken as open while it looks.</summary>

@@ -415,3 +415,6 @@ Headless, over 22 attacks, planted and on the move: the sword's point runs 14 cm
 The film of this step: https://claude.ai/artifact/DicGDRVN9k8W211a5JwBj6
 
 **Next: step 2**, two blows as one swing, when you have looked at the drawing.
+
+**After your first look (20 November, 21:15).** You said the blue dummy kept walking into you after the first attack. Your log shows why: after your first blow the swordsman pounced by himself and then stood where the pounce ended; the target walked back to its own spot, which was now right against him (0.70 m). Every blow after that was thrown from far too close. Mended: after he goes for a man by himself, the swordsman steps back to the distance he stood at (Combat Feel "After Going For Him He Takes His Distance Again"; lab row "After he goes for him:"). Headless the next blow then starts from the right distance; not seen in Unity. Your logs also show the blade sticking at the body in Unity: 7 of 19 landed blows crawled for about a tenth of a second after the freeze, the same share as headless. A fresh log from the right distance is asked for before step 2.
+

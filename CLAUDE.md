@@ -4,11 +4,13 @@ This is the briefing a new chat reads first. It is kept short on purpose. The fu
 (over 6,000 lines: search it, never read it whole). Update this file at the end of every milestone or step:
 the "Where things stand" and "Roadmap" sections must always be true.
 
-Last updated: 20 November 2026, 20:00 (he said "Yes it sounds good. Go." to the combos plan at 18:42, every
+Last updated: 20 November 2026, 21:15 (he said "Yes it sounds good. Go." to the combos plan at 18:42, every
 default taken. **Step 1 of the combos plan is built and pushed, waiting for his eye:** every recording's blade is
 measured by a report, and the duel lab can draw a made attack's planned blade path and the path the sword really
 took. A view only: nobody fights differently. Next: step 2, two blows as one swing. Corrected at 20:15: what
-the first push said about blades "hitching" at a body).
+the first push said about blades "hitching" at a body. **21:15, after his first look:** in the duel lab the
+target ended right against the swordsman after his first pounce; mended, the swordsman now steps back to his
+distance; a fresh log is asked for. His logs show the blade sticking at a body in Unity too).
 
 ## The project in a few lines
 
@@ -488,6 +490,13 @@ A view only: nobody fights differently. The README's entry of 20:00 has the tabl
   it. **Step 2 starts by mending this** (a blade the rules let through should pass the body it cut), **after
   reading his next log's `bladepath` lines to see what Unity does.**
 - Its film (3b2b, made by Opus at medium effort): https://claude.ai/artifact/DicGDRVN9k8W211a5JwBj6
+- **His first look (20:44) and what his two logs show:** the sticking is in Unity too (7 of 19 landed blows crawled
+  0.08 to 0.10 s after the freeze; carried 0.36 m of 1.83, 0.91 of 3.29). But most blows were thrown from 0.55 to
+  0.86 m: after his first pounce the swordsman stood where it ended and the target walked back to its spot, right
+  against him. **Mended 21:15** (`DuelLab.TakesDistanceAgain`; Combat Feel "After Going For Him He Takes His
+  Distance Again"; lab row "After he goes for him:", readout "Their distance"; `FIGHT_TAKESDISTANCE=0`): with no
+  order but to stand, after a pounce or a blow at a man who is down he steps back to the distance he stood at.
+  Headless: the next blow from 1.20 m, against 1.10 m the old way. **Not seen in Unity; a fresh log is asked for.**
 - **A mistake of the first push (corrected 20:15):** I wrote that this "may be the stand-in" because contact
   modification does nothing headless. It has nothing to do with it: contact modification here is only for a lying
   body on the ground (`GroundContacts.cs`). Before giving a reason why a headless number might not hold in Unity,

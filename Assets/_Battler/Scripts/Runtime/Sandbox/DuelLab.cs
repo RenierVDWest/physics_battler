@@ -401,6 +401,9 @@ namespace PhysicsBattler.Sandbox
             Other = other;
             Now = Order.Stand;
             Gone = 0f;
+            StoodOff = 0f;
+            wasGoing = takesDistance = false;
+            TookDistance = "he has not gone for him yet";
             if (mover != null)
             {
                 last = mover.Root.position;
@@ -428,6 +431,8 @@ namespace PhysicsBattler.Sandbox
             }
 
             Now = order;
+            // (An order of his own: where it takes him is where he stands.)
+            takesDistance = false;
             Gone = 0f;
             Fastest = 0f;
             since = 0f;
@@ -588,6 +593,54 @@ namespace PhysicsBattler.Sandbox
 
         private static Vector3 Flat(Vector3 v) => new Vector3(v.x, 0f, v.z);
 
+        /// <summary>
+        /// The distance he keeps is learnt while both stand settled on their spots; after a going of his own he is
+        /// given a spot that far from the other's, on his own side of it, once, and again only if the other's spot
+        /// moves (a man who fell stands where he got up).
+        /// </summary>
+        private void StepDistance()
+        {
+            if (Mover == null || Other == null || Mover.Clip == null || Other.Clip == null || Now != Order.Stand || leaping)
+            {
+                return;
+            }
+
+            float size = Mover.Clip.Size;
+            Vector3 his = Flat(Other.DummySpot);
+            if (!takesDistance)
+            {
+                bool settled = !Other.Clip.Fallen && !Other.Clip.Stumbling && !Mover.Clip.Stumbling && !Mover.Clip.Striking
+                    && Flat(Mover.Root.position - Mover.DummySpot).magnitude < SettledWithin * size && Flat(Other.Root.position - Other.DummySpot).magnitude < SettledWithin * size;
+                if (settled)
+                {
+                    StoodOff = Flat(Mover.DummySpot - Other.DummySpot).magnitude;
+                }
+
+                return;
+            }
+
+            // (Not while his blow is still playing, and not while he is finishing the step his run stopped in: a man
+            // told to stand in the middle of a step stands where the step ends, FightLoop's rule of 18 November.)
+            if ((his - takenFrom).magnitude < 0.1f * size || Mover.Clip.Striking || Mover.Clip.Stumbling || Mover.Clip.Fallen || (Mover.Clip.Loco != null && Mover.Clip.Loco.StepUnderWay))
+            {
+                return;
+            }
+
+            // (Straight back from the other's spot through where he is: the shortest way, and never through the man.)
+            Vector3 from = Flat(Mover.Root.position) - his;
+            float was = from.magnitude;
+            Vector3 way = was > 0.05f ? from / was : -Flat(Mover.transform.forward).normalized;
+            Vector3 spot = his + way * StoodOff;
+            Mover.DummyGo = null;
+            Mover.DummySpot = new Vector3(spot.x, Mover.Root.position.y, spot.z);
+            if (takenFrom.x > 1e30f)
+            {
+                TookDistance = string.Format(System.Globalization.CultureInfo.InvariantCulture, "it ended {0:0.00} m from the other's spot; he steps {1} to the {2:0.00} m he stood at", was, was < StoodOff ? "back" : "in", StoodOff);
+            }
+
+            takenFrom = his;
+        }
+
         private void Stand()
         {
             // (Where it is now is its spot: it does not walk back to where it began.)
@@ -601,6 +654,29 @@ namespace PhysicsBattler.Sandbox
 
         /// <summary>The mover's running in and striking: the pounce on an opening, and the blow at a man who is down.</summary>
         public readonly RunIn Run = new RunIn();
+
+        /// <summary>
+        /// After he has gone for a man by himself (a pounce on an opening, a blow at a man who is down) and he has no
+        /// order but to stand, he takes his distance again: he steps back to as far from the other's spot as he stood
+        /// before he went (Combat Feel "After Going For Him He Takes His Distance Again"; <c>FIGHT_TAKESDISTANCE=0</c>
+        /// for the old way). Renier, 20 November, of his first look at the blade's path: "After the first time I attack
+        /// it seems like the blue dummy keeps walking into me. So for all the attacks after that the dummy was standing
+        /// right against me." His log: the swordsman pounced on the stumbling target, 0.66 m in, and stood where the
+        /// pounce ended, as the lab's mover always has ("where it is now is its spot"); the target walked back to its
+        /// own spot, which was now 0.70 m from him, and every blow after that was thrown from 0.55 to 0.86 m, not the
+        /// 1.5 m the lab sets out. Old: he stands where the going ended.
+        /// </summary>
+        public static bool TakesDistanceAgain = true;
+
+        /// <summary>For the panel and the reports: how far off he stood (spot to spot) as it was last seen settled, and what he did after his last going.</summary>
+        public float StoodOff { get; private set; }
+        public string TookDistance { get; private set; } = "he has not gone for him yet";
+
+        /// <summary>Both count as standing on their spots within this (metres at a Medium's size): the distance between the spots is then the one he keeps.</summary>
+        public const float SettledWithin = 0.15f;
+
+        private bool wasGoing, takesDistance;
+        private Vector3 takenFrom;
 
         public bool Going => Run.Going;
         public string GoingNow => Run.GoingNow;
@@ -716,6 +792,8 @@ namespace PhysicsBattler.Sandbox
                 return false;
             }
 
+            // (Set out by hand: he stays where he is.)
+            takesDistance = false;
             Vector3 to = Flat(Other.Root.position - Mover.Root.position);
             float way = Mover.Clip.Loco.Facing + degrees;
             Vector3 spot = Mover.Clip.Loco.Position + Quaternion.Euler(0f, way, 0f) * Vector3.forward * Mathf.Max(0.8f, to.magnitude);
@@ -753,6 +831,8 @@ namespace PhysicsBattler.Sandbox
                 return false;
             }
 
+            // (Set out by hand: he stays where he is.)
+            takesDistance = false;
             float way = Mover.Clip.Loco.Facing;
             Vector3 spot = Mover.Clip.Loco.Position + Quaternion.Euler(0f, way, 0f) * Vector3.forward * (Mathf.Max(0.6f, metres) * Mover.Clip.Size);
             Other.Teleport(spot, way + 180f);
@@ -878,10 +958,22 @@ namespace PhysicsBattler.Sandbox
             }
 
             // (Going for a man, his order waits: his legs are the run's.)
-            if (Run.Step(dt))
+            bool hasHisLegs = Run.Step(dt);
+            if (wasGoing && !Run.Going)
+            {
+                // (The going is over. With no order but to stand, he takes his distance again.)
+                takesDistance = TakesDistanceAgain && Now == Order.Stand && !leaping && StoodOff > 0f;
+                takenFrom = new Vector3(float.MaxValue, 0f, 0f);
+                TookDistance = takesDistance ? "" : Now != Order.Stand ? "he went on with his order" : "he stood where it ended (old)";
+            }
+
+            wasGoing = Run.Going;
+            if (hasHisLegs)
             {
                 return;
             }
+
+            StepDistance();
 
             if (leaping)
             {

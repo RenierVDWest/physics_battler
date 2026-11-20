@@ -7889,3 +7889,39 @@ planned as an attack is thrown and followed at the top of each step: `PlanBladeP
 `Tools/Mocap/Combat/flow` stay as the record of the plan's first reading.
 
 **Its film** (3b2b, made by Opus at medium effort; 7 scenes, about 3.5 minutes): https://claude.ai/artifact/DicGDRVN9k8W211a5JwBj6
+
+### 20 November, 21:15: his first look at the blade's path; the swordsman now steps back after he goes for a man
+
+**What he said (20:44):** "After the first time I attack it seems like the blue dummy keeps walking into me. So for
+all the attacks after that the dummy was standing right against me for the next attacks."
+
+**What his two logs show** (`PlaytestLogs/2026-11-20_20-37-54` and `..._20-41-42`; frames looked at and removed):
+his first forehand threw the target back stumbling; the swordsman pounced by himself, 0.66 m in, and then stood
+where the pounce ended, as the duel lab's mover always has ("where it is now is its spot"). The target walked back
+to its own spot, which was now 0.70 m from him. Every blow after that was asked for from 0.55 to 0.86 m, not the
+1.5 m the lab sets out. It is this morning's pounce meeting the lab's old rule; the blade's path has no part in it.
+
+**The mend** (`DuelLab.TakesDistanceAgain`, `DuelLab.StepDistance`; Combat Feel "After Going For Him He Takes His
+Distance Again", on; lab row "After he goes for him: he steps back / he stands there (old)" and the readout "Their
+distance"; `FIGHT_TAKESDISTANCE=0` for the old way): when a pounce or a blow at a man who is down is over, and his
+order is to stand, he is given a spot as far from the other's spot as he stood before, straight back from it through
+where he is (never through the man). The distance he keeps is learnt while both stand settled on their spots. He
+waits for his blow to finish, and for the step his run stopped in. Once only, and again only if the other's spot
+moves (a man who fell stands where he got up). An order of his own (move, leap, "Stumble him") ends it. Going round
+or walking, he goes on with that order, as before. The dance is not touched.
+
+**Measured headless** (`st.sh` with an open-handed target, a soft kick to make him stumble, then a blow asked for
+6.5 s after; a sword blow does not make the headless target stumble, which it does in Unity): after the pounce the
+next blow was asked for from 1.20 m with the mend (the 1.20 m he stood at), and from 1.10 m the old way (the two
+spots 0.99 m apart). The headless pounce ends less close than his did (0.99 m against 0.70 m), so the old way looks
+milder here than in his log. **Not seen in Unity.** Whether the step back looks natural I cannot tell.
+
+**His logs on the blade (seen in Unity, by the numbers):** of 19 blows that landed on a body, 7 had the point stay
+under 5 m/s for a further 0.08 to 0.10 s after the freeze, and several were carried through far less than planned
+(0.36 m of 1.83; 0.91 m of 3.29; 1.74 m of 5.80). The same share as headless (7 of 19). So the blade sticking at
+the body it cut is in Unity too. Most of these blows were thrown from much too close, so the "off its planned
+path" numbers of these logs (34 to 60 cm) are not to be read; a fresh log from the right distance is wanted.
+
+Checks: 0 errors; the panel's look list 8 of 8; `flow.sh` passes. The fight of six was not run: only the duel
+lab's own code changed.
+

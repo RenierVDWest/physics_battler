@@ -365,6 +365,9 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("How soon he reads an opening and goes for it (seconds).")]
         [Range(0f, 0.6f)] public float pounceReadsIn = 0.15f;
 
+        [Tooltip("On: after the duel lab's swordsman has gone for a man by himself (a pounce on an opening, a blow at a man who is down) he steps back to the distance he stood at before he went, so the next blow you ask for starts from the lab's distance again. Only when his order is to stand: going round or walking, he goes on with that. Off (old): he stands where the going ended, and the target, walking back to its own spot, comes right up against him.")]
+        public bool afterGoingForHimHeTakesHisDistanceAgain = true;
+
         [Tooltip("On (the default, decided on 20 November): a fighter goes for a man who is down. While the other is off his feet, the fighter runs to him from however far he was thrown and stabs down from beside his chest as he arrives, in one motion with no stop between the run and the blow. In the duel lab; the dance has its own switch (\"The Dance Strikes A Man Who Is Down\"); not in the fight of six. Off (old): he holds off and lets him get up, which is the way to watch a get-up undisturbed. (A new name for \"A Fighter Strikes A Man Who Is Down\", which was off by default.)")]
         public bool aFighterGoesForAManWhoIsDown = true;
 
@@ -1851,6 +1854,7 @@ namespace PhysicsBattler.Locomotion
             StumbleSteps.On = offBalanceHeStumblesOnRealSteps;
             ClipFighter.ArmsGoOutInAStumble = aStumblingFightersArmsGoOutForBalance;
             PhysicsBattler.Sandbox.RunIn.Pounces = aFighterPouncesOnAnOpening;
+            PhysicsBattler.Sandbox.DuelLab.TakesDistanceAgain = afterGoingForHimHeTakesHisDistanceAgain;
             PhysicsBattler.Sandbox.RunIn.StrikesTheDowned = aFighterGoesForAManWhoIsDown;
             PhysicsBattler.Sandbox.RunIn.PounceReadsIn = Mathf.Clamp(pounceReadsIn, 0f, 0.6f);
             ClipFighter.KicksThrow = aKickThrowsABody;

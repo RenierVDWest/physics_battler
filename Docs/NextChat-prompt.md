@@ -236,5 +236,10 @@ costs; whether real attacks should be more frequent.
 - When I say something looks pushed or thrown "by nothing", look in my log for a `stumble` with no `tube` or
   `struck` just before it, and at how the unit's root moves after `getup`.
 
+- In the duel lab the swordsman stands where his own order leaves him. After a pounce of his own he used to stand
+  where it ended, and the target, walking back to its spot, came right up against him: every blow I asked for after
+  that was from far too close. He steps back to his distance now (20 November, 21:15). When I say a dummy "walks
+  into me", look at where each stood in the units' files before anything else.
+
 Begin with what is first in the list. If something is unclear, take the most reasonable reading, write down which
 one you took, and carry on.

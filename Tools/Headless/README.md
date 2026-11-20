@@ -81,6 +81,11 @@ The rest are one-off comparisons from particular days, kept for reference.
   `FIGHT_DANCEOWN="1,1,1,0.35"`: in a dance, by themselves: pounce, go for a man who is down, kick, and how many of
   a shield's bashes are a kick. A dance's report has `DANCEOWN` lines. **A dance of 70 s takes about 17 minutes
   here; a batch of six 10 s duels about 13.**
+- `FIGHT_TAKESDISTANCE=0`: after going for a man the duel's mover stands where it ended (old); by default he
+  steps back to the distance he stood at. Every `DUELBLOW` is followed by an `APART` line (how far apart as the
+  blow is asked for, the distance he keeps, what he did after his last going), and with `FIGHT_BASHAT` there is an
+  `APART` line 6 s after each asked bash or kick. A sword blow does not make the headless target stumble: use
+  `FIGHT_KICK=1 FIGHT_KICKKIND=soft FIGHT_BASHPUT=1.2` to get a pounce.
 - `FIGHT_POUNCE=0`: the duel's mover does not pounce on an opening (old). `FIGHT_POUNCEREADS=0.15`: how soon he
   reads one. Every bash or kick asked for with `FIGHT_BASHAT` prints a `POUNCE` line 2.6 s after it.
 - `FIGHT_DOWNED=1`: the duel's mover goes for a man who is down. **In the game this is on by default since 20

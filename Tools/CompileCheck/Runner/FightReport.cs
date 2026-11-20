@@ -1208,6 +1208,9 @@ internal static class FightReport
         PhysicsBattler.Locomotion.ClipFighter.BodiesTakeImpacts = Environment.GetEnvironmentVariable("FIGHT_PRESS") != "0";
         // (FIGHT_POUNCE=0: the duel's mover does not pounce on an opening, as before. FIGHT_POUNCEREADS=0.15: how soon he reads one.)
         PhysicsBattler.Sandbox.RunIn.Pounces = Environment.GetEnvironmentVariable("FIGHT_POUNCE") != "0";
+        // (FIGHT_TAKESDISTANCE=0: after going for a man the duel's mover stands where it ended, the old way. With
+        // FIGHT_BASHAT, an APART line 6 s after each asked bash: how far apart the two then stand.)
+        PhysicsBattler.Sandbox.DuelLab.TakesDistanceAgain = Environment.GetEnvironmentVariable("FIGHT_TAKESDISTANCE") != "0";
         if (Environment.GetEnvironmentVariable("FIGHT_ROSETRACE") == "1") PhysicsBattler.Locomotion.ClipFighter.RoseTrace = line => Console.WriteLine("ROSE " + line);
         PhysicsBattler.Locomotion.ClipFighter.ArmsOutForgottenOnceUp = Environment.GetEnvironmentVariable("FIGHT_ARMSFORGOT") != "0";
         // (FIGHT_DOWNEDBLOW="beside,sns_thrust,0.12,1.5,0.95": whether he comes beside the chest of a man who is down (beside / straight), the blow thrown ("" or best: the best fit), how much lower his hips, how far his chest leans, and how far from the chest he stands.)
@@ -1980,6 +1983,15 @@ internal static class FightReport
                                 Console.WriteLine($"DOWNED {paceAt:0.00}: {duel.DownedStruck} ({duel.DownedBlows} blows at a man who was down); the other {(duel.Other.Clip.Fallen ? "is off his feet" : "stands")}, {Vector3.Distance(duel.Mover.Root.position, duel.Other.Root.position):0.00} m off");
                             }
 
+                            if (paceAt >= bashAt + 6f && paceAt - dt < bashAt + 6f)
+                            {
+                                Vector3 mAt = duel.Mover.Root.position, oAt = duel.Other.Root.position;
+                                Console.WriteLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "APART {0:0.00}: {1:0.00} m apart (he stands {2:0.00} off; before the bash they were {3:0.00}); {4}; mover going {5:0.00} m/s, {6:0.00} m from his spot; the other {7}, {8:0.00} m from its spot",
+                                    paceAt, Vector3.Distance(new Vector3(mAt.x, 0f, mAt.z), new Vector3(oAt.x, 0f, oAt.z)), duel.StoodOff, bashGapWas, duel.TookDistance, duel.Speed,
+                                    Vector3.Distance(new Vector3(mAt.x, 0f, mAt.z), new Vector3(duel.Mover.DummySpot.x, 0f, duel.Mover.DummySpot.z)),
+                                    duel.Other.Clip.Fallen ? "is off his feet" : duel.Other.Clip.Stumbling ? "is stumbling" : "stands", Vector3.Distance(new Vector3(oAt.x, 0f, oAt.z), new Vector3(duel.Other.DummySpot.x, 0f, duel.Other.DummySpot.z))));
+                            }
+
                             if (paceAt >= bashAt + 2.6f && paceAt - dt < bashAt + 2.6f)
                             {
                                 Console.WriteLine($"POUNCE {paceAt:0.00}: {duel.Pounced} ({duel.OpeningsSeen} openings seen, {duel.PounceLeaps} gone for, {duel.PounceBlows} struck at); the other {(duel.Other.Clip.Fallen ? "is down" : duel.Other.Clip.Stumbling ? "is stumbling" : "stands")}, {Vector3.Distance(duel.Mover.Root.position, duel.Other.Root.position):0.00} m off");
@@ -2371,6 +2383,7 @@ internal static class FightReport
                             bool asked = duel.Strike(aim, duelBlows[i].spot, Time.time);
                             duel.WatchOpenings(posture.Length > 0 ? posture : "a blow");
                             Console.WriteLine($"DUELBLOW {paceAt:0.00} at the {duelBlows[i].spot} while {duel.BlowBegan}: {(asked ? "begun, " + duel.BlowThrown : "he could not")}");
+                            Console.WriteLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "APART {0:0.00}: {1:0.00} m apart as the blow is asked for (he stands {2:0.00} off); after his last going: {3}; pounces so far {4}", paceAt, duel.Gap, duel.StoodOff, duel.TookDistance.Length > 0 ? duel.TookDistance : "nothing yet", duel.PounceLeaps));
                             startWatched = asked;
                             duelBlows.RemoveAt(i);
                             break;
