@@ -246,8 +246,21 @@ namespace PhysicsBattler.Locomotion
             /// <summary>As it went: any of it was seen, and it was seen past its landing.</summary>
             public bool Seen, SeenLanding;
 
-            /// <summary>As it went, the same figures (speeds and the carry by the game's clock, the steps it was frozen on a hit left out); the nearest the striking part passed to the target (metres).</summary>
-            public float WentSpeed, WentCarry, WentTurnAfter, WentSlowest, WentMiss;
+            /// <summary>
+            /// As it went. The fastest the point went about its landing (m/s, against where he stands, by the game's
+            /// clock); how far it went on from the landing over the stretch of the attack the plan's carry is
+            /// measured over (metres: to compare with <see cref="PlanCarry"/>); and the nearest the striking part
+            /// passed to the target (metres).
+            /// </summary>
+            public float WentSpeed, WentCarry, WentMiss;
+
+            /// <summary>
+            /// How long the blade crawled after it landed (seconds): the steps in the first <see cref="CrawlWithin"/>
+            /// seconds after the landing, the freeze on the hit not counted, in which its point went slower than
+            /// <see cref="CrawlsUnder"/>. A blade is frozen on a hit on purpose; one that then starts again slowly
+            /// is seen to stick at the body.
+            /// </summary>
+            public float Crawl;
 
             /// <summary>
             /// How far the point as it went was from the planned path (metres: from the nearest place on the plan's
@@ -261,6 +274,12 @@ namespace PhysicsBattler.Locomotion
             /// <summary>How long it was frozen on hits (seconds).</summary>
             public float Frozen;
         }
+
+        /// <summary>A blade crawls while its point goes slower than this (m/s), looked for this long after it lands (seconds of the game's clock, a freeze not counted).</summary>
+        public const float CrawlsUnder = 5f, CrawlWithin = 0.15f;
+
+        /// <summary>A crawl is looked for only over this share of the planned carry-through, from the landing: nearer its turn the blade is slow by itself (a thrust's point stops and comes back).</summary>
+        public const float CrawlShare = 0.6f;
 
         /// <summary>The planned point nearest a place, looked for between two times of the clip: how far it is, and when the plan has it there.</summary>
         private float NearestOnPlan(Vector3 place, float from, float to, out float when)
@@ -362,46 +381,42 @@ namespace PhysicsBattler.Locomotion
                 return r;
             }
 
-            // (Its speed by the game's clock, each step it was not frozen on a hit: a freeze is not the blade stopping.)
-            var went = new List<float>();
-            var index = new List<int>();
-            for (int i = 1; i < m; i++)
+            // (Its speed by the game's clock, each step it was not frozen on a hit: a freeze is not the blade moving slowly.)
+            float until = HitAt + r.PlanTurnAfter, since = 0f;
+            bool any = false;
+            for (int i = Mathf.Max(1, landed - 3); i < m; i++)
             {
                 if (WentFrozen[i] || WentAt[i] <= WentAt[i - 1] + 1e-6f)
                 {
                     continue;
                 }
 
-                went.Add(((WentTip[i] - WentRoot[i]) - (WentTip[i - 1] - WentRoot[i - 1])).magnitude / stepLength);
-                index.Add(i);
+                float gone = ((WentTip[i] - WentRoot[i]) - (WentTip[i - 1] - WentRoot[i - 1])).magnitude, pace = gone / stepLength;
+                if (i <= landed + 3)
+                {
+                    r.WentSpeed = Mathf.Max(r.WentSpeed, pace);
+                }
+
+                if (i <= landed)
+                {
+                    continue;
+                }
+
+                any = true;
+                since += stepLength;
+                // (Only while the plan still has the blade well short of its turn: near its turn a blade is slow by itself.)
+                if (since <= CrawlWithin + 1e-4f && pace < CrawlsUnder && WentAt[i] <= HitAt + CrawlShare * r.PlanTurnAfter)
+                {
+                    r.Crawl += stepLength;
+                }
+
+                if (WentAt[i] <= until + 1e-4f)
+                {
+                    r.WentCarry += gone;
+                }
             }
 
-            int at = index.FindIndex(i => i >= landed);
-            if (at < 0 || went.Count < 3)
-            {
-                r.SeenLanding = false;
-                return r;
-            }
-
-            float fastest = 0f;
-            for (int k = Mathf.Max(0, at - 6); k <= Mathf.Min(went.Count - 1, at + 6); k++)
-            {
-                fastest = Mathf.Max(fastest, went[k]);
-            }
-
-            for (int k = Mathf.Max(0, at - 3); k <= Mathf.Min(went.Count - 1, at + 3); k++)
-            {
-                r.WentSpeed = Mathf.Max(r.WentSpeed, went[k]);
-            }
-
-            int turned = TurnAfter(went.ToArray(), at, fastest, stepLength);
-            r.WentTurnAfter = WentAt[index[turned]] - WentAt[index[at]];
-            r.WentSlowest = went[turned];
-            for (int k = at + 1; k <= turned; k++)
-            {
-                r.WentCarry += went[k] * stepLength;
-            }
-
+            r.SeenLanding = any;
             return r;
         }
 
@@ -445,15 +460,17 @@ namespace PhysicsBattler.Locomotion
                 return plan + ". Not seen yet";
             }
 
-            string met = Met.Count == 0 ? "it met nothing" : "it " + string.Join(", then ", Met) + (r.Frozen > 0f ? string.Format(ci, ", frozen {0:0.00} s", r.Frozen) : "");
+            string met = Met.Count == 0 ? "it met nothing" : "it " + string.Join(", then ", Met);
+            // (A freeze on a hit is meant; what the blade crawls after it is not.)
+            string stuck = r.Frozen <= 0f && r.Crawl <= 0f ? "" : string.Format(ci, "; frozen {0:0.00} s{1}", r.Frozen, r.Crawl > 0f ? string.Format(ci, ", then under {0:0} m/s for {1:0.00} s more", CrawlsUnder, r.Crawl) : "");
             string off = string.Format(ci, "The point {0:0} cm off its planned path on average, {1:0} cm at most, {2:0.00} s {3} it", 100f * r.OffPath, 100f * r.OffPathMost, Mathf.Abs(r.Behind), r.Behind >= 0f ? "behind" : "ahead of");
             if (!r.SeenLanding)
             {
-                return plan + string.Format(ci, ". As it went: {0:0.00} s of its {1:0.00} s, and it did not reach its landing; {2}. {3}", WentAt[WentAt.Count - 1], Duration, met, off);
+                return plan + string.Format(ci, ". As it went: {0:0.00} s of its {1:0.00} s, and it did not get past its landing; {2}. {3}", WentAt[WentAt.Count - 1], Duration, met, off);
             }
 
-            return plan + string.Format(ci, ". As it went: up to {0:0} m/s as it landed, {1:0} cm from the spot; {2}; carried on {3:0.00} m to its turn ({4:0.0} m/s there). {5}",
-                r.WentSpeed, 100f * r.WentMiss, met, r.WentCarry, r.WentSlowest, off);
+            return plan + string.Format(ci, ". As it went: up to {0:0} m/s as it landed, {1:0} cm from the spot; {2}{3}; carried on {4:0.00} m. {5}",
+                r.WentSpeed, 100f * r.WentMiss, met, stuck, r.WentCarry, off);
         }
     }
 }

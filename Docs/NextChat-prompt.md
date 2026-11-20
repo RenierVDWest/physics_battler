@@ -103,10 +103,12 @@ to go for a man that is down."** So:
   144). It corrected the plan in two places (the thrust comes back high right; a chop into a rising backhand and a
   thrust into a spinning backhand do not join as written).
 - In the duel lab, under "Strike at": "The blade's path: drawn / hidden". Drawn: the planned path of an attack's
-  blade in pale blue, a white bar where it is to land, the sword's real path in orange, and the numbers in "His last
-  blade path". With it on, my playtest log gets a `bladepath` line for every attack. **The drawing is built blind.**
-- Headless, 5 of 19 blades that landed on a body hitched there instead of sweeping on. It may be the headless
-  stand-in. My third goal for combos is that a blow slashes through, so this comes first.
+  blade in pale blue, a white bar where it is to land, the sword's real path in orange with a dot a step (bunched
+  dots: a slow blade), and the numbers in "His last blade path". With it on, my playtest log gets a `bladepath` line for every attack. **The drawing is built blind.**
+- Headless, a blade is frozen 0.05 s as it lands (meant), and then starts again slowly: in 7 of 19 blows its
+  point stayed under 5 m/s for a further 0.07 to 0.15 s before sweeping on, and 3 of 19 fell well short of their
+  planned carry-through. Cause not found; not seen in Unity. My third goal for combos is that a blow slashes
+  through, so this comes first. (The first push said "it may be the stand-in": that was a guess and is withdrawn.)
 - Its film: FILMLINK
 - The panel's "Look here" list is step 1's push (four steps, eight names; all drawn).
 
@@ -114,9 +116,10 @@ to go for a man that is down."** So:
 
 **0. Combos (the work in hand).** If I have looked at the blade's path and pushed a log: read its `bladepath`
 lines first (search the text log for "bladepath"). Each says how far the blade was planned to be carried on after
-it landed and how far it really was, and what it met in the blow's own words. If blades hitch at a body in Unity
-too (carried on a tenth or a fifth of what was planned), that is to be understood and mended before step 2, and
-told to me simply. Then **step 2: two blows as one swing** (forehand into rising backhand, on the move, on a dummy
+it landed and how far it really was, what it met in the blow's own words, and how long it was frozen on the hit
+and then crawled ("frozen 0.05 s, then under 5 m/s for 0.10 s more"). If blades stick at a body in Unity too, find
+the cause (trace one blow step by step with `FIGHT_BLADEPATHSTEPS=1`: the sword's solid copy against the struck
+part, the restart after the hit stop, the blade's speed limit) and mend it before step 2, and tell me simply. Then **step 2: two blows as one swing** (forehand into rising backhand, on the move, on a dummy
 with no guard; lab toggle "Throw two: flowing / one after the other (old)"; the pass marks are in the plan's
 table). It starts from `BladeFlow.Join` (leave the forehand 0.23 s after it lands, enter the rising backhand 0.17 s
 before it lands; 64 cm between the points and 43 cm between the hands to make up) and needs two new things in the

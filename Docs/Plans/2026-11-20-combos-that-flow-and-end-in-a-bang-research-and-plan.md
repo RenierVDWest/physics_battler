@@ -2,7 +2,7 @@
 
 20 November 2026 · Renier. Live version: https://claude.ai/artifact/X5YKsPDm3LZYzefQoofnuX (progress notes are added
 there). This copy was taken on 20 November 2026 at 17:05; the progress note for step 1 at its end was added at
-20:00. The live version has three pictures that a copy cannot hold; each is described here in a line where it stands.
+20:00 and corrected at 20:15. The live version has three pictures that a copy cannot hold; each is described here in a line where it stands.
 
 ## The short version
 
@@ -404,10 +404,12 @@ What this changes in the plan:
 - **"Bam, bam, BAM" adds up.** Forehand, rising backhand, forehand comes to 0.40 + 0.70 = 1.10 s from the first hit to the third at the recorded pace. The aim was 1.0 to 1.15 s.
 - **Two joins need more than I wrote.** After a chop, a rising backhand needs a loop. After a thrust, the cut that follows best is the forehand (0.40 s), not the spinning backhand.
 
-**In the game.** The duel lab's "Strike at" has a new row, "The blade's path: drawn / hidden" (Combat Feel "The Blade's Path Is Drawn", off by default). Drawn: the path the attack's maker planned for the sword's point in pale blue, a white bar where the blade is planned to land, a yellow cross on the spot asked for, and the sword's real path in orange. It stays until his next attack. "His last blade path" under it gives the numbers, and each attack writes a `bladepath` line to your playtest log.
+**In the game.** The duel lab's "Strike at" has a new row, "The blade's path: drawn / hidden" (Combat Feel "The Blade's Path Is Drawn", off by default). Drawn: the path the attack's maker planned for the sword's point in pale blue, a white bar where the blade is planned to land, a yellow cross on the spot asked for, and the sword's real path in orange. It stays until his next attack. The orange line has a dot for every step of the game's clock: dots close together mean the blade is slow. "His last blade path" under it gives the numbers, and each attack writes a `bladepath` line to your playtest log.
 
 Headless, over 22 attacks, planted and on the move: the sword's point runs 14 cm from its planned line on average, and 0.02 s behind it. **Not seen in Unity. The drawing itself is built blind.**
 
-**A finding for your third goal** (a blow slashes through). Headless, 19 blows landed on a body in the aim test. By the game's own rule every one "drove on through" with 70% of its speed. Fourteen did. Five hitched at the body: the point slowed to between 0.2 and 4 m/s within a tenth of a second and was carried only 10 to 20% as far as planned (a forearm twice, an upper arm, a thigh, a shin). I cannot tell from here whether Unity does the same, because the headless stand-in lacks the softening of a blade's contact with a body that Unity has. The drawing shows it at once: the orange line knots up at the white bar instead of running on along the blue. Step 2 needs the blade to carry through, so this is the first thing to look at.
+**A finding for your third goal** (a blow slashes through). The game freezes a blade for 0.05 s as it lands. That is meant: it is the freeze that makes a hit feel heavy. After it the blade should sweep on. Headless, 19 blows landed on a body in the aim test, and by the game's own rule every one "drove on through" with 70% of its speed. Sixteen swept on at least 70% as far as planned; three fell well short (a forearm, a shin, an upper arm). But the sword starts again slowly after the freeze: in 7 of the 19 its point stayed under 5 m/s for a further 0.07 to 0.15 s, so to the eye the blade sticks at the body for a moment and then whips on. The cause is not found. It is not seen in Unity; it is the same physics there, so I expect it shows. The drawing has a dot on the orange line for every step of the game's clock: a blade that sticks shows as dots bunched up after the white bar. Step 2 needs the blade to flow through a hit, so this is the first thing to look at.
+
+*(Corrected at 20:15. The first version of this note said five blades were "carried only 10 to 20% as far as planned" and that it might be the headless stand-in. Both were wrong: that distance was to the blade's first slow moment, most of those blades swept on after it, and nothing in the stand-in explains it.)*
 
 **Next: step 2**, two blows as one swing, when you have looked at the drawing.

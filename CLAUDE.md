@@ -7,7 +7,8 @@ the "Where things stand" and "Roadmap" sections must always be true.
 Last updated: 20 November 2026, 20:00 (he said "Yes it sounds good. Go." to the combos plan at 18:42, every
 default taken. **Step 1 of the combos plan is built and pushed, waiting for his eye:** every recording's blade is
 measured by a report, and the duel lab can draw a made attack's planned blade path and the path the sword really
-took. A view only: nobody fights differently. Next: step 2, two blows as one swing).
+took. A view only: nobody fights differently. Next: step 2, two blows as one swing. Corrected at 20:15: what
+the first push said about blades "hitching" at a body).
 
 ## The project in a few lines
 
@@ -473,12 +474,21 @@ A view only: nobody fights differently. The README's entry of 20:00 has the tabl
 - **In the game** (`BladePath.cs`, `BladePathView.cs`; Combat Feel "The Blade's Path Is Drawn", off; lab row "The
   blade's path: drawn / hidden" and the readout "His last blade path", in the duel lab under "Strike at" and in the
   aim test): the planned path of a made attack's blade (planted, or on the move by doing ahead of time what the walk
-  does each step), a mark where it lands, and the sword's real path over it. Headless (`FIGHT_BLADEPATH=1`): the
+  does each step), a mark where it lands, and the sword's real path over it with a dot a step (bunched dots: a slow
+  blade). Headless (`FIGHT_BLADEPATH=1`): the
   real point is 14 cm from its planned line on average, 0.02 s behind. A `bladepath` line goes to his playtest log
   for each attack while it is on. **The drawing is built blind** (the legs' view's method, which he has seen).
-- **A finding for his third goal:** headless, 5 of 19 blades that landed on a body hitched there (carried on 10 to
-  20% of what was planned) though the game's rule had them "drive on through". It may be the stand-in (no contact
-  modification headless). **Look at this first in his next log's `bladepath` lines, before step 2.**
+- **A finding for his third goal (a blow slashes through):** a blade is frozen 0.05 s as it lands (the hit stop,
+  meant). Headless, of 19 blows that landed, 16 then swept on at least 70% as far as planned, but the sword starts
+  again slowly: in 7 its point stayed under 5 m/s for a further 0.07 to 0.15 s (it sticks at the body, then whips
+  on), and 3 fell well short (a forearm, a shin, an upper arm). **Cause not found; not seen in Unity** (the same
+  physics there: `UpperBodyArticulation.Hold` makes the sword solid against other fighters). The drawing's dots
+  and the readout ("frozen 0.05 s, then under 5 m/s for 0.10 s more") show it. **Look at this first, in his next
+  log's `bladepath` lines, before step 2.**
+- **A mistake of the first push (corrected 20:15):** I wrote that this "may be the stand-in" because contact
+  modification does nothing headless. It has nothing to do with it: contact modification here is only for a lying
+  body on the ground (`GroundContacts.cs`). Before giving a reason why a headless number might not hold in Unity,
+  find the code that would make it so.
 - **What cost time:** a recording's root is not a body frame (each slice's root faces where his head looked as it
   began: 108 degrees apart for one moment of one take): compare against the hips. A recorded wind-up does not
   slow before its drive, so a cut "starts" at the top of its swing (the point furthest from where it lands).
@@ -562,7 +572,8 @@ hit, the point never under 2 m/s between the hits, 60 cm or more of travel after
 the join, the second blow landing where it was aimed). What it starts from: `BladeFlow.Join` (where to leave and
 enter), `BladePath` (the measure; it needs "the slowest between two hits" added), and two new things in the maker:
 an attack that ends at its blade's turn instead of in the guard, and one that starts from the blade as the last
-one left it. **Before it: read his log's `bladepath` lines for blades that hitch at a body.** Defaults taken: a
+one left it. **Before it: read his log's `bladepath` lines for blades that stick at a body after the freeze ("then under 5
+m/s for ... more"), and find the cause.** Defaults taken: a
 blow a step (about 1.1 s for three hits, tuned toward his one second), three blows by default, the spin as a choice
 of last blow, the last blow's freeze tried up to 0.20 s, slow motion on a flooring last blow as a switch that
 starts off.

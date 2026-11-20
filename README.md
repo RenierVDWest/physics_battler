@@ -7835,7 +7835,8 @@ of time: a planted attack's from its clip (`MadeAttack.Blade`); a blow on the mo
 the walk does each step (the clip laid on the walk as it was, carried where the plan has the walk take him). Each
 step while it plays the sword itself is read. Drawn over the game view: the plan in pale blue (thick through the
 cut to where the blade turns), a white bar for the blade as it is planned to land, a yellow cross on the spot
-asked for, the real path in orange. It stays until his next attack. Each finished attack writes a `bladepath`
+asked for, the real path in orange with a dark dot for every step of the game's clock (dots close together: the
+blade is slow). It stays until his next attack. Each finished attack writes a `bladepath`
 line to the playtest log. Nothing is worked out with the switch off.
 
 Headless (`FIGHT_BLADEPATH=1`: a `BLADEPATH` line an attack; `FIGHT_BLADEPATHSTEPS=1`: each step, plan beside
@@ -7848,14 +7849,28 @@ in, jogging in, backing away):
 | How far behind its plan it ran | 0.02 s: a physical sword follows its pose a step late, which at a blade's speed is half a metre, so the measure is "off the line", not "off at the same moment" |
 | Blows on the move alone (11, of an earlier run of the day) | 10 to 23 cm on average, and one thrust thrown backing away at 34 cm: the plan worked out ahead of time is as near as a planted one's |
 | Thrusts | the roughest: 14 to 47 cm on average |
-| The fastest the point went as it landed | 12 to 36 m/s (a sword's limit in the game is 30; one thrust read 45) |
-| **Carried through after landing on a body** (19 blows that landed, the aim test) | 13 carried on 70 to 103% of the planned distance, and a thrust further than planned; **5 hitched at the body: 10 to 20%** (the point down to 0.2 to 4 m/s within a tenth of a second), on a forearm twice, an upper arm, a thigh and a shin |
+| The fastest the point went as it landed | 10 to 36 m/s (a sword's limit in the game is 30); one cut made turning 4, one thrust 45 |
+| **After landing on a body** (19 blows that landed, the aim test) | frozen 0.05 s every time (the hit stop, meant). Then: in 12 the point was under 5 m/s for 0.03 s or less; **in 7 it crawled under 5 m/s for a further 0.07 to 0.15 s** before sweeping on |
+| **Carried on**, over the same stretch of the attack as the plan's carry-through | 16 of 19 at least 70% as far as planned (70 to 104%; the thrust further than planned); **3 well short: a forearm 45%, a shin 16%, an upper arm 10%** |
 
-That last line is the one that matters for his third goal (a blow slashes through). Every one of the 19 was, by
-the game's own rule, "drove on through" the part with 70% of its speed kept; five did not do it. **Whether Unity
-shows the same I cannot tell from here:** the stand-in does not have the softening of a blade's contact with a
-body that Unity has (contact modification does nothing headless), so this may be the stand-in. The drawing shows
-it at once: the orange line knots up at the white bar instead of running on along the blue.
+That is the line that matters for his third goal (a blow slashes through, it does not stop at the part aimed at).
+By the game's own rule every one of the 19 "drove on through" the part with 70% of its speed kept. Most did, but
+the sword starts again slowly after the freeze, and in a third of the blows it visibly sticks at the body for
+about a tenth of a second and then whips on to catch its pose up (the point up to 1.9 m behind where its plan had
+it at that moment). **The cause is not found.** It is not seen in Unity either; the sword's solid copy
+(`UpperBodyArticulation.Hold`) is solid against another fighter in Unity as it is here, so I expect it shows.
+The drawing has a dot on the orange line for every step of the game's clock, so a blade that sticks shows as dots
+bunched up after the white bar, and the readout says "frozen 0.05 s, then under 5 m/s for 0.10 s more".
+
+**A mistake of mine, corrected a quarter of an hour later (20:15):** the first push of this entry (20:00) said that five
+blades "hitched" and were "carried only 10 to 20% as far as planned", and that it "may be the stand-in" because
+"contact modification does nothing headless". Both were wrong. The 10 to 20% was the distance to the blade's first
+slow moment, which is the hitch itself: read step by step, most of those blades swept on after it. And contact
+modification in this project only softens a lying body's contact with the ground (`GroundContacts.cs`); it has
+nothing to do with a blade and a body. The measure was changed to say what happens (the freeze, the crawl after
+it, the carry over the plan's own stretch), and the plan's note, the briefing, the pick-up prompt and the film's
+note were corrected. **A lesson: before giving a reason why a headless number might not hold in Unity, find the
+code that would make it so.**
 
 **Not checked, and said so:** the drawing itself is built blind. It uses the same lines-over-the-game-view
 method as the legs' view, which he has seen working, but nobody has seen this one. The panel check passes with

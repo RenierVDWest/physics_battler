@@ -13,13 +13,15 @@ namespace PhysicsBattler.Sandbox
     /// <para>The plan: thin over the wind-up, thick from where the hips start in to where the blade turns after the
     /// cut, thin and broken on the way back to the guard. A few faint spokes show the blade itself through the cut.
     /// A white bar is the blade as it is planned to land, with a small cross on its striking part; a yellow cross is
-    /// the spot the attack was asked for. As it went: the point's path in orange, and an orange bar for the blade at
-    /// the moment its clip said it lands.</para>
+    /// the spot the attack was asked for. As it went: the point's path in orange with a dark dot for every step of
+    /// the game's clock (dots close together: the blade is slow), and an orange bar for the blade at the moment its
+    /// clip said it lands.</para>
     /// </summary>
     public static class BladePathView
     {
         private static readonly Color Plan = new Color(0.45f, 0.78f, 1f, 0.95f), PlanFaint = new Color(0.45f, 0.78f, 1f, 0.4f), Spoke = new Color(0.45f, 0.78f, 1f, 0.16f),
-            Lands = new Color(1f, 1f, 1f, 0.95f), Asked = new Color(1f, 0.92f, 0.2f, 0.95f), Went = new Color(1f, 0.6f, 0.15f, 0.95f), WentFaint = new Color(1f, 0.6f, 0.15f, 0.45f);
+            Lands = new Color(1f, 1f, 1f, 0.95f), Asked = new Color(1f, 0.92f, 0.2f, 0.95f), Went = new Color(1f, 0.6f, 0.15f, 0.95f), WentFaint = new Color(1f, 0.6f, 0.15f, 0.45f),
+            Dots = new Color(0.55f, 0.2f, 0f, 1f);
 
         /// <summary>Draws one path (from <c>OnGUI</c>, with the GUI's own scale as the screen's).</summary>
         public static void Draw(BladePath path, Camera camera)
@@ -69,11 +71,34 @@ namespace PhysicsBattler.Sandbox
                 }
             }
 
+            // (A dot for every step of the game's clock: where they bunch up the blade is slow, where it was frozen
+            // on a hit they lie on one another.)
+            for (int i = 0; i < m; i++)
+            {
+                if (path.WentAt[i] >= path.DriveAt)
+                {
+                    Dot(camera, path.WentTip[i], Dots, 5f);
+                }
+            }
+
             if (landed >= 0)
             {
                 Line(camera, path.WentGrip[landed], path.WentTip[landed], Went, 3f);
                 Cross(camera, path.WentStrike[landed], Went, 7f, 2f);
             }
+        }
+
+        private static void Dot(Camera camera, Vector3 world, Color colour, float pixels)
+        {
+            if (!Screen2(camera, world, out var at))
+            {
+                return;
+            }
+
+            var was = GUI.color;
+            GUI.color = colour;
+            GUI.DrawTexture(new Rect(at.x - 0.5f * pixels, at.y - 0.5f * pixels, pixels, pixels), Texture2D.whiteTexture);
+            GUI.color = was;
         }
 
         private static bool Screen2(Camera camera, Vector3 world, out Vector2 at)

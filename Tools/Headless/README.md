@@ -110,15 +110,17 @@ The rest are one-off comparisons from particular days, kept for reference.
 - `FIGHT_BLADEPATH=1` (any lineup with made attacks: the aim test, a duel, the dance): every made attack's blade
   path is planned as it is thrown and followed as it goes, and a `BLADEPATH` line is printed as it ends: the cut,
   its corners, the plan (when it lands, how near the spot, how far it is carried on to its turn), as it went (how
-  fast, how near, what it met in the blow's own words, how far it was carried on), and how far the sword's point
-  was from its planned line. In the game this is Combat Feel "The Blade's Path Is Drawn", off.
+  fast, how near, what it met in the blow's own words, the freeze and the crawl after it, how far it was carried
+  on), and how far the sword's point was from its planned line. In the game this is Combat Feel "The Blade's Path Is Drawn", off.
 - `FIGHT_BLADEPATHSTEPS=1` with it: a `BLADESTEP` line for every step of every attack, the plan beside the sword
   as it went. A picture of one is quickly made from these (the planned point's path against the real one, from
   behind him and from his side).
 - The on-the-move battery with it: `mv.sh tag FIGHT_BLADEPATH=1`. The circling run takes about seven minutes.
-- **Read with care:** a landed blade that "hitches" at the body (carried on a tenth or a fifth of what was planned)
-  may be the stand-in: contact modification does nothing headless, and in Unity that is what softens a blade's
-  contact with a body.
+- In a `BLADEPATH` line, "frozen 0.05 s" is the hit stop (meant); "then under 5 m/s for 0.10 s more" is the blade
+  crawling after it (`BladePath.CrawlsUnder`, `CrawlWithin`), which is the blade sticking at the body; "carried on"
+  is measured over the same stretch of the attack as the plan's "carried on ... to its turn", so the two compare.
+  Headless on 20 November: 7 of 19 landed blows crawled 0.07 to 0.15 s. The cause is not found. (Contact
+  modification has nothing to do with it: here it only softens a lying body's contact with the ground.)
 
 ## The budget
 
