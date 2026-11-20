@@ -522,7 +522,7 @@ A view only: nobody fights differently. The README's entry of 20:00 has the tabl
 - **He steps back sooner after a pounce** (`DuelLab.StepsBackAfter` 0.35 s; lab lever "Steps back after"): the blow's
   way back to the guard is left. **Unverified:** headless does not show the wait his log showed.
 - A `flow` line goes to his playtest log for every "Throw two".
-- Its film: FILMLINK2
+- Its film: https://claude.ai/artifact/T38Pqw9FVNzxGAafWvJvw7
 - **A mistake of the first push (corrected 20:15):** I wrote that this "may be the stand-in" because contact
   modification does nothing headless. It has nothing to do with it: contact modification here is only for a lying
   body on the ground (`GroundContacts.cs`). Before giving a reason why a headless number might not hold in Unity,

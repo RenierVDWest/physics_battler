@@ -7999,5 +7999,5 @@ unverified until his next log.
 
 Checks: 0 errors; the panel's look list 9 of 9; `flow.sh` passes; the fight of six (40 s, seed 5) within its budgets as before: CROSSINGS OK 0.00%, TREMBLE OK 6.6%, no exception.
 
-Its film: FILMLINK2
+Its film: https://claude.ai/artifact/T38Pqw9FVNzxGAafWvJvw7
 
