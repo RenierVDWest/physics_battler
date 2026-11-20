@@ -7734,6 +7734,24 @@ steps 2.4 m), and so are `sns_chop_side` and `spin_chop` (a leap with a full spi
 So the Medium knows six cuts, not eight. The old combo system (`ComboPlayer`, `StrikeCores`, `StrikeCombos`) still
 runs in the fight of six and is not used by the plan.
 
+**His log of 13:59 (Unity; 294 s: a target test, then from 42 s a dance of two sword-and-shield fighters). What he
+saw before saying "all this looks fine for now":**
+
+| In the dance, by themselves | Count |
+|---|---|
+| A man went down, and the other went for him | 12 of 12 |
+| The stab met his body or head | 8 (chest 4, spine 1, pelvis 1, head 1, upper arm 1) |
+| The stab met nothing | 3 |
+| It was over before he got there | 1 |
+| Pounces on a stumble or a turned back | 21: the blow met his shield 9 times, his head 2, a shin 1; over before he was near 8; could not go on 1 |
+| Kick lines | 18: soft kicks by both, one medium; the kicked man thrown back stumbling |
+
+He ran 2 to 5.4 m to a man who was down and threw the blow 0.7 to 1.75 s after setting off. Several stabs landed on
+a man already rising (his chest 62 to 68 cm up). So the dance going for a downed man, which I never saw headless
+(nobody fell in my four test dances), **does happen in Unity and mostly lands**. A contact sheet of two of them
+(87 s and 136 s) shows the run, the crouch and the stab with the hit's flash. The frames are removed from the
+repository; the text log and the per-unit files are kept.
+
 **The panel:** "Look here" lists the one thing to see (6 names, 6 of 6 drawn and framed): a man kicked down in the
 duel lab is now gone for without a button.
 

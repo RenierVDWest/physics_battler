@@ -532,6 +532,10 @@ last blow's freeze tried up to 0.20 s, slow motion on a flooring last blow as a 
 
 **The push of 20 November, 11:52: he has looked (16:11): "all this looks fine for now"** (the stab, the pounce at
 what is open, the dance by itself).
+His log of 13:59 (Unity, a dance of 250 s): a man went down 12 times and the other went for him every time by
+himself; the stab met body or head 8 times, nothing 3 times, once it was too late; several landed on a man already
+rising. 21 pounces: 9 blows on his shield, 2 on his head, 8 over before he was near. The README's entry of 17:05 has
+the table.
 **Left over, in this order:** (1) the get-up leftovers he asked for and I did not reach: the sword moving while its
 hand is in the air and as he stands; a small kick of a shin at the start of one get-up in three from his front or
 right; the shield's rim 3 to 5 cm in the ground for 0.1 s about 1.3 s in (**tried on the 20th and taken out again:**
