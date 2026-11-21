@@ -681,6 +681,7 @@ tell me what is up next and what is the roadmap".** (16:15; README.)
   show, all:", "The show so far"; six Combat Feel switches; `FIGHT_SHOW=0`. Counted over five combos: no guard 15
   streaks, 15 swishes, 5 deep hits, 5 kicks, 5 slow beats; the shield dummy 13, 13, 4, 4, 1 and 7 sparks; off: none.
   **`UnitController.MainWeapon` is never set**: the clip fighters' blades are slots, not `Weapon`s.
+- Step 6's film: https://claude.ai/artifact/11GqpfgqDfXm7jkoN4BiZh
 - **Found (19:09): the forehand combo against no guard at the default speeds has his own blade through his own
   shield 0.94% of the time** (the same with the show off). With the spin's 1.04% and the chop's 0.61% it is the
   combos' own, at speed 1.88. Not mended.

@@ -325,7 +325,7 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("On (as it was): the big one of a combo lands with a deep boom of its own, on top of the hit's own sound. Off: only the hit's own sound.")]
         public bool theBigOneLandsWithADeepHit = true;
 
-        [Tooltip("On: as the big one of a combo lands, the camera is knocked a few centimetres the way the blow went and comes back (half as far when a shield stops it). Off (as it was): the camera only shakes on a very heavy hit.")]
+        [Tooltip("On: as the big one of a combo lands, the camera is knocked about 18 cm (at the usual distance) the way the blow went and comes back within a tenth of a second (half as far when a shield stops it). Off (as it was): the camera only shakes on a very heavy hit.")]
         public bool theBigOneKicksTheCamera = true;
 
         [Tooltip("On: when a combo floors its man, the game goes to a third of its pace for a third of a second. Off (as it was): no slow motion.")]

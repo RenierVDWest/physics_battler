@@ -54,7 +54,7 @@ namespace PhysicsBattler.Sandbox
 
             if (kick.sqrMagnitude > 1e-8f)
             {
-                // (A combo's big one: the camera is knocked a few centimetres the way the blow went and comes back.)
+                // (A combo's big one: the camera is knocked up to 22 cm, at the usual distance, the way the blow went and comes back.)
                 position += kick * (distance / 7f);
                 kick = Vector3.Lerp(kick, Vector3.zero, 1f - Mathf.Exp(-Time.unscaledDeltaTime / KickTime));
             }

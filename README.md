@@ -8724,3 +8724,6 @@ kick's size, the slow beat's length and the spark are first guesses. The slow be
 stand-in.
 
 Checks: 0 errors; the panel's look list 8 of 8; the fight of six (40 s, seed 5) at its baseline (0.07%, 4.8%).
+
+**Its film** (3b2b, made by Opus at medium effort; 6 scenes, 24 beats, about 3 minutes 15): https://claude.ai/artifact/11GqpfgqDfXm7jkoN4BiZh
+(The note the film was made from said the camera is kicked "a few centimetres"; it is about 18 cm at the usual distance. The film leaves the size out; the tooltip is put right.)
