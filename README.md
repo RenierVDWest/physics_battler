@@ -8758,3 +8758,30 @@ One number (a ripple's speed in muscle, a few m/s) is from a search summary: the
 own arm on a stopped blow (yes, small), keep the bend under it (yes), how over the top to begin.
 
 **Its film** (3b2b, made by Opus at medium effort; 8 scenes, 32 beats, about 5 minutes): https://claude.ai/artifact/5qRcjDgh6jbCCJivN8R1pK
+
+### 21 November, 20:54: cloth that moves: samurai clothes on the fighters: research and plan (nothing built)
+
+**What he said (20:47, with a picture of a mannequin in a kimono top, hakama and sash):** "Ok this looks great [the
+shock wave plan]. But before we do this I want you to do another research and planning document for something else I
+want to get in. I want them to wear clothes that are actual dynamic cloth. So you will need to model the clothes in a
+way that will work well in Unity. And then I want you to implement them in Unity. ... we cant have the clothes
+intersecting with the bodies. Though you may want to disable the rendering on the body parts that are completely
+covered in clothes. The clothes need to swing and sway realistically. The cloths itself can be based on traditional
+samurai attire like this ... the first version should have a pretty conservative mesh to test it out."
+
+**The plan:** `Docs/Plans/2026-11-21-cloth-that-moves-samurai-clothes-research-and-plan.md`; live:
+https://claude.ai/artifact/3Jev6uXAQk3Nsncq7GCtAh . In short: **our own small cloth solver** (points and threads,
+position based dynamics), because it is the only kind that can be run and measured headless, and our bodies are about
+fifteen rigid shapes (`UnitBuilder`: each part a box, a sphere or a capsule), the easy case. Unity's Cloth needs a
+Skinned Mesh Renderer and only meets spheres and capsules listed by hand; Magica Cloth 2 and Obi Cloth need Burst and
+the editor. Six safeguards against cloth in the body: pushed out of each part's shape, many small steps, a speed limit,
+a leash to its place on the body, a memory of its side, covered parts hidden; and a quiet reset if it goes wrong.
+Version 1: the hakama as the undivided, skirt kind; sleeves tied back; a fixed shell on the chest; clothes made by
+code from flat pieces. Six steps, the first a skirt on the standing dummy with a "Shake him" button.
+
+**Not opened (the fetch needed his approval and he was away), so from search summaries only:** Wikipedia's Kimono and
+Hakama pages, Magica Cloth 2's and Obi Cloth's own pages, Ten Minute Physics lecture 14. Opened: Unity's Cloth manual,
+Müller's lecture 15, Lewin's paper.
+
+**Order now:** clothes, then the shock waves, then the combos plan's step 7. **Six questions put to him** (our own
+solver or bought; the skirt kind first; sleeves tied back first; who wears them; Burst later; the order).
