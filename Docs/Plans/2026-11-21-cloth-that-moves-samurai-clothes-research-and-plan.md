@@ -201,3 +201,5 @@ but is not simulated; hips, thighs, spine, chest and upper arms hidden. Duel lab
 part in 0.4% of pictures through "Shake him" and 1.2% in a dance (the plan's mark was 0.1%: missed, mostly the skirt
 against the shins); nothing put back to hanging; about 4 ms a fighter a picture headless. The build log's entry
 "clothes that move" has the table. Not done: steps 5 and 6, crisp pleats, pattern, two-legged trousers, full sleeves.
+
+The build's film (3b2b, about three minutes): https://claude.ai/artifact/GA5FrDmgSqaxDYsk5eLmMq

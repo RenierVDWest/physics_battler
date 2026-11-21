@@ -735,9 +735,12 @@ tell me what is up next and what is the roadmap".** (16:15; README.)
   cloth's points), `CLOTHES`, `SHAKE`, `CLOTHNET` lines. **Costly headless** (about 4 ms a fighter a picture in the
   debug build): turn it off (`FIGHT_CLOTHES=0`) for runs that do not need it; a dance with it runs several times slower.
   The colliders the cloth is pushed out of are the physics shapes; the drawn meshes may be fatter (not known).
+  Its film: https://claude.ai/artifact/GA5FrDmgSqaxDYsk5eLmMq
 - **Combos, step 7 is built (README "combos, step 7"; headless only):** five cuts baked (`cut_`), "Combo's cuts:" three
   flat cuts / high then low, a fourth last blow "sweep", the shield drawn aside in the new combos. The two new combos are
   over the crossing budget (1.8% and 2.8%): a lab choice, not the default. **The combos plan is now fully built.**
+  Its film: https://claude.ai/artifact/P6fPxWrGjvhqqv5RLAbwEH
+- **The fight of six after the three builds** (seed 5): 0.07% and 4.8%, as the baseline; none of it reaches the six.
 - **What he was told is next (before tonight):** step 7 (more cuts, now built); combos in the six only when he says;
   then the kick at a man who is down (his kick pack), the stab at a downed man that looks odd, the spin combo's own
   sword through his own shield; then the older open things (get-up shield, stumble leftovers, absorbing a hit, the

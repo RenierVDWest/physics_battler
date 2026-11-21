@@ -446,3 +446,5 @@ and the spin); "Last blow:" has a fourth, the sweep. In the two new combos his s
 shield:"). Five combos each against no guard: flat 13 of 15 blows landed, high then low 11 of 15, the sweep floored him
 4 times of 5. **Over the crossing budget in the two new ones** (his own blade through his own shield 1.8% and 2.8%), so
 they are not the default. The build log's entry of 23:55 has the table.
+
+The film of step 7: https://claude.ai/artifact/P6fPxWrGjvhqqv5RLAbwEH

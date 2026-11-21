@@ -8954,3 +8954,9 @@ The combos plan's last step, after the shock waves and the clothes (his order of
 First hit to last 0.8 to 1.25 s. **The two new combos are over the crossing budget (0.5%)** even with the shield drawn
 aside: they are a lab choice, not the default, until that is mended (the forehand combo was over it too at 19:09,
 0.94%). Not tried against a shield or a parry. Not in the dance (its patterns keep their combos).
+
+**The fight of six after tonight's three builds** (seed 5, 40 s, the final build of 23:59): crossings 0.07%, tremble
+4.8%, as the baseline; no shock wave begun, no clothes worn. None of tonight's work reaches the six.
+
+**The night's films** (3b2b, made by Opus at medium effort): the clothes (6 scenes, 24 beats, about 3 minutes):
+https://claude.ai/artifact/GA5FrDmgSqaxDYsk5eLmMq ; combos step 7 (5 scenes, 20 beats, about 3 minutes): https://claude.ai/artifact/P6fPxWrGjvhqqv5RLAbwEH . The shock wave's is above.

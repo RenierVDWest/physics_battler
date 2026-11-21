@@ -6,21 +6,19 @@ have my permission to push to that branch.
 1. Attach the repository with push access and clone it. (On 19 November the first ask for push access was refused
    and went through when asked again after I said "you may push" in the chat. If it is refused, tell me at once and
    carry on reading.) Read `CLAUDE.md` at its top first and follow it: it is the briefing, and it is up to date as
-   of 21 November 2026, 16:15 (newer than the rest of this prompt: where the two disagree, CLAUDE.md and the
-   README's last entries are right; steps 1 to 4 of the combos plan are built and I have looked at them; steps 5
-   and 6 are built; I have looked at 1 to 5 and not yet at step 6 (the show, built blind); step 7 waits for my look). `README.md` is the build log (over 8,400 lines: search it, never read it
-   whole, and add entries at its end, never write over it). The
-   last entries, from "### 19 November, 22:10" on, are the night of 19 to 20 November; "### 20 November, 08:30" is
-   the second pass after my look, the entry after it is what came of my "this all looks good", "### 20 November,
-   17:05" is my decision on a man who is down and the combos research and plan, and "### 20 November, 20:00" is the
-   combos plan's step 1.
-2. Read the plan for the work in hand: `Docs/Plans/2026-11-20-combos-that-flow-and-end-in-a-bang-research-and-plan.md`
-   (research and plan for combos; **I said go on 20 November at 18:42; its step 1 is built and I have not seen
-   it; its step 2 is next**; the progress note at its end has what step 1 found). Its live version is
-   https://claude.ai/artifact/X5YKsPDm3LZYzefQoofnuX: add your own progress notes there with the Docs tools (insert
-   at the end), and to the copy in the repository. The plan before it is
-   `Docs/Plans/2026-11-19-from-how-he-lies-to-how-he-gets-up.md` (live:
-   https://claude.ai/artifact/FAVSQjVZCbJ87jf6aargPa); its leftovers are in CLAUDE.md's roadmap.
+   of 21 November 2026, 23:59 (newer than the rest of this prompt: where the two disagree, CLAUDE.md and the
+   README's last entries are right). On the night of 21 November three things were built blind, headless only,
+   and wait for my look: the shock wave through the body on a hit (README "### 21 November, 22:50"), clothes that
+   move (a hakama, a top and tied-back sleeves on our own cloth solver; "### 21 November, 23:55: clothes") and the
+   combos plan's step 7, more cuts ("### 21 November, 23:55: combos"). The combos plan is fully built. `README.md` is
+   the build log (over 8,900 lines: search it, never read it whole, and add entries at its end, never write over
+   it).
+2. Read the plans for the work in hand: `Docs/Plans/2026-11-21-shock-waves-through-the-body-research-and-plan.md`
+   (live https://claude.ai/artifact/FED9yrpFr7tz59LvbJLnd6) and
+   `Docs/Plans/2026-11-21-cloth-that-moves-samurai-clothes-research-and-plan.md` (live
+   https://claude.ai/artifact/3Jev6uXAQk3Nsncq7GCtAh), and the progress notes at their ends. Add your own progress
+   notes there with the Docs tools (insert at the end), and to the copies in the repository. What comes after them is
+   in CLAUDE.md ("What he was told is next" and the roadmap).
 3. Set up the headless build: `dotnet --version || apt-get install -y dotnet-sdk-8.0`, then
    `cd Tools/CompileCheck && ./get-physx.sh`, then `Tools/Headless/b.sh` in a command by itself (it wants
    "0 Error(s)" four times). `export S=/tmp/pb2` for the run outputs. Read `Tools/Headless/README.md`.
