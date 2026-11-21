@@ -8756,3 +8756,5 @@ One number (a ripple's speed in muscle, a few m/s) is from a search summary: the
 
 **Five questions put to him:** the wave through the freeze (recommended), the legs (fade at the shins), the attacker's
 own arm on a stopped blow (yes, small), keep the bend under it (yes), how over the top to begin.
+
+**Its film** (3b2b, made by Opus at medium effort; 8 scenes, 32 beats, about 5 minutes): https://claude.ai/artifact/5qRcjDgh6jbCCJivN8R1pK

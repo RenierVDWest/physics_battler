@@ -2,6 +2,7 @@
 
 21 November 2026. The live document: https://claude.ai/artifact/FED9yrpFr7tz59LvbJLnd6 (this is its copy in the
 repository; where the two differ, the live one is newer). **Nothing here is built: this is the research and the plan.**
+Its film (3b2b, about five minutes): https://claude.ai/artifact/5qRcjDgh6jbCCJivN8R1pK
 
 ## Bottom line
 
@@ -15,7 +16,7 @@ no hit and no gameplay.
   travel (far parts move later) and the ring (peaks and valleys).
 - **Your three sliders are in**: frequency, how fast it dies, strength. I add two: how fast the wave travels, and how
   much each joint passes on.
-- **Real bodies do this**, at about 15 shudders a second and 2 to 4 cm. You asked (20:04) for it to be over the top,
+- **Real bodies do this**, at about 15 shudders a second and 1 to 4 cm. You asked (20:04) for it to be over the top,
   more than other games: so the first values are about three times as far as a real body moves, slower so the eye can
   follow it, and it rings longer.
 - **Six steps**, the first in the duel lab on one arm chain.

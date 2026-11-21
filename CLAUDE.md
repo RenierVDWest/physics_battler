@@ -696,6 +696,7 @@ tell me what is up next and what is the roadmap".** (16:15; README.)
   7 swings a second, half-life 0.15 s, 9 cm for a heavy blow, 5 m/s, each joint passes on 0.75. Step 1: one wave
   down one arm, a "Ring him: chest" button. **Five questions wait for him** (the wave through the freeze, the legs,
   the attacker's arm, keep the bend, how over the top). **Build only after he answers or says go.**
+  Its film: https://claude.ai/artifact/5qRcjDgh6jbCCJivN8R1pK
 - **What he was told is next:** step 7 (more cuts); combos in the six only when he says;
   then the kick at a man who is down (his kick pack), the stab at a downed man that looks odd, the spin combo's own
   sword through his own shield; then the older open things (get-up shield, stumble leftovers, absorbing a hit, the
