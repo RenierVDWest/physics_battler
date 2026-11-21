@@ -571,6 +571,7 @@ it as Unity has it by default (`PHYSX_JOINTFORCES=0`: as headless was). With it 
 48 cm behind, step by step, as his log's 12 to 52; carried, 7 and 11 cm, no fall. **The six's baseline with it:
 crossings 0.07%, tremble 4.8% (before: 0.00% and 6.6%).** Headless numbers of shoved bodies from before 21 November
 were measured with the stiff hold. **The jump and the panel are not seen in Unity.**
+Its film: https://claude.ai/artifact/F7ew9gozgHUsen4kmxRVDk
 
 **The night of 20 to 21 November: his order (22:40 and 22:44, going to bed).** "Continue with the combos next steps
 until you are blocked by me, then continue with other tasks." "You will need me to look at things between the

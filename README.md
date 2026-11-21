@@ -8284,3 +8284,5 @@ Checks: 0 errors; the panel's look list 8 of 8; the panel test with search words
 `flow.sh` untouched. The fight of six (40 s, seed 5), today's code with headless as it was: 0.00% and 6.6%, as
 before. **With the hold read as Unity has it (the new headless default): crossings 0.07% (budget 0.5%), the longest
 0.05 s (budget 0.10 s); tremble 4.8% (budget 8%). That is the new baseline.** No exception in any run.
+
+**Its film** (21 November, mid-morning; 3b2b, made by Opus at medium effort; 6 scenes, 24 beats, about 3 minutes 20): https://claude.ai/artifact/F7ew9gozgHUsen4kmxRVDk
