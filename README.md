@@ -8672,3 +8672,5 @@ its crossings budget in 2 of 4 dances with combos and 1 of 4 without, and over i
 - One dance each way per pairing is thin: a dance of 70 s takes 17 minutes.
 
 Checks: 0 errors; the panel's look list 8 of 8; the fight of six (40 s, seed 5) at its baseline (0.07%, 4.8%).
+
+**Its film** (3b2b, made by Opus at medium effort; 6 scenes, 24 beats, about 3 minutes 15): https://claude.ai/artifact/LEexE7y6CVHUMGC6mniyj5

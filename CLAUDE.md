@@ -669,6 +669,7 @@ tell me what is up next and what is the roadmap".** (16:15; README.)
   budgets no worse** (crossings 0.57% on average against 0.47%, but dances differ more than the two ways do; the
   dance is over its tremble budget either way). The Prowler's spin crosses his own shield. Headless dances'
   combos grow without `FIGHT_COMBO`.
+- Step 5's film: https://claude.ai/artifact/LEexE7y6CVHUMGC6mniyj5
 - **What he was told is next:** step 6 (the show), step 7 (more cuts); combos in the six only when he says;
   then the kick at a man who is down (his kick pack), the stab at a downed man that looks odd, the spin combo's own
   sword through his own shield; then the older open things (get-up shield, stumble leftovers, absorbing a hit, the
