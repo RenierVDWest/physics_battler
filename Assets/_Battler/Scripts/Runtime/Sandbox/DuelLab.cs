@@ -402,6 +402,7 @@ namespace PhysicsBattler.Sandbox
             Now = Order.Stand;
             Gone = 0f;
             StoodOff = 0f;
+            learntAt = new Vector3(float.MaxValue, 0f, 0f);
             wasGoing = takesDistance = false;
             TookDistance = "he has not gone for him yet";
             if (mover != null)
@@ -731,6 +732,17 @@ namespace PhysicsBattler.Sandbox
 
             float size = Mover.Clip.Size;
             Vector3 his = Flat(Other.DummySpot);
+            if (!takesDistance && TakesDistanceAgain && StoodOff > 0f && learntAt.x < 1e30f && (his - learntAt).magnitude > 0.2f * size
+                && !Other.Clip.Fallen && !Other.Clip.Stumbling && !Run.Going)
+            {
+                // (The other has been driven off its spot and has come to rest somewhere else, a stumble's end or where
+                // it got up: he takes his distance to it again, as after a going of his own.)
+                takesDistance = true;
+                takenFrom = new Vector3(float.MaxValue, 0f, 0f);
+                learntAt = his;
+                TookDistance = "";
+            }
+
             if (!takesDistance)
             {
                 bool settled = !Other.Clip.Fallen && !Other.Clip.Stumbling && !Mover.Clip.Stumbling && !Mover.Clip.Striking
@@ -738,6 +750,7 @@ namespace PhysicsBattler.Sandbox
                 if (settled)
                 {
                     StoodOff = Flat(Mover.DummySpot - Other.DummySpot).magnitude;
+                    learntAt = his;
                 }
 
                 return;
@@ -785,6 +798,7 @@ namespace PhysicsBattler.Sandbox
             }
 
             takenFrom = his;
+            learntAt = his;
         }
 
         private void Stand()
@@ -832,7 +846,7 @@ namespace PhysicsBattler.Sandbox
         public const float SettledWithin = 0.15f;
 
         private bool wasGoing, takesDistance;
-        private Vector3 takenFrom;
+        private Vector3 takenFrom, learntAt = new Vector3(float.MaxValue, 0f, 0f);
 
         public bool Going => Run.Going;
         public string GoingNow => Run.GoingNow;
@@ -1699,6 +1713,12 @@ namespace PhysicsBattler.Sandbox
         /// <summary>How soon he reads an opening (seconds: the lever "Pounce reads in"), from how far off he will go for it (metres at a Medium's size), how long he keeps coming once he has set off, and how far round the other must be turned from him for his back to count (degrees).</summary>
         public static float PounceReadsIn = DefaultPounceReadsIn;
 
+        /// <summary>A stumble is an opening to pounce on once it has driven him this far (metres at a Medium's size; Combat Feel "A Stumble Is An Opening From"; 0: any stumble, as it was).</summary>
+        public static float PounceFromStumble = 0.6f;
+
+        private bool stumbleSeen;
+        private Vector3 stumbleFrom;
+
         public const float DefaultPounceReadsIn = 0.15f, PounceFromAtMost = 6f, PounceCommitted = 1.6f, PounceBackTurned = 120f;
 
         /// <summary>For the panel and the reports: what the last pounce was, and how many openings were seen, gone for and struck at.</summary>
@@ -1726,7 +1746,22 @@ namespace PhysicsBattler.Sandbox
             float gap = to.magnitude;
             Vector3 way = gap > 1e-3f ? to / gap : Vector3.forward;
             float turned = Mathf.Abs(Mathf.DeltaAngle(his.Loco.Facing, Mathf.Atan2(-way.x, -way.z) * Mathf.Rad2Deg));
-            string why = his.Fallen ? "" : his.Stumbling ? "he was stumbling" : his.GuardOpen ? "his guard was knocked open" : turned >= PounceBackTurned ? "his back was turned" : "";
+            // (A stumble is an opening once it has driven him far enough: Renier, 21 November, "the attack that is
+            // triggered by the stumbles is a bit too sensitive. The stumble should be a bit more before the stumble
+            // attack happens." His log: 33 pounces in one sitting, on nearly every blow that landed.)
+            if (his.Stumbling && !stumbleSeen)
+            {
+                stumbleSeen = true;
+                stumbleFrom = Other.Root.position;
+            }
+            else if (!his.Stumbling)
+            {
+                stumbleSeen = false;
+            }
+
+            float driven = stumbleSeen ? Flat(Other.Root.position - stumbleFrom).magnitude : 0f;
+            bool stumbledEnough = his.Stumbling && driven >= PounceFromStumble * his.Size;
+            string why = his.Fallen ? "" : stumbledEnough ? string.Format(System.Globalization.CultureInfo.InvariantCulture, "he was stumbling ({0:0.00} m driven)", driven) : his.GuardOpen ? "his guard was knocked open" : turned >= PounceBackTurned ? "his back was turned" : "";
             if (why.Length == 0)
             {
                 if (openFor >= 0f && !pounceGone)

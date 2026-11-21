@@ -8134,3 +8134,57 @@ standing and the pair is as good as standing: the chest, 10 to 16 cm).
 Checks: 0 errors; the panel's look list; `flow.sh`; the standing pair unchanged (17 and 8 cm from the spot).
 
 **The night's film** (20 to 21 November; 3b2b, made by Opus at medium effort; 7 scenes, about 3 minutes 40): https://claude.ai/artifact/32AGujgomksYWrM7JgmTXW
+
+### 21 November, 07:57: his morning look: he jumps in for the second blow; an attack speed slider; a stumbling target's spot; a pounce that asks for more
+
+**What he said (07:38):** "The dummy now stands where it gets up, but when it stumbles it tries to walk back to where it
+stood and then walks into me." "The jump is gone, looks good there." "Now that he pushes the enemy back he sometimes
+misses the second slash because the enemy has moved back. To solve this I think you can do what they do on combos
+and just make him jump, almost teleport in closer for the 2nd shot. So not if he didn't move much, but if he did
+push the target back a bit then jump him in close enough for the 2nd to hit." "Have the speed of the attacks
+tweakable ... right now it feels a little slow." "The attack that is triggered by the stumbles is a bit too
+sensitive. The stumble should be a bit more before the stumble attack happens." And a reminder for after the combo
+work: "when he runs at a downed enemy and stabs, that stab can look pretty weird ... on the cards should also be the
+kick when down. I supplied you with a kick pack that contains the kick animations to be used for kicking the downed
+enemy."
+
+**His log** (`PlaytestLogs/2026-11-21_07-22-42`; frames looked at and removed; **seen in Unity**): 37 pairs thrown;
+**the second blow met nothing in 20** and landed in 17 (slow, 3 to 14 m/s). 38 of 63 blows that landed threw the
+target back stumbling, most at 2.8 m/s; 33 pounces. In the frames: the second blow cuts the air a metre short, then
+the dummy walks back into the swordsman and stands in his shield.
+
+**1. He jumps in for the second blow** (`ClipFighter.FlowJumpsIn`, in `StepFlow`; Combat Feel "For The Second Blow He
+Jumps In", on, with "He Jumps In From" 0.2 m, "He Jumps In At Most" 1.4 m, "The Jump In Takes" 0.1 s; lab row "The
+second blow: he jumps in / he stays (old)" and three levers; `FIGHT_FLOWJUMPS=0`, `FIGHT_FLOWJUMP="0.2,1.4,0.8"`). As
+the second blow is begun, where its striking part would land is set against where his man will be as it lands (led
+by 0.8 of how he is going). If that is more than 0.2 m out of reach, he himself is carried that far toward him over
+0.1 s, evenly, and the blow is made for where that puts him. His feet are not stepped for it: a slide, as a fighting
+game's combo has. Not after a blow thrown over his walk. (Tried first inside the blow's own score,
+`AttackScore.EnteredFrom`'s `jump`: the maker then stretched the blow's travel as far as it may and it met nothing.
+That is left in, unused.) **Headless** (`FIGHT_STUMBLEFROM=0.5`, the target going back at about 1 m/s; in Unity it
+goes at up to 2.8): he jumped in 43 and 29 cm and the second blow landed at 16 m/s, 15 and 23 cm from its spot; the
+maker's fit stayed light (travel x1.00). **Not seen in Unity; with a man going back three times as fast the jumps
+will be longer than any I have measured.**
+
+**2. An attack speed slider** (`AttackMaker.Pace`, `AttackStyle.AtPace`; Combat Feel "Attacks Are Thrown At", 1; lab
+lever "Attack speed", 0.6 to 2, at the top of "Strike at"'s combo block; `FIGHT_ATTACKPACE`). Every weapon's blow is
+made in its style with the wind-up, the drive and the way back divided by the pace, at the two doors every blow
+passes (`ClipFighter.StrikeMade`, `StrikeOnTheMove`), so its landing time, its steps and the join are all counted in
+the paced times. The blade lands that much faster and hits that much harder. Headless at 1.3: the second blow lands
+0.18 s into its clip (0.23 at 1), 0.52 to 0.55 s hit to hit, no exception. At 1 nothing changes.
+
+**3. A stumbling target's spot follows it** (`FightLoop.DummySpotFollowsAStumble`; Combat Feel "A Stumbling Target's
+Spot Follows It"; `FIGHT_SPOTSTUMBLES=0`), and **the duel lab's swordsman takes his distance again when the other's
+spot has moved** (`DuelLab.StepDistance`, `learntAt`): he steps in to the distance he kept. Headless (a soft kick):
+the target stood where its stumble ended (3 cm from its spot), the swordsman stepped in to his 1.50 m.
+
+**4. A stumble is an opening only once it has driven him far enough** (`RunIn.PounceFromStumble`, 0.6 m; Combat
+Feel "A Stumble Is An Opening From"; lab lever "Pounce on a stumble of"; `FIGHT_POUNCEFROM`; 0 = any stumble, as it
+was). A guard knocked open or a turned back are openings as before. **Not measured against his 33 pounces: the right
+number is his eye's.**
+
+**For later, after the combo work (his reminder):** kick a man who is down, with the kicks of the pack he supplied;
+the stab at a downed man "can look pretty weird".
+
+Checks: 0 errors; the panel's look list; `flow.sh`; the fight of six (40 s, seed 5) within its budgets as before: 0.00% and 6.6%, no exception.
+

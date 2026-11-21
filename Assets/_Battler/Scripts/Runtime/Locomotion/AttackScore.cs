@@ -934,7 +934,8 @@ namespace PhysicsBattler.Locomotion
         public static string JoinNote = "";
 
         /// <param name="overWalk">For a blow laid over his walk: the joined score is in the frame the blow before began in, not where its root is as it is left. Over a walk the root is the walk's (he faces his man as he goes), and a blow is laid on it by how it differs from the guard the first blow began in.</param>
-        public AttackScore EnteredFrom(AttackScore before, int leave, int enter, int bend, bool overWalk = false)
+        /// <param name="jump">He jumps in by this over the bend (in the joined score's own frame, leg lengths, flat): his whole body is carried that far toward his man, a little off the ground, his feet free meanwhile. For a man the first blow drove back out of the second's reach.</param>
+        public AttackScore EnteredFrom(AttackScore before, int leave, int enter, int bend, bool overWalk = false, Vector3 jump = default)
         {
             if (before == null || Frames.Length < 6 || before.Frames.Length < 3)
             {
@@ -942,15 +943,25 @@ namespace PhysicsBattler.Locomotion
             }
 
             string key = Name + "|from|" + before.Name + "|" + leave + "|" + enter + "|" + bend + (JoinTurnsRoot ? "|t" : "") + (JoinWindsOverBend ? "|w" : "") + (overWalk ? "|walk" : "");
+            // (To the nearest twentieth of a leg, so that the same jump is the same score.)
+            jump = new Vector3(Mathf.Round(jump.x * 20f) / 20f, 0f, Mathf.Round(jump.z * 20f) / 20f);
+            if (jump.sqrMagnitude > 1e-6f)
+            {
+                key += "|jump" + jump.x.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "," + jump.z.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
+            }
+
             if (!scores.TryGetValue(key, out var score))
             {
-                scores[key] = score = new AttackScore(before, this, leave, enter, bend, overWalk);
+                scores[key] = score = new AttackScore(before, this, leave, enter, bend, overWalk, jump);
             }
 
             return score;
         }
 
-        private AttackScore(AttackScore before, AttackScore next, int leave, int enter, int bend, bool overWalk)
+        /// <summary>How high he is off the ground at the middle of a jump in (leg lengths).</summary>
+        public const float JumpHops = 0.06f;
+
+        private AttackScore(AttackScore before, AttackScore next, int leave, int enter, int bend, bool overWalk, Vector3 jump)
         {
             Clip = next.Clip;
             Name = next.Name + "_out_of_" + before.Name.Replace("sns_", "");
@@ -984,6 +995,20 @@ namespace PhysicsBattler.Locomotion
             Vector3 beforeAt = JoinTurnsRoot && !overWalk ? before.Root[leave] : Vector3.zero;
             Quaternion beforeTurn = JoinTurnsRoot && !overWalk ? Quaternion.Euler(0f, -before.Facing[leave], 0f) : Quaternion.identity;
             var points = new Vector3[LocoClip.BoneCount];
+            // (The jump in: over the bend, eased at both ends; a little hop with it.)
+            bool jumps = jump.sqrMagnitude > 1e-6f;
+            Vector3 Jumped(int f)
+            {
+                if (!jumps)
+                {
+                    return Vector3.zero;
+                }
+
+                float x = Mathf.Clamp01(f / (float)Mathf.Max(1, bend));
+                float e = x * x * (3f - 2f * x);
+                return new Vector3(jump.x * e, JumpHops * Mathf.Sin(Mathf.PI * x), jump.z * e);
+            }
+
             BodyTracks Before(int f, out Vector3 root, out float facing, BodyTracks? last)
             {
                 float g = Mathf.Clamp(leave + f * pace, 0f, before.Frames.Length - 1.001f);
@@ -993,10 +1018,10 @@ namespace PhysicsBattler.Locomotion
                 {
                     float y = points[i].y;
                     Vector3 q = beforeTurn * new Vector3(points[i].x - beforeAt.x, 0f, points[i].z - beforeAt.z);
-                    points[i] = new Vector3(q.x, y, q.z);
+                    points[i] = new Vector3(q.x, y, q.z) + Jumped(f);
                 }
 
-                root = beforeTurn * (Vector3.Lerp(before.Root[a0], before.Root[a0 + 1], g - a0) - beforeAt);
+                root = beforeTurn * (Vector3.Lerp(before.Root[a0], before.Root[a0 + 1], g - a0) - beforeAt) + new Vector3(Jumped(f).x, 0f, Jumped(f).z);
                 facing = Mathf.LerpAngle(before.Facing[a0], before.Facing[a0 + 1], g - a0) - (JoinTurnsRoot && !overWalk ? before.Facing[leave] : 0f);
                 return m.Decompose(points, last);
             }
@@ -1022,12 +1047,12 @@ namespace PhysicsBattler.Locomotion
                 {
                     float y = points[i].y;
                     Vector3 q = lay * new Vector3(points[i].x - nextAt.x, 0f, points[i].z - nextAt.z) + moved;
-                    points[i] = new Vector3(q.x, y, q.z);
+                    points[i] = new Vector3(q.x, y, q.z) + Jumped(f);
                 }
 
                 var t = m.Decompose(points, lastNext);
                 lastNext = t;
-                Vector3 root = JoinTurnsRoot ? lay * (next.Root[first + f] - nextAt) + moved : Quaternion.Euler(0f, -next.Facing[first], 0f) * (next.Root[first + f] - next.Root[first]);
+                Vector3 root = (JoinTurnsRoot ? lay * (next.Root[first + f] - nextAt) + moved : Quaternion.Euler(0f, -next.Facing[first], 0f) * (next.Root[first + f] - next.Root[first])) + new Vector3(Jumped(f).x, 0f, Jumped(f).z);
                 float facing = next.Facing[first + f] - next.Facing[first] + turned;
                 if (f < bend)
                 {
@@ -1046,8 +1071,10 @@ namespace PhysicsBattler.Locomotion
                 Frames[f] = t;
                 Root[f] = root;
                 Facing[f] = f > 0 ? Facing[f - 1] + Mathf.DeltaAngle(Facing[f - 1], facing) : facing;
-                Contacts[f * 2] = next.Contacts[(first + f) * 2];
-                Contacts[f * 2 + 1] = next.Contacts[(first + f) * 2 + 1];
+                // (In the air through a jump in: neither foot is held to the ground.)
+                bool inAir = jumps && f < bend;
+                Contacts[f * 2] = inAir ? LocoContact.None : next.Contacts[(first + f) * 2];
+                Contacts[f * 2 + 1] = inAir ? LocoContact.None : next.Contacts[(first + f) * 2 + 1];
                 Strike[f] = StrikeOf(Frames[f], m, hold, Thrust);
             }
 

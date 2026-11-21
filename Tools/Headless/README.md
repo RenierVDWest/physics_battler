@@ -81,6 +81,11 @@ The rest are one-off comparisons from particular days, kept for reference.
   `FIGHT_DANCEOWN="1,1,1,0.35"`: in a dance, by themselves: pounce, go for a man who is down, kick, and how many of
   a shield's bashes are a kick. A dance's report has `DANCEOWN` lines. **A dance of 70 s takes about 17 minutes
   here; a batch of six 10 s duels about 13.**
+- `FIGHT_FLOWJUMPS=0`: he does not jump in for the second blow (old). `FIGHT_FLOWJUMP="0.2,1.4,0.8"`: from how far
+  short (m), at most (m), and the share of his man's going he is led by. Use `FIGHT_STUMBLEFROM=0.5` with it, or the
+  headless target does not go back. `FLOWMADE` says "[he jumped in N cm; his man was going V m/s]".
+- `FIGHT_ATTACKPACE=1.3`: every weapon's blow thrown that much faster.
+- `FIGHT_SPOTSTUMBLES=0`: a stumbling target keeps its old spot (old). `FIGHT_POUNCEFROM=0`: he pounces on any stumble (old).
 - `FIGHT_BLOWPRESS=0`: a weapon's blow does not press, fold or turn the body it lands on (old).
   `FIGHT_BLOWPRESSED="0.06,9,14"`: hips (m), fold and turn (degrees) for a hard blow. Read the `took` lines in the
   run's own playtest log (`$S/name/PlaytestLogs/*/events.log`). It counts in the aim lineup, not in a fight.

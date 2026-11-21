@@ -4,7 +4,7 @@ This is the briefing a new chat reads first. It is kept short on purpose. The fu
 (over 6,000 lines: search it, never read it whole). Update this file at the end of every milestone or step:
 the "Where things stand" and "Roadmap" sections must always be true.
 
-Last updated: 20 November 2026, 22:08 (step 2 of the combos plan is built and pushed, waiting for his eye; he said "Yes it sounds good. Go." to the combos plan at 18:42, every
+Last updated: 21 November 2026, 07:57 (his morning look answered: the jump in for the second blow, an attack speed slider, the dummy's spot, the pounce). Before that: 20 November 2026, 22:08 (step 2 of the combos plan is built and pushed, waiting for his eye; he said "Yes it sounds good. Go." to the combos plan at 18:42, every
 default taken. **Step 1 of the combos plan is built and pushed, waiting for his eye:** every recording's blade is
 measured by a report, and the duel lab can draw a made attack's planned blade path and the path the sword really
 took. A view only: nobody fights differently. Next: step 2, two blows as one swing. Corrected at 20:15: what
@@ -545,6 +545,15 @@ A view only: nobody fights differently. The README's entry of 20:00 has the tabl
   by the blow's weight (60 N s on a Medium is a hard one). Headless: hips 3 to 8 cm, fold 4 to 11 degrees, turn 1 to
   14. **Labs and dance only: everywhere, the six went over both budgets** (the folded trunk takes the arms and what
   they hold with it). Not seen in Unity.
+
+**His morning look (21 November, 07:38) and what was built for it (07:57; README; headless only):** the jump at the
+join is gone ("looks good there"). In his log the second blow met nothing in 20 of 37 pairs (the first throws the
+target back). Built: **he jumps in for the second blow** (`ClipFighter.FlowJumpsIn`: carried toward his man over
+0.1 s when the blow would fall 0.2 m short, the blow made for where that puts him; lab row "The second blow:" and
+levers); **an attack speed slider** (`AttackMaker.Pace`; lab lever "Attack speed"); **a stumbling target's spot
+follows it** and the swordsman steps in to his distance; **a pounce only on a stumble of 0.6 m or more** (lever
+"Pounce on a stumble of"). **His reminder for after the combo work: kick a man who is down, with the kick pack he
+supplied; the stab at a downed man "can look pretty weird".** Next for combos, after his look: step 3.
 
 **The night of 20 to 21 November: his order (22:40 and 22:44, going to bed).** "Continue with the combos next steps
 until you are blocked by me, then continue with other tasks." "You will need me to look at things between the

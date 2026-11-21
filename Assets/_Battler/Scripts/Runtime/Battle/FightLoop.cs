@@ -175,7 +175,7 @@ namespace PhysicsBattler.Battle
                     // Off its feet or gone: it doesn't steer (a body on the board is in others' way).
                     plan.velocity = Vector3.zero;
                     plan.progressAt = now;
-                    if (DummiesStayWhereTheyGetUp && DummySpotFollowsTheFall && unit.TargetDummy && unit.IsAlive && unit.Clip != null && unit.Clip.Fallen)
+                    if (unit.TargetDummy && unit.IsAlive && unit.Clip != null && ((DummiesStayWhereTheyGetUp && DummySpotFollowsTheFall && unit.Clip.Fallen) || (DummySpotFollowsAStumble && unit.Clip.Stumbling)))
                     {
                         // (20 November, late: a target that fell stands where it got up, and this is where that has
                         // to be said. The rule of the 19th sits below, in the dummy's own steering, which a unit off
@@ -234,7 +234,7 @@ namespace PhysicsBattler.Battle
                         unit.DummySpot = new Vector3(unit.Root.position.x, unit.DummySpot.y, unit.Root.position.z);
                     }
 
-                    if (DummiesStayWhereTheyGetUp && unit.Clip != null && unit.Clip.Fallen)
+                    if (unit.Clip != null && ((DummiesStayWhereTheyGetUp && unit.Clip.Fallen) || (DummySpotFollowsAStumble && unit.Clip.Stumbling)))
                     {
                         // (19 November: a target that fell stands where it got up. Walked back to its spot the moment it
                         // was on its feet, a guarding target shuffled a metre at 0.7 m/s with nothing near it: to
@@ -353,6 +353,14 @@ namespace PhysicsBattler.Battle
 
         /// <summary>The spot of a target that is down follows it while it is down (Combat Feel "A Fallen Target's Spot Follows It"; <c>FIGHT_SPOTFOLLOWS=0</c> for how it was: the rule above never reached a unit off its feet).</summary>
         public static bool DummySpotFollowsTheFall = true;
+
+        /// <summary>
+        /// The spot of a target that is stumbling follows it: it stands where its stumble ends (Combat Feel "A
+        /// Stumbling Target's Spot Follows It"; <c>FIGHT_SPOTSTUMBLES=0</c> for how it was). Renier, 21 November: "The
+        /// dummy now stands where it gets up, but when it stumbles it tries to walk back to where it stood and then
+        /// walks into me." In the duel lab the swordsman then steps in to his distance (<c>DuelLab.StepDistance</c>).
+        /// </summary>
+        public static bool DummySpotFollowsAStumble = true;
 
         private UnitController ChooseTarget(IReadOnlyList<UnitController> units, UnitController unit, Plan plan, float now)
         {

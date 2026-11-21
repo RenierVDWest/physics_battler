@@ -365,6 +365,12 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("How soon he reads an opening and goes for it (seconds).")]
         [Range(0f, 0.6f)] public float pounceReadsIn = 0.15f;
 
+        [Tooltip("A stumble is an opening he pounces on only once it has driven the other man this far (metres at a Medium's size). 0: any stumble (as it was: he pounced on nearly every blow that landed). Default 0.6.")]
+        [Range(0f, 2f)] public float aStumbleIsAnOpeningFrom = 0.6f;
+
+        [Tooltip("On: the spot of a lab's target that is stumbling follows it, so it stands where its stumble ends, and the duel lab's swordsman steps in to his distance. Off (as it was): it walked back to where it had stood, into the swordsman.")]
+        public bool aStumblingTargetsSpotFollowsIt = true;
+
         [Tooltip("On: after the duel lab's swordsman has gone for a man by himself (a pounce on an opening, a blow at a man who is down) he steps back to the distance he stood at before he went, so the next blow you ask for starts from the lab's distance again. Only when his order is to stand: going round or walking, he goes on with that. Off (old): he stands where the going ended, and the target, walking back to its own spot, comes right up against him.")]
         public bool afterGoingForHimHeTakesHisDistanceAgain = true;
 
@@ -1113,6 +1119,21 @@ namespace PhysicsBattler.Locomotion
 
         [Tooltip("On: the duel lab's \"Throw two\" throws two blows as one swing (the combos plan's step 2). The first blow is not played to its end: its own carry-through is played as far as the corner where the blade turns, and there the second is begun in the middle of its own wind-up. Off (old): one whole attack, and when he is free again the other, about 1.7 s from hit to hit.")]
         public bool aSecondBlowFlowsOutOfTheFirst = true;
+
+        [Tooltip("How fast every weapon's blow is thrown. 1: as it was. 1.25: a quarter faster throughout (the wind-up, the drive and the way back to the guard), and the blade lands that much faster and harder. Under 1: slower. The slider in the lab's \"Strike at\" sets this.")]
+        [Range(0.6f, 2f)] public float attacksAreThrownAt = 1f;
+
+        [Tooltip("On: for the second blow of two he jumps in when the first has driven his man out of its reach: he is carried toward him in a tenth of a second (a fighting game's combo slide), and the blow is made for where that puts him. Off (as it was): he stays, and the second blow met nothing in 20 of 37 pairs in Renier's log of 21 November.")]
+        public bool forTheSecondBlowHeJumpsIn = true;
+
+        [Tooltip("He jumps in when the second blow would fall at least this far short (metres at a Medium's size). Smaller: he jumps in more often.")]
+        [Range(0f, 1f)] public float heJumpsInFrom = 0.2f;
+
+        [Tooltip("He jumps in by at most this far (metres at a Medium's size).")]
+        [Range(0.2f, 3f)] public float heJumpsInAtMost = 1.4f;
+
+        [Tooltip("The jump in takes this long (seconds). 0.1 is almost a teleport; longer is a slide.")]
+        [Range(0.02f, 0.4f)] public float theJumpInTakes = 0.1f;
 
         [Tooltip("On: at the join of two blows his body carries on from where the first blow has it: the second blow's recording is laid onto that place and turn, and what the game does to fit it to its aim comes in over the bend. Off (the first build, 20 November 22:08): the two recordings were taken as they were, 68 and 79 degrees turned from where he stood, and to fit the second to its aim he was turned 43 to 50 degrees, his hips dropped 17 cm and his chest leaned 28 degrees in one step: his body jumped to another pose between the two hits.")]
         public bool atTheJoinHisBodyCarriesOn = true;
@@ -1889,6 +1910,8 @@ namespace PhysicsBattler.Locomotion
             PhysicsBattler.Sandbox.RunIn.Pounces = aFighterPouncesOnAnOpening;
             PhysicsBattler.Sandbox.DuelLab.TakesDistanceAgain = afterGoingForHimHeTakesHisDistanceAgain;
             PhysicsBattler.Battle.FightLoop.DummySpotFollowsTheFall = aFallenTargetsSpotFollowsIt;
+            PhysicsBattler.Battle.FightLoop.DummySpotFollowsAStumble = aStumblingTargetsSpotFollowsIt;
+            PhysicsBattler.Sandbox.RunIn.PounceFromStumble = Mathf.Clamp(aStumbleIsAnOpeningFrom, 0f, 2f);
             PhysicsBattler.Sandbox.DuelLab.StepsBackAfter = Mathf.Clamp01(heStepsBackThisLongAfterHisBlowLands);
             PhysicsBattler.Sandbox.RunIn.StrikesTheDowned = aFighterGoesForAManWhoIsDown;
             PhysicsBattler.Sandbox.RunIn.PounceReadsIn = Mathf.Clamp(pounceReadsIn, 0f, 0.6f);
@@ -2035,6 +2058,11 @@ namespace PhysicsBattler.Locomotion
             ClipFighter.BlowsFlow = aSecondBlowFlowsOutOfTheFirst;
             ClipFighter.FlowBendOver = Mathf.Clamp(theJoinBendsOver, 0.04f, 0.3f);
             ClipFighter.FlowBend = Mathf.Clamp(theJoinMakesUpAtMost, 0.05f, 0.4f);
+            AttackMaker.Pace = Mathf.Clamp(attacksAreThrownAt, 0.6f, 2f);
+            ClipFighter.FlowJumpsIn = forTheSecondBlowHeJumpsIn;
+            ClipFighter.FlowJumpsFrom = Mathf.Clamp(heJumpsInFrom, 0f, 1f);
+            ClipFighter.FlowJumpsAtMost = Mathf.Clamp(heJumpsInAtMost, 0.2f, 3f);
+            ClipFighter.FlowJumpsOver = Mathf.Clamp(theJumpInTakes, 0.02f, 0.4f);
             AttackScore.JoinTurnsRoot = AttackScore.JoinWindsOverBend = atTheJoinHisBodyCarriesOn;
             if (!BladePath.On && BladePath.Shown.Count > 0)
             {

@@ -1213,6 +1213,8 @@ internal static class FightReport
         // FIGHT_BASHAT, an APART line 6 s after each asked bash: how far apart the two then stand.)
         PhysicsBattler.Sandbox.DuelLab.TakesDistanceAgain = Environment.GetEnvironmentVariable("FIGHT_TAKESDISTANCE") != "0";
         PhysicsBattler.Battle.FightLoop.DummySpotFollowsTheFall = Environment.GetEnvironmentVariable("FIGHT_SPOTFOLLOWS") != "0";
+        PhysicsBattler.Battle.FightLoop.DummySpotFollowsAStumble = Environment.GetEnvironmentVariable("FIGHT_SPOTSTUMBLES") != "0";
+        if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_POUNCEFROM"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float pounceFromEnv)) PhysicsBattler.Sandbox.RunIn.PounceFromStumble = pounceFromEnv;
         if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_STEPSBACKAFTER"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float stepsBackAfter)) PhysicsBattler.Sandbox.DuelLab.StepsBackAfter = stepsBackAfter;
         // (FIGHT_BLADEPASSES=0: a sword stays solid against the body its blow drove on through, the old way. In the
         // aim lineup it passes; in a fight only with FIGHT_PASSESINFIGHTS=1. FIGHT_FLOWS=0: "throw two" is two whole
@@ -1221,6 +1223,17 @@ internal static class FightReport
         PhysicsBattler.Locomotion.ClipFighter.BladePassesWhatItCut = Environment.GetEnvironmentVariable("FIGHT_BLADEPASSES") != "0";
         PhysicsBattler.Locomotion.ClipFighter.BladePassesEverywhere = Environment.GetEnvironmentVariable("FIGHT_LINEUP") == "aim" || Environment.GetEnvironmentVariable("FIGHT_PASSESINFIGHTS") == "1";
         PhysicsBattler.Locomotion.ClipFighter.BlowsFlow = Environment.GetEnvironmentVariable("FIGHT_FLOWS") != "0";
+        // (FIGHT_ATTACKPACE=1.25: every weapon's blow thrown a quarter faster.)
+        if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_ATTACKPACE"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float attackPace)) PhysicsBattler.Locomotion.AttackMaker.Pace = attackPace;
+        // (FIGHT_FLOWJUMPS=0: he does not jump in for the second blow. FIGHT_FLOWJUMP="0.2,1.4,0.8": from how far short
+        // (m), at most how far (m), and the share of his man's going he is led by.)
+        PhysicsBattler.Locomotion.ClipFighter.FlowJumpsIn = Environment.GetEnvironmentVariable("FIGHT_FLOWJUMPS") != "0";
+        {
+            var fj = (Environment.GetEnvironmentVariable("FIGHT_FLOWJUMP") ?? "").Split(',');
+            if (fj.Length > 0 && float.TryParse(fj[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float fj0)) PhysicsBattler.Locomotion.ClipFighter.FlowJumpsFrom = fj0;
+            if (fj.Length > 1 && float.TryParse(fj[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float fj1)) PhysicsBattler.Locomotion.ClipFighter.FlowJumpsAtMost = fj1;
+            if (fj.Length > 2 && float.TryParse(fj[2], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float fj2)) PhysicsBattler.Locomotion.ClipFighter.FlowLeads = fj2;
+        }
         PhysicsBattler.Locomotion.ClipFighter.FlowsOverHisWalk = Environment.GetEnvironmentVariable("FIGHT_FLOWWALKS") == "1";
         // (FIGHT_BLOWPRESS=0: a weapon's blow does not press, fold or turn the body it lands on, as before.
         // FIGHT_BLOWPRESSED="0.06,9,14": how far the hips drop (m), the trunk folds and the chest turns (degrees) for a hard blow.)

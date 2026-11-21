@@ -1189,6 +1189,15 @@ namespace PhysicsBattler.Sandbox
             BladePathRow(feel, Duel.Mover != null ? Duel.Mover.Clip : null);
             if (feel != null)
             {
+                feel.attacksAreThrownAt = Lever("Attack speed", feel.attacksAreThrownAt, 0.6f, 2f, "How fast every weapon's blow is thrown (Combat Feel \"Attacks Are Thrown At\"). 1: as it was. 1.25: a quarter faster throughout: wind-up, drive and the way back. The blade lands that much faster and harder too.");
+                BeginRow();
+                Words(new GUIContent("The second blow:", "What he does when the first blow has driven his man out of the second's reach (Combat Feel \"For The Second Blow He Jumps In\"). He jumps in (new): he is carried toward him in a tenth of a second, as a fighting game's combo does, and the blow is made for where that puts him. He stays (old): the second blow often met nothing."));
+                if (Press(feel.forTheSecondBlowHeJumpsIn ? "[he jumps in]" : "he jumps in", "When his man has been driven out of reach.")) feel.forTheSecondBlowHeJumpsIn = true;
+                if (Press(!feel.forTheSecondBlowHeJumpsIn ? "[he stays (old)]" : "he stays (old)", "As before.")) feel.forTheSecondBlowHeJumpsIn = false;
+                EndRow();
+                feel.heJumpsInFrom = Lever("Jumps in from", feel.heJumpsInFrom, 0f, 1f, "He jumps in when the second blow would fall at least this far short (metres).");
+                feel.heJumpsInAtMost = Lever("Jumps in at most", feel.heJumpsInAtMost, 0.2f, 3f, "By at most this far (metres).");
+                feel.theJumpInTakes = Lever("The jump in takes", feel.theJumpInTakes, 0.02f, 0.4f, "How long the jump in takes (seconds). 0.1 is almost a teleport; longer is a slide.");
                 BeginRow();
                 Words(new GUIContent("Two blows:", "Step 2 of the combos plan: a forehand down and a rising backhand back up the same line, at the chest (Combat Feel \"A Second Blow Flows Out Of The First\"). Flowing (new): one swing. The first blow's own carry-through is played as far as the corner where the blade turns, and there the second is begun in the middle of its own wind-up: the blade never goes back to the guard between the hits. One after the other (old): a whole attack, and when he is free again the other."));
                 if (Press(feel.aSecondBlowFlowsOutOfTheFirst ? "[flowing]" : "flowing", "One swing with two hits.")) feel.aSecondBlowFlowsOutOfTheFirst = true;
@@ -1637,6 +1646,7 @@ namespace PhysicsBattler.Sandbox
                 if (Press(!feel.aFighterPouncesOnAnOpening ? "[he stands off (old)]" : "he stands off (old)", "As before.")) feel.aFighterPouncesOnAnOpening = false;
                 EndRow();
                 feel.pounceReadsIn = Lever("Pounce reads in", feel.pounceReadsIn, 0f, 0.6f, "How soon he reads an opening and goes for it (seconds).");
+                feel.aStumbleIsAnOpeningFrom = Lever("Pounce on a stumble of", feel.aStumbleIsAnOpeningFrom, 0f, 2f, "A stumble is an opening he pounces on only once it has driven the other man this far (metres). 0: any stumble, as it was. Larger: he pounces less often.");
                 BeginRow();
                 Words(new GUIContent("After he goes for him:", "What the swordsman does once a pounce, or a blow at a man who is down, is over and you have given him no order to move (Combat Feel \"After Going For Him He Takes His Distance Again\"). He steps back (new): to the distance he stood at before he went, so your next blow starts from the lab's distance again. He stands there (old): where the going ended; the target, walking back to its own spot, then comes right up against him."));
                 if (Press(feel.afterGoingForHimHeTakesHisDistanceAgain ? "[he steps back]" : "he steps back", "To the distance he stood at.")) feel.afterGoingForHimHeTakesHisDistanceAgain = true;
@@ -4176,22 +4186,22 @@ namespace PhysicsBattler.Sandbox
         // Names are matched whole, without a chosen button's square brackets; capitals do not matter.
 
         /// <summary>Names this push's list. Change it with every push that needs his eye: his "highlights off" is kept by tag, so a new list is shown again.</summary>
-        private const string LookTag = "The night of 20 to 21 November: the body's jump between the two blows mended; a fallen target stays where it gets up";
+        private const string LookTag = "21 November, morning: he jumps in for the second blow; an attack speed slider; the dummy stays where it stumbles to; fewer pounces";
 
         /// <summary>What to do, in order, in plain words.</summary>
         private static readonly string[] LookSteps =
         {
-            "1. Go to \"Duel\", find \"Strike at\", press \"The blade's path: drawn\", and in the row \"Two blows:\" press \"Throw two\". New: his body should carry on smoothly between the two hits, where before it jumped to another pose (crouched, turned and leaning). To see the old way: \"At the join, his body: jumps (old)\".",
-            "2. The lever \"Join makes up at most\" under it: at 0.15 the blade turns at the bottom and nearly stops there; at 0.25 the first blow is left sooner, so the blade keeps moving and the second hit comes sooner, but its course may kink more. Try both and tell me which reads better as one swing.",
-            "3. Knock the target down (a few hard blows, or \"Stumble him\" with a hard bash). New: once it is up it should stand where it got up, and not walk back into you or end up in your shield. And after he goes for it, the swordsman should step back to his distance.",
-            "4. New: a body takes a blow. Under \"Stumbles and falls\" find \"A blow, his body: takes it / stands stiff (old)\". Strike the target (\"Chest\", \"Throw two\") each way: with \"takes it\" his knees should give, his trunk fold the way the blade goes and his chest turn with it, more for a harder blow. Three levers under it set how much. \"The last blow he took\" says it in numbers.",
-            "5. What I would like to hear: is the body's jump gone? Which join setting? Does the target still walk into you, or get stuck in your shield? Does a struck body give enough, too much, or the wrong way?",
+            "1. Go to \"Duel\", find \"Strike at\", and in the row \"Two blows:\" press \"Throw two\" a good few times. New: when the first blow drives the dummy back, he now jumps in (a quick slide, a tenth of a second) so the second blow lands. \"His last two blows\" says how far he jumped. To compare: \"The second blow: he stays (old)\".",
+            "2. The jump has three levers under it: \"Jumps in from\" (how far out of reach before he jumps), \"Jumps in at most\", and \"The jump in takes\" (0.1 s is almost a teleport; try 0.05 and 0.2).",
+            "3. New slider \"Attack speed\" at the top of the same block: 1 is as it was. Try 1.2 and 1.4 with \"Chest\" and with \"Throw two\", and tell me the number that feels right.",
+            "4. New: when the dummy stumbles it now stays where the stumble ends and the swordsman steps up to his distance; it should no longer walk back into you. And he pounces less: only once a stumble has driven the dummy 0.6 m (lever \"Pounce on a stumble of\", under \"An opening:\").",
+            "5. What I would like to hear: does the jump in look right, or too much like a teleport? Which attack speed? Does the dummy still walk into you? Is the pounce now too rare or still too keen?",
         };
 
         /// <summary>The names of what he is to press and watch.</summary>
         private static readonly string[] LookHere =
         {
-            "Duel", "Strike at", "Two blows:", "Throw two", "At the join, his body:", "Join makes up at most", "His last two blows", "A blade that cut him:", "The blade's path:", "A blow, his body:", "The last blow he took",
+            "Duel", "Strike at", "Attack speed", "The second blow:", "Jumps in from", "The jump in takes", "Two blows:", "Throw two", "His last two blows", "Pounce on a stumble of", "Their distance",
         };
 
         /// <summary>For the panel check (headless): the names of <see cref="LookHere"/> that were really drawn, and every section taken as open while it looks.</summary>

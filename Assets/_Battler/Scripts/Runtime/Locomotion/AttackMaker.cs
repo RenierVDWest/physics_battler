@@ -47,6 +47,17 @@ namespace PhysicsBattler.Locomotion
         public float HipLead, ArmLag;
 
         /// <summary>The recording's own.</summary>
+        /// <summary>The style with its three times (wind-up, drive, way back) divided by a pace: 1.25 is a quarter faster throughout.</summary>
+        public AttackStyle AtPace(float pace)
+        {
+            var paced = this;
+            float by = 1f / Mathf.Clamp(pace, 0.4f, 2.5f);
+            paced.WindUpTime *= by;
+            paced.DriveTime *= by;
+            paced.RecoveryTime *= by;
+            return paced;
+        }
+
         public static AttackStyle Plain => new AttackStyle { WindUp = 1f, ArmSwing = 1f, HipDrive = 1f, Twist = 1f, Lean = 1f, Lunge = 1f, Drop = 1f, FollowThrough = 1f, WindUpTime = 1f, DriveTime = 1f, RecoveryTime = 1f };
 
         /// <summary>
@@ -956,6 +967,18 @@ namespace PhysicsBattler.Locomotion
         /// <paramref name="build"/> off it is only planned (how it is fitted and what that costs): its clip is made by
         /// <see cref="Build"/>.
         /// </summary>
+        /// <summary>
+        /// How fast every weapon's blow is thrown, against how it was recorded and styled (Combat Feel "Attacks Are
+        /// Thrown At", 1 = as it was; <c>FIGHT_ATTACKPACE</c>). Renier, 21 November: "have the speed of the attacks
+        /// tweakable ... right now it feels a little slow". The wind-up, the drive and the way back are all shortened
+        /// by it, so a blade thrown at 1.25 also lands a quarter faster and hits that much harder. The paced style is
+        /// what a fighter's blow is made in (<see cref="Paced"/>, at ClipFighter.StrikeMade and StrikeOnTheMove), so
+        /// when it lands, its steps and its join are all counted in the paced times.
+        /// </summary>
+        public static float Pace = 1f;
+
+        public static AttackStyle Paced(in AttackStyle style) => Mathf.Abs(Pace - 1f) < 1e-3f ? style : style.AtPace(Pace);
+
         public static MadeAttack Make(AttackScore score, in AttackStyle style, in AttackAim aim, in SwordHold hold, bool build = true)
         {
             var m = BodyMeasures.OfClips;
