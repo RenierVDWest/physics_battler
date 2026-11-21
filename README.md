@@ -8612,3 +8612,63 @@ other's heavy wind-up, 1 out of a light blow that landed), all thrown whole, 5 b
 0.69% against 0.33% without (one dance each: not a measurement).
 
 Checks: 0 errors; the panel's look list 11 of 11; the fight of six (40 s, seed 5) at its baseline (0.07%, 4.8%).
+
+### 21 November, 17:51: combos, step 5: the dance fights with combos
+
+**What he said (15:35):** "Ok so looks good. proceed". This is the plan's step 5. **Headless only.**
+
+**Built** (Combat Feel "The Dance Fights With Combos"; lab "Combos (dance): on / off (old)" and a readout "His combos"
+under each dancer; `FIGHT_DANCECOMBOS=0`; a `DANCECOMBOS` line for each dancer). In the dance a fighter starts a combo
+by himself:
+1. **when his light blow lands on the other's body**: he goes on out of that blow into a rising backhand and, his
+   habit having three, the big one (`Dance.OnHit` > `UnitController.GoOnIntoCombo` > `ClipFighter.FlowCombo(...,
+   firstHasLanded)`; the landed blow counts as the combo's first, taken up a step later when the blow's own account
+   of what it met is complete: `flowFirstOwed`);
+2. **when the blow of his pounce lands** (a pounce is his run in at a man who stumbles, whose guard is knocked open or
+   whose back is turned): the same;
+3. **when the other is opened as he strikes**: stumbling, his guard knocked open, or winding up a heavy blow of his
+   own. Then his blow is a combo's light first (`Dance.OpenToCombo`, `UnitController.ThrowCombo`).
+A heavy blow of his own that lands does not start one. A combo goes for the chest, each later blow for what is open of
+its own spots. **Each dancer has his habit** (`GesturePattern.ComboBlows`, `ComboLast`, `ComboTakes`): the Strutter
+three blows ending in the big forehand, taking 0.9 of his chances; the Prowler three ending in the spin, 0.6; the Bull
+two, the second the big one, 0.5; a plain dancer three ending in the forehand, 0.7.
+
+**Measured: four dances of 70 s with combos and four without** (Strutter and Prowler, Bull and Strutter, Prowler and
+Bull, two plain dancers; headless; one dance of each, and dances differ a good deal from one to the next):
+
+| | With combos | Without |
+|---|---|---|
+| Combos begun | 19 (6, 4, 4, 5): 2 out of a light blow that landed, 12 out of a pounce's blow, 5 at a man opened as he struck | 0 |
+| Thrown whole | 18 of 19 | |
+| With a blow on his body after the first | 17 of 19 | |
+| Blows landed on a body | 7 of the dance's own 46 blows, and 22 blows of combos | 8 of the dance's own 47 blows |
+| Floored by a combo's last blow | 0 | |
+| Men off their feet in the dance | 6 (2, 2, 1, 1) | 6 (1, 1, 2, 2) |
+| His sword or shield through himself, on his feet | 0.86%, 0.22%, 0.45%, 0.73% (mean 0.57%) | 0.33%, 0.44%, 0.25%, 0.87% (mean 0.47%) |
+| The shield's tremble | 15.1%, 11.8%, 12.6%, 13.0% | 14.5%, 12.0%, 12.6%, 17.9% |
+
+About one combo every 15 seconds between the two. Nearly all of them come out of a pounce: the dancers stop most of
+each other's plain blows (39 of 46 were stopped or missed), so a light blow seldom lands.
+
+**Two combos ended with their thrower on the floor** (2 of the 12 out of a pounce, both in the first dance): he was
+running at 2.2 m/s and already 0.4 m and 1.1 m from his man when the pounce's blow landed; the next blow planted his
+feet and he ran on into him. The ten begun from 1.35 m and more, or standing, did not. **So a pounce's blow is not
+gone on from when he is running (over 1 m/s) and within 1.25 m** (`Dance.ComboNotRunningOver`, `ComboNotWithin`).
+The first dance again with that: 5 combos, all whole, all with a blow on the body (8 blows), nobody on the floor, 2
+chances not taken by the rule. (Its crossings: 1.01%; the Prowler's spin, see below.)
+
+**The plan's pass marks:** combos started and finished: 19 and 18 in four dances. The share of blows that land: 8
+without, 29 with. Men floored: no more (6 and 6), and no combo's last blow floored a man. **The dance's budgets no
+worse than today: not shown.** The crossings were a little worse on average (0.57% against 0.47%), but one dance
+without combos was at 0.87% and one with at 0.22%: the pairings differ more than the two ways do. The dance was over
+its crossings budget in 2 of 4 dances with combos and 1 of 4 without, and over its tremble budget in all eight.
+
+**Not right, or not known:**
+- The Prowler's big one is the spin, and the spin passes his own sword through his own shield (found at 15:25, not
+  mended). It shows in the dance's crossings.
+- Combos out of a pounce begin at close quarters and on the run: the stick figures show the two bodies overlapping
+  for a moment in some of them.
+- No dancer's guard was knocked open in these dances, so that way in was never taken (0 of 19).
+- One dance each way per pairing is thin: a dance of 70 s takes 17 minutes.
+
+Checks: 0 errors; the panel's look list 8 of 8; the fight of six (40 s, seed 5) at its baseline (0.07%, 4.8%).

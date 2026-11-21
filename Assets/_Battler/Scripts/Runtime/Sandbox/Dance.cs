@@ -193,7 +193,10 @@ namespace PhysicsBattler.Sandbox
         public readonly RunIn Run = new RunIn();
 
         /// <summary>Combos he began by himself: out of a light blow that landed; at a man opened (his guard, a stumble, his heavy wind-up); chances he let go.</summary>
-        public int CombosByHit, CombosByOpening, CombosOnGuard, CombosOnStumble, CombosOnWindUp, CombosLetGo;
+        public int CombosByHit, CombosByOpening, CombosOnGuard, CombosOnStumble, CombosOnWindUp, CombosLetGo, CombosNotUponHim;
+
+        /// <summary>The blow of his the dice were last thrown for (a combo out of a blow that landed is asked once a blow).</summary>
+        internal PhysicsBattler.Locomotion.MadeAttack comboRolledFor;
 
         /// <summary>Kicks he threw by himself: for space, and as his pattern's blow (soft, medium, hard).</summary>
         public int SpaceKicks;
@@ -613,28 +616,52 @@ namespace PhysicsBattler.Sandbox
             }
 
             var blow = by.blow;
+            var mine = by.Unit.Clip;
+            if (Combos && !hit.Shield && !hit.Parried && mine != null && mine.Made != null && by.comboRolledFor != mine.Made && !mine.Flowing && !mine.InCombo && !foe.Unit.Clip.Fallen)
+            {
+                // A combo starts when a light cut lands (the plan's step 5): he goes on out of the blow that has just
+                // landed, into a rising backhand and, his habit having three, the big one. His own blow of the dance
+                // (not a heavy one), or one he threw outside it: the blow of a pounce on a man who stumbles, whose
+                // guard is knocked open or whose back is turned. Once for a blow, as often as his habit has it.
+                bool own = blow != null && !blow.Done && !blow.Met;
+                // (Not out of a blow thrown on the run when he is already upon his man: he runs on into him as the
+                // next blow plants his feet. Of 12 combos begun out of a pounce in four dances, the two begun running
+                // at 2.2 m/s from 0.4 m and 1.1 m ended with their thrower on the floor; the ten from 1.35 m and
+                // more, or begun standing, did not.)
+                Vector3 goes = mine.Loco.Velocity;
+                goes.y = 0f;
+                bool uponHim = !own && goes.magnitude > ComboNotRunningOver && Gap < ComboNotWithin * Size(by);
+                if (uponHim)
+                {
+                    by.comboRolledFor = mine.Made;
+                    by.CombosNotUponHim++;
+                }
+                else if (!own || blow.Kind != AttackClass.Heavy)
+                {
+                    by.comboRolledFor = mine.Made;
+                    if (dice.NextDouble() >= by.Pattern.ComboTakes)
+                    {
+                        by.CombosLetGo++;
+                    }
+                    else if (by.Unit.GoOnIntoCombo(foe.Unit, AimSpot.Chest, by.Pattern.ComboBlows, by.Pattern.ComboLast, own ? "his light blow, landed" : "his blow at an opening, landed"))
+                    {
+                        bool stumbles = foe.Unit.Clip.Stumbling, guard = foe.Unit.Clip.GuardOpen;
+                        by.CombosByHit += own ? 1 : 0;
+                        by.CombosByOpening += own ? 0 : 1;
+                        by.CombosOnStumble += !own && stumbles ? 1 : 0;
+                        by.CombosOnGuard += !own && !stumbles && guard ? 1 : 0;
+                        by.Say(own ? "COMBO: his light blow landed" : "COMBO: out of his pounce", now, 1.2f);
+                        if (Diagnostics.PlaytestTrace.Enabled)
+                        {
+                            Diagnostics.PlaytestTrace.Note(by.Unit, "dance", $"goes on into a combo of {by.Pattern.ComboBlows} blows out of {(own ? "a light blow that landed" : "a blow he threw at an opening (" + (stumbles ? "the other stumbling" : guard ? "his guard knocked open" : "the other open") + ")")}");
+                        }
+                    }
+                }
+            }
+
             if (blow == null || blow.Done || blow.Met)
             {
                 return;
-            }
-
-            if (Combos && !hit.Shield && !hit.Parried && blow.Kind != AttackClass.Heavy && by.Unit.Clip != null && !by.Unit.Clip.Flowing && !by.Unit.Clip.InCombo && !foe.Unit.Clip.Fallen)
-            {
-                // A combo starts when a light cut lands (the plan's step 5): he goes on out of the blow that has just
-                // landed, into a rising backhand and, his habit having three, the big one.
-                if (dice.NextDouble() >= by.Pattern.ComboTakes)
-                {
-                    by.CombosLetGo++;
-                }
-                else if (by.Unit.GoOnIntoCombo(foe.Unit, AimSpot.Chest, by.Pattern.ComboBlows, by.Pattern.ComboLast, "his light blow, landed"))
-                {
-                    by.CombosByHit++;
-                    by.Say("COMBO: his light blow landed", now, 1.2f);
-                    if (Diagnostics.PlaytestTrace.Enabled)
-                    {
-                        Diagnostics.PlaytestTrace.Note(by.Unit, "dance", $"goes on into a combo out of a light blow that landed ({by.Pattern.ComboBlows} blows)");
-                    }
-                }
             }
 
             blow.Met = true;
@@ -766,11 +793,14 @@ namespace PhysicsBattler.Sandbox
         /// </summary>
         public static bool Combos = true;
 
+        /// <summary>A blow thrown on the run (faster than this, m/s) from nearer than this (metres, by his size) is not gone on from into a combo.</summary>
+        public static float ComboNotRunningOver = 1f, ComboNotWithin = 1.25f;
+
         /// <summary>His combos so far, in words (for the lab's readout and the report).</summary>
         public string ComboMoves(Dancer d)
         {
             var c = d.Unit != null ? d.Unit.Clip : null;
-            return $"combos begun {d.CombosByHit + d.CombosByOpening} ({d.CombosByHit} out of a light blow that landed, {d.CombosByOpening} at a man opened: {d.CombosOnGuard} his guard open, {d.CombosOnStumble} stumbling, {d.CombosOnWindUp} in his heavy wind-up); chances let go {d.CombosLetGo}"
+            return $"combos begun {d.CombosByHit + d.CombosByOpening} ({d.CombosByHit} out of a light blow that landed, {d.CombosByOpening} at a man opened: {d.CombosOnGuard} his guard open, {d.CombosOnStumble} stumbling, {d.CombosOnWindUp} in his heavy wind-up); chances let go {d.CombosLetGo}, not taken because he was running and already upon him {d.CombosNotUponHim}"
                 + (c != null ? $"; thrown whole {c.CombosWhole}, with a blow on his body {c.CombosOnBody} ({c.ComboBlowsOnBody} blows), floored him {c.CombosFloored}, ended by a parry {c.FlowParried}" : "")
                 + $"; his habit: {d.Pattern.ComboBlows} blows, the big one the {PhysicsBattler.Locomotion.FlowCombos.LastNames[Mathf.Clamp(d.Pattern.ComboLast, 0, 2)]}, takes {d.Pattern.ComboTakes:0.0} of his chances";
         }

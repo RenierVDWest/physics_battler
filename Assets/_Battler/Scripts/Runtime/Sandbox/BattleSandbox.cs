@@ -4283,22 +4283,23 @@ namespace PhysicsBattler.Sandbox
         // Names are matched whole, without a chosen button's square brackets; capitals do not matter.
 
         /// <summary>Names this push's list. Change it with every push that needs his eye: his "highlights off" is kept by tag, so a new list is shown again.</summary>
-        private const string LookTag = "21 November, 16:15: the combo no longer stops when his shield takes the second blow; your speeds are the defaults; the dummy is middling";
+        private const string LookTag = "21 November, 17:51: the dance fights with combos (and, not yet looked at: the combo that stopped on a shield, mended)";
 
         /// <summary>What to do, in order, in plain words.</summary>
         private static readonly string[] LookSteps =
         {
-            "1. Go to \"Duel\", find \"Strike at\". \"Dummy:\" press \"shield up\", \"Last blow:\" press \"spin\". Press \"Throw combo\" a good many times. In your logs of 15:21 and 15:27, whenever his shield stopped the second blow the big one never came (12 of 46 combos), and the combo after it began wrong. That is mended. I could not make it happen without Unity, so please tell me if a combo still stops when nobody parried.",
-            "2. A combo is still meant to stop when he parries cleanly (\"Dummy: parries\"; row \"A parry:\"), and when the blade glances off his sword.",
-            "3. Your speeds are the defaults now: \"Speed: combos\" 1.88, \"Speed: single\" 1.15. \"Dummy's guard skill\" starts at 0.5 (middling).",
-            "4. Still waiting for your look from 13:57: \"Dummy: no guard\", then \"Last blow: forehand\" and \"spin\", and \"Speed: big one\".",
-            "5. Known and not mended: in the spin combo his own sword passes through his own shield.",
+            "1. Go to \"Duel\" and press \"Dance\". Let the two fight for a minute or two. New: they start combos by themselves. A fighter goes on into a combo when his light blow lands, when he pounces on a man who stumbles or whose guard is knocked open and that blow lands, or when the other is winding up a heavy blow.",
+            "2. It does not happen often: about one combo every 15 seconds between the two. The words over a fighter's head say \"COMBO\" when one starts. The readout \"His combos\" under each dancer counts them and tells his last one blow by blow.",
+            "3. Each dancer has his own habit. Try the fighters \"Strutter\" (three blows, ending in the big forehand, takes nearly every chance), \"Prowler\" (three, ending in the spin) and \"Bull\" (two, the second the big one).",
+            "4. To compare with before: \"Combos (dance): off (old)\".",
+            "5. Still waiting from 16:15: \"Strike at\", \"Dummy: shield up\", \"Last blow: spin\", \"Throw combo\" many times: does a combo still stop when nobody parried?",
+            "6. What I would like to hear: are there too few combos in the dance, or too many? Do they look right when they come out of a pounce?",
         };
 
         /// <summary>The names of what he is to press and watch.</summary>
         private static readonly string[] LookHere =
         {
-            "Duel", "Strike at", "Dummy:", "Dummy's guard skill", "Throw combo", "Last blow:", "A parry:", "Speed: combos", "Speed: single", "Speed: big one", "His last combo",
+            "Duel", "Dance", "Combos (dance):", "Strike at", "Dummy:", "Last blow:", "Throw combo", "His last combo",
         };
 
         /// <summary>For the panel check (headless): the names of <see cref="LookHere"/> that were really drawn, and every section taken as open while it looks.</summary>
