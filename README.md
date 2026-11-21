@@ -8727,3 +8727,32 @@ Checks: 0 errors; the panel's look list 8 of 8; the fight of six (40 s, seed 5) 
 
 **Its film** (3b2b, made by Opus at medium effort; 6 scenes, 24 beats, about 3 minutes 15): https://claude.ai/artifact/11GqpfgqDfXm7jkoN4BiZh
 (The note the film was made from said the camera is kicked "a few centimetres"; it is about 18 cm at the usual distance. The film leaves the size out; the tooltip is put right.)
+
+### 21 November, 20:08: shock waves through the body on a hit: research and plan (nothing built)
+
+**What he said (20:01):** "Ok all this looks great [step 6, the show]. I want you to do some research and planning on
+a new task now. I want you to add shock waves to the impacts ... to get some really juicy and impactful reactions ...
+this does not need to have gameplay or physics implications ... fake it. So that you can have full control of how the
+parts vibrate as the shock waves are sent through the body. So if the chest is hit it will be absorbing a lot of this
+impact causing it to move back, dragging the upper arms, then lower arms etc as a wave travels through the body with
+its peaks and valleys ... add some sliders ... for the frequency of the wave, how fast it dissipates. The wave
+strength". **(20:04):** "I want this to be a bit over the top, more so than you will see in other games."
+
+**The plan:** `Docs/Plans/2026-11-21-shock-waves-through-the-body-research-and-plan.md`; live:
+https://claude.ai/artifact/FED9yrpFr7tz59LvbJLnd6 . In short: a faked wave on the pose, started at the struck part,
+reaching each part after its distance along the body divided by a wave speed, each part then swinging as a dying
+spring; sliders for frequency (7 a second), half-life (0.15 s), strength (9 cm for a heavy blow, about three times a
+real body's 1 to 4 cm), wave speed (5 m/s), the share each joint passes on (0.75), loose ends (1.3), tilt, and one
+"how over the top" dial. It goes in next to the bend (`ClipFighter.AddImpact`, `Bend`), which is already a pose-only
+push that falls off with distance: the wave adds the delay and the ring. Six steps, the first one wave down one arm in
+the duel lab with a "Ring him: chest" button. Must not touch: anything that decides a hit, the feet, our crossing and
+tremble checks (they must read the body under the wave), the six.
+
+**Researched** (pages opened): real flesh rings at about 15 swings a second (3 to 55), 3 mm to 4 cm, about three swings
+(Schmitt and Günther 2011; Pain and Challis 2002; Play and others 2022); Smash shakes the struck fighter through the
+freeze with the hit boxes kept still (Sakurai); the Unreal add-on "Easy Procedural Hit Reactions" is a falloff push
+on springs with no travel; Holden's springs by half-life and frequency; Art Babbitt's successive breaking of joints.
+One number (a ripple's speed in muscle, a few m/s) is from a search summary: the page did not open.
+
+**Five questions put to him:** the wave through the freeze (recommended), the legs (fade at the shins), the attacker's
+own arm on a stopped blow (yes, small), keep the bend under it (yes), how over the top to begin.
