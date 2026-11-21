@@ -8790,7 +8790,7 @@ solver or bought; the skirt kind first; sleeves tied back first; who wears them;
 Checked by its maker: every beat looked at in light and dark, every number against the plan. Not tried: the voice,
 the question box, saving notes.
 
-### 21 November, 23:00: the shock wave through the body on a hit (built blind; his answers of 21:33)
+### 21 November, 22:50: the shock wave through the body on a hit (built blind; his answers of 21:33)
 
 **His answers (21:33), all taken:** the wave is seen in the freeze, and runs on every hit and impact; the legs as I
 suggested (it fades through the thighs and stops at the shins, the feet stay planted); the attacker's own arm shudders
@@ -8853,3 +8853,104 @@ lot from dance to dance); the wave cannot move them (it touches no collider).
 under the weapons' models: read from the prefab and `UnitBuilder`), how it looks, whether 7 swings a second reads as a
 shudder or as jelly. The blade's streak follows the sword's slot, not its drawn mesh, so on a whip the streak does not
 whip. Look list on the panel: "21 November, night: the shock wave".
+
+**The shock wave's film** (3b2b, made by Opus at medium effort; 6 scenes, 24 beats, about 3 minutes): https://claude.ai/artifact/NxqQKD4EN8eZmRxQkkz9pZ
+
+### 21 November, 23:55: clothes that move: a hakama, a top and two sleeves (built blind, headless only)
+
+**His answers (21:33): as recommended** (our own solver, the skirt kind of hakama, sleeves tied back, one outfit in two
+colours), after the shock waves. All in one build tonight: the plan's steps 1, 2 and 3, a first piece of step 4 (the
+top), not step 5 (no fight of six) and not step 6.
+
+**What is built:**
+- **The solver** (`Locomotion/ClothNet.cs`): points and threads (round, down, both diagonals, and every other point to
+  bend against), XPBD, 8 small steps a picture, written in plain numbers so it is cheap. **The six safeguards, all in:**
+  pushed out of each part's own shape (capsule, box or sphere, read from the rig's colliders, as the shock wave draws
+  them) to its surface and a 1.5 cm gap, last in every small step, twice if the first push lands it in the next part;
+  the body's shapes moved on through the small steps; a speed limit of 2 cm a small step (about 10 m/s); a leash to its
+  home place on the body; out the way it came in (its side); the covered parts hidden. And the net under them: a garment
+  that loses a point, strays 2 m, or has a thread stretched to nine times its length is put back to hanging.
+- **The garments** (`Locomotion/Clothes.cs`, one set a fighter, `UnitController.Clothes`), made by code from his rig:
+  - **The hakama:** 40 columns by 16 rows (640 points), pinned at a sash ring 7 cm above his pelvis's joint, folded in
+    pleats there, widening to a hem 0.84 m by 1 m across, down to about his ankles; dark blue for one side, dark red for
+    the other.
+  - **The sleeves:** 12 by 6 points each, a loose tube round each upper arm's own capsule from the shoulder to the
+    elbow, close on the side towards his chest; pinned round the shoulder.
+  - **The top:** a jacket over his chest from under the sash to his shoulders, held by the hips, the spine and the chest
+    so it bends as he does, a little outside his body's shapes, with a collar. **Not simulated** (the plan's "snug
+    shell"). Undyed, the sleeves too.
+  - **Hidden under them:** his hips and thighs, his spine and chest, his upper arms. Drawn: head, forearms, hands, shins,
+    feet.
+- **Combat Feel:** "The Fighters Wear" (0 none, 1 the skirt, 2 the skirt and the top; 2 by default), "Covered Parts Are
+  Hidden", and the sliders weight, stiffness, stretch, air, how much of his movement it feels (0.7), wind, gap, leash,
+  small steps. **Labs and dance only.**
+- **The lab** (duel lab, its own heading "Clothes"): "Clothes:" none (old) / skirt / skirt and top; **"Shake him"** (18
+  seconds of moves: a walk round, a leap in, a blow, a leap out, a combo, a medium bash so the other stumbles, a hard
+  kick that floors him, and his get-up); "Covered parts:" hidden / drawn; the sliders; the readout "The cloth so far".
+- **Headless:** `FIGHT_CLOTHES=0|1|2`, `FIGHT_SHAKE=4` (the same run of moves; a `SHAKE` line at each), `FIGHT_CLOTHDUMP`
+  (every point, `CLOTHPTS`, `BODYPTS`, `CLOTHNET` lines) and `Tools/Headless/cloth.py name [mover|other]`, which draws the
+  cloth's points and the body from the front and the side. Every report ends with a `CLOTHES` line.
+
+**Measured headless** ("Shake him" from 4 s, both men clothed, 22 s; and one dance of 20 s):
+
+| | Shake him | The dance |
+|---|---|---|
+| A point of cloth inside his body (point-steps) | 0.040% | 0.21% |
+| The deepest | 3.5 cm | 4.8 cm |
+| Pictures with a point inside a part that is **drawn** (a shin, a forearm, the head) | 0.4% (10 of 2,642) | 1.2% (43 of 3,600) |
+| Put back to hanging | 0 | 0 |
+| Cost, a fighter a picture (headless, debug build) | 3.8 ms | 3.7 ms |
+
+- **The plan's mark was no more than 1 picture in 1,000 with cloth in a drawn part: missed, 4 to 12 times over.** Most of
+  it is the skirt against his shins (a kick, a fall). Inside a hidden part (the hips, thighs, chest, upper arms) cannot be
+  seen.
+- **Threads stretched to twice their length in most pictures** somewhere (a sleeve caught between the upper arm and the
+  chest, the skirt over a knee): the cloth is pinched, not torn, and nothing exploded (no garment put back to hanging
+  after I raised that net from 3 to 9 times a thread's length; before, the sleeves were put back 8 times in one run).
+- **The look, drawn from the numbers** (`cloth.py`): the skirt hangs as a stiff wide bell from the sash to the floor, the
+  legs inside it in his stance; in a fall it spreads on the floor and he lies in it, and it hangs again once he is up;
+  the sleeves sit round the upper arms. Not seen in Unity: whether the meshes are lit and drawn as I mean (both sides
+  drawn, the body's own material coloured), whether the drawn body pokes through the cloth (the cloth is kept off the
+  physics shapes, which may be thinner than the drawn meshes), and whether it reads as cloth.
+- **The costs:** the cloth runs in the labs and the dance only. Headless a dance runs several times slower with it on
+  (`FIGHT_CLOTHES=0` for runs that do not need it). In Unity it is probably cheaper (not the debug headless build); not
+  measured there.
+- **Not done:** cloth against itself, the other man and his blade; the divided hakama; full wide sleeves; Large and
+  Small not checked; a lost arm not checked (its sleeve is pinned to the upper arm, so it should go with a cut-off arm; not
+  tried); the six.
+
+### 21 November, 23:55: combos, step 7: more cuts (headless only, not seen in Unity)
+
+The combos plan's last step, after the shock waves and the clothes (his order of 21:33).
+
+- **Five cuts baked** from the packs we own (`Tools/Mocap/Combat/combat_bake.py`, the `cut_` lines; picked by the
+  blade's way and height at its fastest, in the hips' frame): `cut_flat_forehand` (Mixamo "Standing Melee Attack
+  Horizontal": right to left at 1.33 m, 34.5 m/s), `cut_quick_forehand` (the Pro Sword and Shield pack: down and across,
+  landing 0.57 s in; baked, not used yet), `cut_flat_backhand` (left to right at the waist, 34 m/s),
+  `cut_low_backhand` (across the thighs, 33.7 m/s) and `cut_leg_sweep` (at the shins; **its recorded blade is slow, 14.4
+  m/s**), the last two from one take. The 112 clips already baked came out byte for byte the same. Not "sns_": nobody
+  throws them on their own, only in a combo (`ClipFighter.StrikePool` lets a combo ask for one by name), and they are on
+  `AttackScore.OtherBodies`, so the body's measures (and every other blow) are unchanged. The blade report
+  (`Tools/Headless/flow.sh`) reads them with the rest.
+- **Two new combos and a new last blow** (`FlowCombos.Kind`; Combat Feel "A Combos Cuts Are", 0 by default, as before;
+  duel lab row "Combo's cuts:"): **three flat cuts** (flat forehand across his chest, flat backhand across his waist,
+  the flat forehand again as the big one) and **high then low** (the forehand down from high, the low backhand across his
+  thighs, the flat forehand as the big one). Chosen by the report's joins: flat forehand into flat backhand needs a
+  bend of 0.12 s, back into the flat forehand 0.11; forehand into the low backhand 0.14, the low backhand into the flat
+  forehand 0.15; the low backhand into the chop or the spin 0.29 (too much), so those two combos end in their own.
+  **The sweep** is a fourth last blow for the plain combo ("Last blow:"; the rising backhand joins into it with 0.05 s).
+- **His shield drawn aside** in the two new combos (Combat Feel "In A Flat Or Low Combo His Shield Is Drawn Aside", on;
+  lab row "In those, his shield:"): the flat and low cuts sweep across where the shield is held. Down, back and a little
+  out, 30 cm, while the combo lasts; his shield does not cover or intercept meanwhile.
+
+**Measured headless, five combos each against a man with no guard, at the default speeds:**
+
+| Combo | With a blow on him | Blows landed | Floored | His own blade through his own shield |
+|---|---|---|---|---|
+| Three flat cuts | 5 of 5 | 13 of 15 | 3 | 1.81% (held in cover: 2.93%) |
+| High then low | 5 of 5 | 11 of 15 | 1 | 2.77% (held: 4.54%) |
+| Plain, ending in the sweep | 4 of 5 | 11 | 4 | 0.28% |
+
+First hit to last 0.8 to 1.25 s. **The two new combos are over the crossing budget (0.5%)** even with the shield drawn
+aside: they are a lab choice, not the default, until that is mended (the forehand combo was over it too at 19:09,
+0.94%). Not tried against a shield or a parry. Not in the dance (its patterns keep their combos).

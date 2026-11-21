@@ -183,7 +183,7 @@ namespace PhysicsBattler.Locomotion
         public static float FirstPower = 0.6f, LinkPower = 1f, LastPower = 1.6f;
 
         /// <summary>The last blows a combo of three can end in: the strike, and its name on the panel.</summary>
-        public static readonly string[] Lasts = { "sns_forehand", "sns_chop_lunge", "spin_low" };
+        public static readonly string[] Lasts = { "sns_forehand", "sns_chop_lunge", "spin_low", "cut_leg_sweep" };
 
         /// <summary>
         /// The spin is entered this long before it lands (seconds): at its beginning, so that the whole turn is
@@ -198,7 +198,42 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>The spin is a low cut: it is aimed at his hips, whatever the combo's spot.</summary>
         public static bool SpinGoesLow = true;
-        public static readonly string[] LastNames = { "forehand", "chop", "spin" };
+        public static readonly string[] LastNames = { "forehand", "chop", "spin", "sweep" };
+
+        /// <summary>
+        /// The combos plan's step 7 (21 November, night): which cuts a combo is made of. 0 (as before): a forehand, a
+        /// rising backhand, and the last blow chosen (the sweep at his shins among them). 1: three flat cuts: a flat
+        /// forehand across the chest, a flat backhand across the waist, and the flat forehand again as the big one. 2:
+        /// high then low: the forehand down from high, a low backhand across his thighs, and the flat forehand across his
+        /// chest as the big one. The new cuts are from the packs we own (combat_bake.py, "cut_").
+        /// </summary>
+        public static int Kind;
+
+        public static readonly string[] KindNames = { "forehand, rising", "three flat cuts", "high then low" };
+
+        public static string FirstStrike => Kind == 1 ? "cut_flat_forehand" : "sns_forehand";
+
+        public static string FirstSays => Kind == 1 ? "flat forehand" : "forehand";
+
+        public static string SecondStrike => Kind == 1 ? "cut_flat_backhand" : Kind == 2 ? "cut_low_backhand" : "sns_rising";
+
+        public static string SecondSays => Kind == 1 ? "flat backhand" : Kind == 2 ? "low backhand" : "rising backhand";
+
+        /// <summary>Where the second blow is aimed first, if the combo has its own: the flat backhand at the belly, the low one at the thigh on his sword side.</summary>
+        public static AimSpot? SecondSpot => Kind == 1 ? AimSpot.Belly : Kind == 2 ? AimSpot.ThighR : (AimSpot?)null;
+
+        public static AimSpot[] SecondGoesFor => Kind == 1 ? FlatGoesFor : Kind == 2 ? LowGoesFor : RisingGoesFor;
+
+        /// <summary>
+        /// A combo of three flat cuts, and one of high then low, ends in the flat forehand across his chest; the plain one
+        /// in the last blow chosen. (By the blade report's joins: the low backhand joins on into the flat forehand with
+        /// a bend of 0.15 s, into the chop and the spin only with 0.29.)
+        /// </summary>
+        public static bool OwnLast => Kind == 1 || Kind == 2;
+
+        public static readonly AimSpot[] FlatGoesFor = { AimSpot.Belly, AimSpot.Hips, AimSpot.Chest, AimSpot.UpperArmR, AimSpot.ForearmR },
+            LowGoesFor = { AimSpot.ThighR, AimSpot.ThighL, AimSpot.Hips, AimSpot.ShinR },
+            SweepGoesFor = { AimSpot.ShinR, AimSpot.ShinL, AimSpot.ThighR, AimSpot.ThighL, AimSpot.FootR };
 
         /// <summary>
         /// The first blow: a quick light cut, little wound up and soon thrown. What comes after its landing is as

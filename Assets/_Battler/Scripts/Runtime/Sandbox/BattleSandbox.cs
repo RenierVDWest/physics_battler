@@ -1217,7 +1217,21 @@ namespace PhysicsBattler.Sandbox
 
                 EndRow();
                 BeginRow();
-                Words(new GUIContent("Last blow:", "The last blow of a combo of three (Combat Feel \"A Combos Last Blow Is\"). Forehand: brought round over his shoulder. Chop: he leaps, the blade comes over his head and down. Spin: he turns right round on the spot, the sword over his head through the turn, and cuts low across the hips (from the recording Renier gave on 21 November). Each begins early in its own wind-up, which is the loop that brings the blade round: da, da ... DUM."));
+                Words(new GUIContent("Combo's cuts:", "Which cuts a combo is made of (Combat Feel \"A Combos Cuts Are\"; the combos plan's step 7). Forehand, rising (as before): a forehand, a rising backhand, the last blow below. Three flat cuts: a flat forehand across his chest, a flat backhand across his waist, the flat forehand again as the big one. High then low: the forehand down from high, a low backhand across his thighs, the flat forehand across his chest as the big one. The new cuts are baked from the packs we own."));
+                for (int kind = 0; kind < PhysicsBattler.Locomotion.FlowCombos.KindNames.Length; kind++)
+                {
+                    string kindName = PhysicsBattler.Locomotion.FlowCombos.KindNames[kind] + (kind == 0 ? " (as before)" : "");
+                    if (Press(feel.aCombosCutsAre == kind ? "[" + kindName + "]" : kindName, "A combo made of these cuts.")) feel.aCombosCutsAre = kind;
+                }
+
+                EndRow();
+                BeginRow();
+                Words(new GUIContent("In those, his shield:", "In a combo of three flat cuts or of high then low (Combat Feel \"In A Flat Or Low Combo His Shield Is Drawn Aside\"). Drawn aside (new): out to his shield side while the combo lasts, so the flat and low cuts do not pass through it. Held (old): in cover, and his own blade went through it."));
+                if (Press(feel.inAFlatOrLowComboHisShieldIsDrawnAside ? "[drawn aside]" : "drawn aside", "Out of his blade's way.")) feel.inAFlatOrLowComboHisShieldIsDrawnAside = true;
+                if (Press(!feel.inAFlatOrLowComboHisShieldIsDrawnAside ? "[held (old)]" : "held (old)", "In cover.")) feel.inAFlatOrLowComboHisShieldIsDrawnAside = false;
+                EndRow();
+                BeginRow();
+                Words(new GUIContent("Last blow:", "The last blow of a combo of three (Combat Feel \"A Combos Last Blow Is\"). Forehand: brought round over his shoulder. Chop: he leaps, the blade comes over his head and down. Spin: he turns right round on the spot, the sword over his head through the turn, and cuts low across the hips (from the recording Renier gave on 21 November). Sweep: a low cut back across his shins (step 7; its recorded blade is slow). Only for the plain combo: the other two end in their own. Each begins early in its own wind-up, which is the loop that brings the blade round: da, da ... DUM."));
                 for (int last = 0; last < PhysicsBattler.Locomotion.FlowCombos.LastNames.Length; last++)
                 {
                     string lastName = PhysicsBattler.Locomotion.FlowCombos.LastNames[last];
@@ -4373,7 +4387,7 @@ namespace PhysicsBattler.Sandbox
         // Names are matched whole, without a chosen button's square brackets; capitals do not matter.
 
         /// <summary>Names this push's list. Change it with every push that needs his eye: his "highlights off" is kept by tag, so a new list is shown again.</summary>
-        private const string LookTag = "21 November, night: the shock wave through the body on a hit (built blind)";
+        private const string LookTag = "21 November, night: the shock wave, clothes that move, more cuts for combos (all built blind)";
 
         /// <summary>What he is asked to do, in order.</summary>
         private static readonly string[] LookSteps =
@@ -4382,12 +4396,17 @@ namespace PhysicsBattler.Sandbox
             "2. Press the other buttons of \"Ring him:\" (head, arm, shield, hips, shin): the wave starts there and runs both ways. \"His last wave\" says when each part moved and how far.",
             "3. Play with \"How over the top\" (1 is the start, 3 is wild), \"Frequency\", \"Dies away in\", \"Strength\", \"Wave speed\". \"The wave:\" on / off (old) to compare. \"The wave also:\" ticks for the freeze, the attacker's own arm and the legs.",
             "4. Then hit him for real: \"Strike at\", \"Throw combo\", and \"Dance\": every hit and block sends a wave. The fight of six has none yet.",
+            "5. Clothes: in \"Duel\", the heading \"Clothes\". Both men wear a hakama (a pleated skirt from a sash), a light top over the chest, and sleeves tied back on the upper arms; the skirt and sleeves are simulated cloth. Press \"Shake him\": about 18 seconds of moves (a walk round, leaps, a blow, a combo, a bash, a kick that floors the other and his get-up). Watch the cloth swing and sway, and whether it ever goes into a body.",
+            "6. \"Clothes:\" none (old) / skirt / skirt and top to compare. \"Covered parts:\" drawn, to see the hips, thighs, trunk and upper arms under the cloth. Try \"Cloth weight\", \"Cloth stiffness\", \"Feels his movement\", \"Wind\". \"The cloth so far\" counts how often a point was inside his body.",
+            "7. More cuts for combos: in \"Strike at\", the row \"Combo's cuts:\" press \"three flat cuts\", then \"Throw combo\" a few times; then \"high then low\". With \"forehand, rising\", \"Last blow:\" has a new one, \"sweep\" (at his shins). \"In those, his shield:\" drawn aside / held (old): his shield goes down and out of the way of the flat and low cuts (his own blade still crosses it a little).",
         };
 
         /// <summary>The names of what he is to press and watch.</summary>
         private static readonly string[] LookHere =
         {
             "Duel", "The shock wave", "Ring him:", "His last wave", "How over the top", "Frequency", "Dies away in", "Strength", "Wave speed", "The wave:", "The wave also:", "Throw combo", "Dance",
+            "Clothes", "Clothes:", "Shake him:", "Covered parts:", "Cloth weight", "Cloth stiffness", "Feels his movement", "Wind", "The cloth so far",
+            "Combo's cuts:", "Last blow:", "In those, his shield:",
         };
 
         /// <summary>For the panel check (headless): the names of <see cref="LookHere"/> that were really drawn, and every section taken as open while it looks.</summary>
@@ -5426,15 +5445,15 @@ namespace PhysicsBattler.Sandbox
         /// <summary>The duel lab's clothes (21 November): what they wear, "Shake him", the sliders, what the cloth measured.</summary>
         private void ClothesRows(CombatFeel feel)
         {
-            Heading("Clothes", "Real moving cloth (the plan \"Cloth that moves: samurai clothes\"): a hakama, one pleated skirt from a sash at the waist, and sleeves tied back on the upper arms. The cloth is a net of points simulated against his body's own shapes; the parts it covers are hidden. In the labs and the dance; not in the fight of six yet.");
+            Heading("Clothes", "Real moving cloth (the plan \"Cloth that moves: samurai clothes\"): a hakama, one pleated skirt from a sash at the waist, and a top: a jacket over the chest (it bends with him but does not move of itself) with sleeves tied back on the upper arms. The skirt and the sleeves are a net of points simulated against his body's own shapes; the parts it covers are hidden. In the labs and the dance; not in the fight of six yet.");
             if (feel == null)
             {
                 return;
             }
 
             BeginRow();
-            Words(new GUIContent("Clothes:", "What both men wear (Combat Feel \"The Fighters Wear\"). None (old): as before. Skirt: the hakama. Skirt and sleeves: and two sleeves tied back on his upper arms."));
-            string[] names = { "none (old)", "skirt", "skirt and sleeves" };
+            Words(new GUIContent("Clothes:", "What both men wear (Combat Feel \"The Fighters Wear\"). None (old): as before. Skirt: the hakama. Skirt and top: and a top, a jacket over his chest that does not move of itself, with two sleeves of cloth tied back on his upper arms."));
+            string[] names = { "none (old)", "skirt", "skirt and top" };
             for (int k = 0; k < 3; k++)
             {
                 if (Press(feel.theFightersWear == k ? "[" + names[k] + "]" : names[k], "Both men wear this.")) feel.theFightersWear = k;
@@ -5452,7 +5471,7 @@ namespace PhysicsBattler.Sandbox
 
             EndRow();
             BeginRow();
-            Words(new GUIContent("Covered parts:", "Combat Feel \"Covered Parts Are Hidden\". Hidden (new): his hips and thighs under the skirt and his upper arms under the sleeves are not drawn, so a slip of cloth into them cannot be seen. Drawn: as before, under the cloth."));
+            Words(new GUIContent("Covered parts:", "Combat Feel \"Covered Parts Are Hidden\". Hidden (new): his hips and thighs under the skirt, his trunk under the top and his upper arms under the sleeves are not drawn, so a slip of cloth into them cannot be seen. Drawn: as before, under the cloth."));
             if (Press(feel.coveredPartsAreHidden ? "[hidden]" : "hidden", "Not drawn under the cloth.")) feel.coveredPartsAreHidden = true;
             if (Press(!feel.coveredPartsAreHidden ? "[drawn]" : "drawn", "Drawn under the cloth.")) feel.coveredPartsAreHidden = false;
             EndRow();

@@ -6,7 +6,7 @@ writing one, `wc -l README.md` must say more than before.** (On 21 November, 11:
 in it, and two more commits did the same; found and put back whole at 14:20, nothing lost.) Update this file at the end of every milestone or step:
 the "Where things stand" and "Roadmap" sections must always be true.
 
-Last updated: 21 November 2026, 23:00 (his night order of 21:33: shock waves, then clothes, then the combos plan's last step; the shock wave is built, headless only, waiting for his eye; the clothes are being built). Before that: 21 November 2026, 21:22 (the cloth plan's film is made and linked; nothing else changed). Before that: 21 November 2026, 20:54 (he said the shock wave plan "looks great" at 20:47 and asked, before building it, for research and a plan for real moving cloth: samurai clothes on the fighters; that plan is written, nothing built, six questions wait for him). Before that: 21 November 2026, 20:08 (he said "all this looks great" of step 6, the show, at 20:01 and asked for research and a plan for shock waves through the body on a hit, "a bit over the top": the plan is written, nothing built, five questions wait for him). Before that: 21 November 2026, 19:09 (combos, step 6: the show, built blind and pushed, waiting for his eye and ear; he said "everything looks good here. Proceed to the next task" at 18:32 of step 5). Before that: 21 November 2026, 17:51 (combos, step 5: the dance fights with combos, built, measured over four dances and pushed, headless only, waiting for his eye). Before that: 21 November 2026, 16:15 (after his look at step 4: "looks good. proceed"; the combo that stopped when a shield took its second blow mended, unconfirmed in Unity; his speeds the defaults in the labs and the dance; the lab dummy middling; step 5, the dance fights with combos, has a first build being measured). Before that: 21 November 2026, 15:07 (combos, step 4: against a man who defends, built and pushed, headless only, waiting for his eye; he has not yet looked at the 13:57 fixes either). Before that: 21 November 2026, 13:57 (after his look at step 3: the big one made big and given its own speed, a new spin from his recording, the first blows keep him in reach; he said "Ok that looks good ... Do this and proceed" at 12:45, so step 4 is next without waiting). Before that: 21 November 2026, 11:43 (combos, step 3: three blows and the big one, built and pushed, waiting for his eye; he said "Ok this all looks good to me. you can proceed" at 10:41 to the two speeds, the carried jump and the panel). Before that: 21 November 2026, 09:49 (two attack speeds; the fall after a long jump in; the panel held to its width). Before that: 21 November 2026, 07:57 (his morning look answered: the jump in for the second blow, an attack speed slider, the dummy's spot, the pounce). Before that: 20 November 2026, 22:08 (step 2 of the combos plan is built and pushed, waiting for his eye; he said "Yes it sounds good. Go." to the combos plan at 18:42, every
+Last updated: 21 November 2026, 23:59 (his night order of 21:33 done: the shock wave (22:50), the clothes and the combos plan's step 7 (23:55) are built, headless only, waiting for his eye; the combos plan is fully built). Before that: 21 November 2026, 22:50 (the shock wave built). Before that: 21 November 2026, 21:22 (the cloth plan's film is made and linked; nothing else changed). Before that: 21 November 2026, 20:54 (he said the shock wave plan "looks great" at 20:47 and asked, before building it, for research and a plan for real moving cloth: samurai clothes on the fighters; that plan is written, nothing built, six questions wait for him). Before that: 21 November 2026, 20:08 (he said "all this looks great" of step 6, the show, at 20:01 and asked for research and a plan for shock waves through the body on a hit, "a bit over the top": the plan is written, nothing built, five questions wait for him). Before that: 21 November 2026, 19:09 (combos, step 6: the show, built blind and pushed, waiting for his eye and ear; he said "everything looks good here. Proceed to the next task" at 18:32 of step 5). Before that: 21 November 2026, 17:51 (combos, step 5: the dance fights with combos, built, measured over four dances and pushed, headless only, waiting for his eye). Before that: 21 November 2026, 16:15 (after his look at step 4: "looks good. proceed"; the combo that stopped when a shield took its second blow mended, unconfirmed in Unity; his speeds the defaults in the labs and the dance; the lab dummy middling; step 5, the dance fights with combos, has a first build being measured). Before that: 21 November 2026, 15:07 (combos, step 4: against a man who defends, built and pushed, headless only, waiting for his eye; he has not yet looked at the 13:57 fixes either). Before that: 21 November 2026, 13:57 (after his look at step 3: the big one made big and given its own speed, a new spin from his recording, the first blows keep him in reach; he said "Ok that looks good ... Do this and proceed" at 12:45, so step 4 is next without waiting). Before that: 21 November 2026, 11:43 (combos, step 3: three blows and the big one, built and pushed, waiting for his eye; he said "Ok this all looks good to me. you can proceed" at 10:41 to the two speeds, the carried jump and the panel). Before that: 21 November 2026, 09:49 (two attack speeds; the fall after a long jump in; the panel held to its width). Before that: 21 November 2026, 07:57 (his morning look answered: the jump in for the second blow, an attack speed slider, the dummy's spot, the pounce). Before that: 20 November 2026, 22:08 (step 2 of the combos plan is built and pushed, waiting for his eye; he said "Yes it sounds good. Go." to the combos plan at 18:42, every
 default taken. **Step 1 of the combos plan is built and pushed, waiting for his eye:** every recording's blade is
 measured by a report, and the duel lab can draw a made attack's planned blade path and the path the sword really
 took. A view only: nobody fights differently. Next: step 2, two blows as one swing. Corrected at 20:15: what
@@ -168,10 +168,10 @@ here is refreshed when a plan changes a lot. Read the one for the work in hand, 
 
 The five in hand:
 
-- `2026-11-21-cloth-that-moves-samurai-clothes-research-and-plan.md`: **the newest plan and the next to build
-  (21 November, 20:47): real moving cloth on the fighters.** Nothing built.
-- `2026-11-21-shock-waves-through-the-body-research-and-plan.md`: **the newest plan (21 November, 20:01): a faked
-  wave through the body on a hit.** Research, the model, the sliders, six steps, five questions. Nothing built.
+- `2026-11-21-cloth-that-moves-samurai-clothes-research-and-plan.md`: **real moving cloth on the fighters (21
+  November, 20:47).** Steps 1 to 3 and a first piece of step 4 built that night, waiting for his eye.
+- `2026-11-21-shock-waves-through-the-body-research-and-plan.md`: **a faked wave through the body on a hit (21
+  November, 20:01).** All six steps built that night (22:50), waiting for his eye.
 - `2026-11-20-combos-that-flow-and-end-in-a-bang-research-and-plan.md`: **the work in hand: the combos plan.** A
   combo is one swing with several hits: the follow-through of each cut is the wind-up of the next. Seven steps;
   **step 1 (the blade's path measured and drawn) is built and waits for his eye; step 2 (two blows as one swing)
@@ -715,7 +715,7 @@ tell me what is up next and what is the roadmap".** (16:15; README.)
   the attacker's arm, keep the bend: yes; "lets say 3 times" (read as the first values, about three times a real body).
   To the cloth plan: as recommended (our own solver, the skirt kind, sleeves tied back, one outfit in two colours), but
   the shock waves first.
-- **The shock wave is built (23:00; README; headless only; waiting for his eye):** `Locomotion/ShockWave.cs`
+- **The shock wave is built (22:50; README; headless only; waiting for his eye):** `Locomotion/ShockWave.cs`
   (`ClipFighter.Wave`; stepped and drawn in `UnitClips.StepClips`). **Drawn only**: it moves the meshes under the rig's
   parts and the weapons' meshes, never the pose, colliders or physics, so the checks are untouched by construction.
   Drawn as a skeleton from the hips out (least-squares turns). Started in `TakeHit`, `TakeImpact` and, for the
@@ -724,11 +724,21 @@ tell me what is up next and what is the roadmap".** (16:15; README.)
   Headless: `FIGHT_RING`, `FIGHT_WAVE=0`, `WAVE` and `SHOCKWAVES` lines. A chest ring reaches the hands at 0.18 s and is
   still at 0.8 s; the drawn joints are within 3 to 5 cm of the formula. The six at seed 5: 0.07% and 4.8%, as before.
   **Not seen in Unity**; the streak does not whip with the drawn sword.
-- **The clothes: being built** (`Locomotion/ClothNet.cs`, the solver; `Locomotion/Clothes.cs`, the garments;
-  `UnitController.Clothes`; Combat Feel "The Fighters Wear" and the cloth sliders; duel lab heading "Clothes" with
-  "Shake him"; headless `FIGHT_CLOTHES=2`, `FIGHT_SHAKE`, `FIGHT_CLOTHDUMP` and `Tools/Headless/cloth.py name` to draw
-  the cloth's points). Off (`Clothes.Wear` 0) in the 23:00 push.
-- **What he was told is next:** step 7 (more cuts); combos in the six only when he says;
+  Its film: https://claude.ai/artifact/NxqQKD4EN8eZmRxQkkz9pZ
+- **The clothes are built (README "clothes that move"; headless only, built blind):** `Locomotion/ClothNet.cs` (the
+  solver: XPBD, 8 small steps, the six safeguards, the net), `Locomotion/Clothes.cs` (the hakama, 640 points, pinned at a
+  sash; two tied-back sleeves, 72 points each; a top over the chest that bends with him but is not simulated; covered
+  parts hidden: hips, thighs, spine, chest, upper arms), `UnitController.Clothes`, stepped in `UnitClips.StepClips`
+  after the shock wave (the clothes hang on the body as drawn). Combat Feel "The Fighters Wear" (2: skirt and top, by
+  default) and the cloth sliders; duel lab heading "Clothes" with "Shake him". Labs and dance only. Headless:
+  `FIGHT_CLOTHES=0|1|2`, `FIGHT_SHAKE`, `FIGHT_CLOTHDUMP`, `Tools/Headless/cloth.py name [mover|other]` (draws the
+  cloth's points), `CLOTHES`, `SHAKE`, `CLOTHNET` lines. **Costly headless** (about 4 ms a fighter a picture in the
+  debug build): turn it off (`FIGHT_CLOTHES=0`) for runs that do not need it; a dance with it runs several times slower.
+  The colliders the cloth is pushed out of are the physics shapes; the drawn meshes may be fatter (not known).
+- **Combos, step 7 is built (README "combos, step 7"; headless only):** five cuts baked (`cut_`), "Combo's cuts:" three
+  flat cuts / high then low, a fourth last blow "sweep", the shield drawn aside in the new combos. The two new combos are
+  over the crossing budget (1.8% and 2.8%): a lab choice, not the default. **The combos plan is now fully built.**
+- **What he was told is next (before tonight):** step 7 (more cuts, now built); combos in the six only when he says;
   then the kick at a man who is down (his kick pack), the stab at a downed man that looks odd, the spin combo's own
   sword through his own shield; then the older open things (get-up shield, stumble leftovers, absorbing a hit, the
   blade tip's tremble).

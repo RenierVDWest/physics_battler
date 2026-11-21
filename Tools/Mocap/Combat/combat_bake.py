@@ -156,6 +156,17 @@ STRIKES = {
     # Melee Attack 360 Low". He turns right round on the spot, 250 degrees before the cut and the rest after it, his
     # hand going up over his head as he turns and then down and across low, left to right. Cut where the turn is done.)
     'spin_low': ('standing_melee_attack_360_low_1', 0.0, 2.03, 0.95, 'backhand low', 'A low backhand cut made spinning right round on the spot (360 degrees), the hand over the head through the turn'),
+    # (The combos plan's step 7, 21 November night: more cuts for combos, from the packs we own. Not "sns_": a body does
+    # not throw them on their own, only in a combo; and on AttackScore.OtherBodies, so the body's measures are not
+    # taken from them. Picked by the blade's way and height at its fastest (the hips' frame): the flat forehand right to
+    # left at 1.33 m (R-0.97); the quick forehand, down and across at 1.14 m, landing 0.57 s in; the flat backhand
+    # left to right at 1.16 m (R+0.81); the low backhand at 0.66 m (R+0.97) and the sweep at the shins, 0.16 m, both
+    # from one take of two cuts.)
+    'cut_flat_forehand': ('standing_melee_attack_horizontal', 0.0, 2.43, 0.97, 'forehand high', 'A flat forehand cut, right to left at chest height, in place (Mixamo "Standing Melee Attack Horizontal")'),
+    'cut_quick_forehand': ('pack_sns_slash_5', 0.0, 1.40, 0.57, 'forehand middle', 'A quick forehand, down and across, landing 0.57 s in (the Pro Sword and Shield pack)'),
+    'cut_flat_backhand': ('pack_sns_attack_2', 0.0, 1.33, 0.60, 'backhand middle', 'A flat backhand cut, left to right at the waist (the Pro Sword and Shield pack)'),
+    'cut_low_backhand': ('pack_sns_attack_3', 0.0, 1.07, 0.77, 'backhand low', 'A low backhand cut across the thighs, the first of a take of two (the Pro Sword and Shield pack)'),
+    'cut_leg_sweep': ('pack_sns_attack_3', 1.07, 1.77, 1.37, 'forehand low', 'A sweep back across at the shins, the second of the same take'),
     'sns_combo_forehand': ('sword_and_shield_slash', 0.0, 1.05, 0.67, 'forehand high', 'Medium forehand, from the four-cut combo'),
     'sns_combo_backhand': ('sword_and_shield_slash', 1.05, 1.37, 1.23, 'backhand middle', 'Medium backhand, from the four-cut combo (cut before the leap: both feet down)'),
     'sns_combo_chop': ('sword_and_shield_slash', 1.37, 3.53, 2.47, 'downward high', 'Medium leaping spin chop, from the four-cut combo (from both feet down to standing again)'),

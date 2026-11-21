@@ -4953,6 +4953,21 @@ namespace PhysicsBattler.Locomotion
             return strikes;
         }
 
+        /// <summary>
+        /// The strikes a blow is chosen from: his own, or a strike asked for by name that is not among them (a combo's
+        /// cuts of the combos plan's step 7, "cut_": thrown only in a combo, never chosen by themselves).
+        /// </summary>
+        private List<LocoClip> StrikePool(string named)
+        {
+            if (named == null || StrikeClips.Exists(c => c.Name == named))
+            {
+                return StrikeClips;
+            }
+
+            var asked = LocoLibrary.Get(named);
+            return asked != null && asked.Role == "strike" ? new List<LocoClip> { asked } : StrikeClips;
+        }
+
         /// <summary>Its strikes (<see cref="StrikesOf"/> its body, set by <see cref="EnableStrikes"/>).</summary>
         public List<LocoClip> StrikeClips = new List<LocoClip>();
 
@@ -6026,6 +6041,9 @@ namespace PhysicsBattler.Locomotion
             chainBlows = 0;
             var next = rest[0];
             FlowAllows(next);
+            // (The combos plan's step 7: a combo of flat or low cuts sweeps across where his shield is held; it is drawn
+            // aside, out to his shield side, while the combo lasts.)
+            shieldAside = ShieldAsideInFlatCombos && FlowCombos.Kind != 0 && stance == Stances.Shield;
             if (!FlowInto(target, next.Point ?? point, next.Style, next.Strike, rest.Count == 1 && next.Last, next.Power, next.WindsUp))
             {
                 return false;
@@ -6267,6 +6285,7 @@ namespace PhysicsBattler.Locomotion
 
         private void EndFlow(string why)
         {
+            shieldAside = false;
             var inv = System.Globalization.CultureInfo.InvariantCulture;
             if (why != null)
             {
@@ -6392,7 +6411,7 @@ namespace PhysicsBattler.Locomotion
                 }
             }
 
-            foreach (var clip in given != null ? noStrikes : StrikeClips)
+            foreach (var clip in given != null ? noStrikes : StrikePool(named))
             {
                 // (With none named: of the plain blows, made with the feet on the ground. The leaps and the spins are asked for by name.)
                 var score = AttackScore.Of(clip);
@@ -7133,7 +7152,7 @@ namespace PhysicsBattler.Locomotion
             }
             else
             {
-                foreach (var clip in StrikeClips)
+                foreach (var clip in StrikePool(named))
                 {
                     var known = AttackScore.Of(clip);
                     if (known != null && (named != null ? clip.Name == named : known.Plain) && !(fakeFromBehind && !known.WindsBehind))
@@ -9978,7 +9997,7 @@ namespace PhysicsBattler.Locomotion
             }
             backIn = sees ? Mathf.Lerp(ExpertBackAfter, NoviceBackAfter, lack) : Mathf.Max(0f, backIn - dt);
             // (Knocked open: the shield meets nothing until the guard is back.)
-            float wantIntercept = !GuardOpen && !IsUncovering && !(PostureCommitsShield && Posturing) && (sees || (backIn > 0f && Blocking && interceptWeight > 0f)) ? 1f : 0f;
+            float wantIntercept = !GuardOpen && !shieldAside && !IsUncovering && !(PostureCommitsShield && Posturing) && (sees || (backIn > 0f && Blocking && interceptWeight > 0f)) ? 1f : 0f;
             // (A poor shield lets its guard fall back once the blow it met has passed, as a combo's next comes on unseen: a
             // good one keeps it where it was until it sees where the next is going.)
             if (Blow.HasValue && !sees && seenSerial != Blow.Value.Serial && blowLack > 0.5f)
@@ -9987,7 +10006,7 @@ namespace PhysicsBattler.Locomotion
             }
             interceptWeight = Mathf.MoveTowards(interceptWeight, wantIntercept, dt / BlockRaise);
             // (The cover: not while he has taken the shield away himself, or it is knocked open, or it has no board.)
-            float wantCover = ShieldCover && !IsUncovering && !GuardOpen && !ShieldLeaves && ShieldColliders.Count > 0 ? (Striking && !Posturing ? CoverInBlow : CoverHold) : 0f;
+            float wantCover = ShieldCover && !IsUncovering && !GuardOpen && !shieldAside && !ShieldLeaves && ShieldColliders.Count > 0 ? (Striking && !Posturing ? CoverInBlow : CoverHold) : 0f;
             // (A bash is the cover's own board driven out: the arm is all the cover's for it, at once.)
             wantCover = Bashing ? 1f : wantCover;
             coverWeight = Mathf.MoveTowards(coverWeight, wantCover, dt / (Bashing ? 0.06f : CoverEase));
@@ -11476,6 +11495,15 @@ namespace PhysicsBattler.Locomotion
                 // (A knocked arm comes back as quickly as before, absorbed or not. Coming back slower, a shield knocked
                 // back onto his own sword stayed there: headless, in a fight of six, his own blade was through his own
                 // board 4.2 s of 80, against 1.5 s. It waits for the pass that keeps what he holds clear of himself.)
+                if (a == 1 && shieldAside)
+                {
+                    // (Drawn aside for a flat or low combo: out to his shield side and back, eased there.)
+                    Quaternion facing = Quaternion.Euler(0f, Loco.Facing, 0f);
+                    Vector3 aside = (facing * Vector3.left * 0.3f + facing * Vector3.back * 0.5f + Vector3.down * 0.8f).normalized * (ShieldAsideBy * Size);
+                    knock[1] = Vector3.Lerp(knock[1], aside, 1f - Mathf.Exp(-14f * dt));
+                    knockV[1] = Vector3.zero;
+                }
+
                 CriticalSpring(ref knock[a], ref knockV[a], wk, dt);
                 CriticalSpring(ref knockTurn[a], ref knockTurnV[a], wk, dt);
             }
@@ -11570,6 +11598,18 @@ namespace PhysicsBattler.Locomotion
         }
 
         private readonly List<Impact> impacts = new List<Impact>(4);
+
+        /// <summary>
+        /// The combos plan's step 7: in a combo of three flat cuts or of high then low, his shield is drawn aside, out to
+        /// his shield side, by <see cref="ShieldAsideBy"/> (metres at a Medium's size), so the flat and low cuts do not pass
+        /// through it (Combat Feel "In A Flat Or Low Combo His Shield Is Drawn Aside"). Headless, without it his own blade
+        /// was through his own shield 3.4% to 4.5% of the time in those combos.
+        /// </summary>
+        public static bool ShieldAsideInFlatCombos = true;
+
+        public static float ShieldAsideBy = 0.3f;
+
+        private bool shieldAside;
 
         /// <summary>The shock wave through his body on a hit (drawn only; <see cref="ShockWave"/>).</summary>
         public readonly ShockWave Wave = new ShockWave();

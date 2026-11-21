@@ -226,3 +226,14 @@ written in, the old way), `FIGHT_BOUNCE`, `FIGHT_FEETTAKE`, `STUMBLE_FOOT`, `STU
 
 `python3 Tools/Mocap/Rhythm/film.py film.json out.png --moments 10 --from t0 --to t1 --title T`, from a run
 with `FIGHT_FILM="$S/name.json,3,8.5,medium"`.
+
+## 21 November, night: shock waves, clothes, more cuts
+
+- `FIGHT_RING="chest@2,head@4"` (chest, head, arm, shield, hips, shin): ring the duel's other with no blow; a `WAVE` line
+  when it settles. `FIGHT_WAVE=0`: no shock wave. Every report: a `SHOCKWAVES` line.
+- `FIGHT_CLOTHES=0|1|2`: what the labs' and the dance's fighters wear (2 by default: skirt and top). **The cloth is
+  costly headless: use `FIGHT_CLOTHES=0` for runs that do not need it.** `FIGHT_SHAKE=4`: the lab's "Shake him" from that
+  second (`SHAKE` lines). `FIGHT_CLOTHDUMP="5.5,17"`: every point (`CLOTHPTS`, `BODYPTS`, `CLOTHNET`); then
+  `python3 Tools/Headless/cloth.py name [mover|other]` draws them into `$S/name.cloth.png`. Every report: a `CLOTHES` line.
+- `FIGHT_COMBOKIND=flat|low`: three flat cuts, or high then low; `FIGHT_COMBO=3,sweep`: the sweep as the last blow.
+  `FIGHT_SHIELDASIDE=0`: the shield held in cover through those combos.

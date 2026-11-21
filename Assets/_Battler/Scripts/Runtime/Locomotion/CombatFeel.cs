@@ -372,10 +372,10 @@ namespace PhysicsBattler.Locomotion
         public bool theShockWaveTakesTheLegs = true;
 
         [Header("Clothes that move (21 November): the labs and the dance only")]
-        [Tooltip("What the fighters in the labs and the dance wear. 0: nothing (as it was). 1: the hakama, one pleated skirt from a sash at his waist to above his ankles (the undivided kind). 2: the skirt and two sleeves tied back on his upper arms. The cloth is simulated: it hangs, swings and sways, and is pushed out of his body's own shapes. Not in the fight of six yet.")]
+        [Tooltip("What the fighters in the labs and the dance wear. 0: nothing (as it was). 1: the hakama, one pleated skirt from a sash at his waist to above his ankles (the undivided kind). 2: the skirt and a top: a jacket over his chest that bends with him but does not move of itself, and two sleeves tied back on his upper arms. The skirt and sleeves are simulated: it hangs, swings and sways, and is pushed out of his body's own shapes. Not in the fight of six yet.")]
         [Range(0, 2)] public int theFightersWear = Clothes.Wear;
 
-        [Tooltip("On: the parts the clothes cover completely are not drawn (his hips and thighs under the skirt, his upper arms under the sleeves), so a slip of cloth into them cannot be seen. Off: drawn under the cloth.")]
+        [Tooltip("On: the parts the clothes cover completely are not drawn (his hips and thighs under the skirt, his trunk under the top, his upper arms under the sleeves), so a slip of cloth into them cannot be seen. Off: drawn under the cloth.")]
         public bool coveredPartsAreHidden = true;
 
         [Tooltip("The cloth's weight. 1: like cotton. Heavier hangs straighter and swings slower; lighter flutters in the wind.")]
@@ -1226,8 +1226,14 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("How many blows the duel lab's \"Throw combo\" throws: 2 (a forehand, then a rising backhand) or 3 (and a last blow: \"A Combos Last Blow Is\"). Each flows out of the carry-through of the one before.")]
         [Range(2, 3)] public int aComboHasThisManyBlows = 3;
 
-        [Tooltip("The last blow of a combo of three. 0: a forehand, brought round over the shoulder. 1: a chop: he leaps, the blade comes round over his head and down. 2: a backhand with a spin behind it (he shows his back for a moment). Each is entered early in its own wind-up, which is the loop that brings the blade round.")]
-        [Range(0, 2)] public int aCombosLastBlowIs = 0;
+        [Tooltip("The last blow of a combo of three. 0: a forehand, brought round over the shoulder. 1: a chop: he leaps, the blade comes round over his head and down. 2: a backhand with a spin behind it (he shows his back for a moment). 3: a sweep at his shins, low and back across (the combos plan's step 7). Each is entered early in its own wind-up, which is the loop that brings the blade round.")]
+        [Range(0, 3)] public int aCombosLastBlowIs = 0;
+
+        [Tooltip("Which cuts a combo is made of (the combos plan's step 7). 0 (as before): a forehand, a rising backhand, and the last blow chosen above. 1: three flat cuts: a flat forehand across his chest, a flat backhand across his waist, and the flat forehand again as the big one. 2: high then low: the forehand down from high, a low backhand across his thighs, and the flat forehand across his chest as the big one. The new cuts are baked from the packs we own.")]
+        [Range(0, 2)] public int aCombosCutsAre = 0;
+
+        [Tooltip("On: in a combo of three flat cuts or of high then low, his shield is drawn aside, out to his shield side and a little back, while the combo lasts, so its flat and low cuts do not pass through it. Off: held in cover, as for any combo.")]
+        public bool inAFlatOrLowComboHisShieldIsDrawnAside = true;
 
         [Tooltip("On: each blow of a combo has more behind it than the one before. The first is a quick light cut (it lands with \"A Combos First Blow Lands With\" of a plain blow), a linking blow is a plain one, and the last is the big one: it lands with \"A Combos Last Blow Lands With\", harder still for each blow landed before it, as the combo's showstopper (twice the knock, a longer freeze). Off: every blow a plain one, as step 2 had them.")]
         public bool aCombosBlowsGrow = true;
@@ -2249,7 +2255,9 @@ namespace PhysicsBattler.Locomotion
             AttackMaker.FightPace = Mathf.Clamp(inABattleABlowOnItsOwnGoesAt, 0.6f, 2f);
             AttackMaker.ComboPace = Mathf.Clamp(aCombosBlowsGoAt, 0.6f, 2f);
             FlowCombos.Blows = Mathf.Clamp(aComboHasThisManyBlows, 2, 3);
-            FlowCombos.LastBlow = Mathf.Clamp(aCombosLastBlowIs, 0, 2);
+            FlowCombos.LastBlow = Mathf.Clamp(aCombosLastBlowIs, 0, 3);
+            FlowCombos.Kind = Mathf.Clamp(aCombosCutsAre, 0, 2);
+            ClipFighter.ShieldAsideInFlatCombos = inAFlatOrLowComboHisShieldIsDrawnAside;
             FlowCombos.Grow = aCombosBlowsGrow;
             FlowCombos.FirstPower = Mathf.Clamp(aCombosFirstBlowLandsWith, 0.3f, 1f);
             FlowCombos.LastPower = Mathf.Clamp(aCombosLastBlowLandsWith, 1f, 3f);

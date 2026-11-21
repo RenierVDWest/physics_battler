@@ -571,7 +571,7 @@ namespace PhysicsBattler.Sandbox
             bool grow = PhysicsBattler.Locomotion.FlowCombos.Grow && PhysicsBattler.Locomotion.ClipFighter.BlowsFlow;
             string was = aim.Attack;
             var styleWas = aim.Style;
-            aim.Attack = TwoFirst;
+            aim.Attack = PhysicsBattler.Locomotion.FlowCombos.FirstStrike;
             aim.Style = grow ? PhysicsBattler.Locomotion.FlowCombos.First : (PhysicsBattler.Locomotion.AttackStyle?)null;
             // (Every blow of a combo at the combos' pace.)
             Mover.Clip.ThrowsACombo = true;
@@ -595,21 +595,34 @@ namespace PhysicsBattler.Sandbox
             twoFirstHit = -1f;
             twoLandings = Landings();
             var other = Other;
-            var second = TwoSecondSpot ?? spot;
+            var second = TwoSecondSpot ?? PhysicsBattler.Locomotion.FlowCombos.SecondSpot ?? spot;
             var plain = PhysicsBattler.Locomotion.AttackClasses.StyleOf(aim.Kind);
             var rest = new System.Collections.Generic.List<PhysicsBattler.Locomotion.ClipFighter.FlowBlow>
             {
                 new PhysicsBattler.Locomotion.ClipFighter.FlowBlow
                 {
-                    Strike = TwoNext, Says = "rising backhand" + (grow && blows == 2 ? ", the big one" : ""),
+                    Strike = PhysicsBattler.Locomotion.FlowCombos.SecondStrike, Says = PhysicsBattler.Locomotion.FlowCombos.SecondSays + (grow && blows == 2 ? ", the big one" : ""),
                     Style = grow && blows == 2 ? PhysicsBattler.Locomotion.FlowCombos.Last : plain,
                     Power = !grow ? 1f : blows == 2 ? PhysicsBattler.Locomotion.FlowCombos.LastPower : PhysicsBattler.Locomotion.FlowCombos.LinkPower,
                     Last = grow && blows == 2,
                     Point = () => PhysicsBattler.Locomotion.AimSpots.Point(other.Clip, second),
-                    Spots = PhysicsBattler.Locomotion.FlowCombos.GoesFor(second, PhysicsBattler.Locomotion.FlowCombos.RisingGoesFor),
+                    Spots = PhysicsBattler.Locomotion.FlowCombos.GoesFor(second, PhysicsBattler.Locomotion.FlowCombos.SecondGoesFor),
                 },
             };
-            if (blows >= 3)
+            if (blows >= 3 && PhysicsBattler.Locomotion.FlowCombos.OwnLast)
+            {
+                // (Three flat cuts, or high then low: the flat forehand, as the big one, across his chest.)
+                rest.Add(new PhysicsBattler.Locomotion.ClipFighter.FlowBlow
+                {
+                    Strike = "cut_flat_forehand", Says = "flat forehand" + (grow ? ", the big one" : ""),
+                    Style = grow ? PhysicsBattler.Locomotion.FlowCombos.Last : plain,
+                    Power = grow ? PhysicsBattler.Locomotion.FlowCombos.LastPower : 1f,
+                    Last = grow,
+                    Spots = PhysicsBattler.Locomotion.FlowCombos.GoesFor(spot, PhysicsBattler.Locomotion.FlowCombos.ForehandGoesFor),
+                    Point = () => PhysicsBattler.Locomotion.AimSpots.Point(other.Clip, spot),
+                });
+            }
+            else if (blows >= 3)
             {
                 int which = Mathf.Clamp(PhysicsBattler.Locomotion.FlowCombos.LastBlow, 0, PhysicsBattler.Locomotion.FlowCombos.Lasts.Length - 1);
                 rest.Add(new PhysicsBattler.Locomotion.ClipFighter.FlowBlow
@@ -621,15 +634,17 @@ namespace PhysicsBattler.Sandbox
                     WindsUp = which == 2 ? PhysicsBattler.Locomotion.FlowCombos.SpinWindsUp : 0f,
                     MostTurn = which == 2 ? PhysicsBattler.Locomotion.FlowCombos.SpinTurnsAtMost : 0f,
                     AsRecorded = which == 2,
-                    Spots = which == 2 ? PhysicsBattler.Locomotion.FlowCombos.SpinGoesFor
+                    Spots = which == 2 ? PhysicsBattler.Locomotion.FlowCombos.SpinGoesFor : which == 3 ? PhysicsBattler.Locomotion.FlowCombos.SweepGoesFor
                         : PhysicsBattler.Locomotion.FlowCombos.GoesFor(spot, which == 1 ? PhysicsBattler.Locomotion.FlowCombos.ChopGoesFor : PhysicsBattler.Locomotion.FlowCombos.ForehandGoesFor),
-                    Point = which == 2 && PhysicsBattler.Locomotion.FlowCombos.SpinGoesLow
+                    Point = which == 3
+                        ? () => PhysicsBattler.Locomotion.AimSpots.Point(other.Clip, PhysicsBattler.Locomotion.AimSpot.ShinR)
+                        : which == 2 && PhysicsBattler.Locomotion.FlowCombos.SpinGoesLow
                         ? () => PhysicsBattler.Locomotion.AimSpots.Point(other.Clip, PhysicsBattler.Locomotion.AimSpot.Hips)
                         : () => PhysicsBattler.Locomotion.AimSpots.Point(other.Clip, spot),
                 });
             }
 
-            if (PhysicsBattler.Locomotion.ClipFighter.BlowsFlow && Mover.Clip.FlowCombo(Other.Clip, () => PhysicsBattler.Locomotion.AimSpots.Point(other.Clip, second), "forehand" + (grow ? ", light" : ""), rest))
+            if (PhysicsBattler.Locomotion.ClipFighter.BlowsFlow && Mover.Clip.FlowCombo(Other.Clip, () => PhysicsBattler.Locomotion.AimSpots.Point(other.Clip, second), PhysicsBattler.Locomotion.FlowCombos.FirstSays + (grow ? ", light" : ""), rest))
             {
                 twoStage = 3;
                 TwoTold = "flowing: under way";

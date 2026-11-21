@@ -15,7 +15,7 @@ internal static class FlowReport
     /// <summary>Where a performer went straight on from one cut into the next: slices of one take, cut at a shared frame (the bake's table, Tools/Mocap/Combat/combat_bake.py, STRIKES).</summary>
     private static readonly (string, string)[] Own =
     {
-        ("sns_combo_forehand", "sns_combo_backhand"), ("sns_combo_backhand", "sns_combo_chop"),
+        ("sns_combo_forehand", "sns_combo_backhand"), ("sns_combo_backhand", "sns_combo_chop"), ("cut_low_backhand", "cut_leg_sweep"),
         ("lg_slash_a", "lg_slash_b"), ("lg_slash_b", "lg_slash_c"), ("lg_club_a", "lg_club_b"), ("lg_club_b", "lg_club_c"),
     };
 

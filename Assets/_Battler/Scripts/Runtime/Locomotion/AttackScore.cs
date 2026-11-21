@@ -78,7 +78,7 @@ namespace PhysicsBattler.Locomotion
         private static BodyMeasures ofClips;
 
         /// <summary>Strikes baked since 21 November from other packs: they are thrown, but the body's measures are not taken from them. Add every new one here.</summary>
-        public static readonly string[] OtherBodies = { "spin_low" };
+        public static readonly string[] OtherBodies = { "spin_low", "cut_flat_forehand", "cut_quick_forehand", "cut_flat_backhand", "cut_low_backhand", "cut_leg_sweep" };
 
         /// <summary>The measures of the body the combat clips were recorded on (taken once, from every strike and the guard's stand).</summary>
         public static BodyMeasures OfClips

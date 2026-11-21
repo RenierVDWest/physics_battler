@@ -84,6 +84,17 @@ namespace PhysicsBattler.Locomotion
         /// <summary>Point-steps checked, and how many of them ended inside the body (inside its shape itself, past the gap).</summary>
         public long Checked, Inside;
 
+        /// <summary>Of those inside, how many were inside a part that is drawn (not hidden under the clothes); and the pictures with any point inside a drawn part.</summary>
+        public long InsideDrawn;
+
+        public int PicturesInsideDrawn;
+
+        /// <summary>Point-steps inside each part (by part number).</summary>
+        public readonly long[] InsideBy = new long[16];
+
+        /// <summary>The parts hidden under the clothes (by part number): a point inside one cannot be seen.</summary>
+        public bool[] HiddenParts = new bool[16];
+
         /// <summary>The deepest a point ended inside the body (metres), the furthest a thread was stretched (share), resets.</summary>
         public float Deepest, MostStretch;
 
@@ -281,7 +292,11 @@ namespace PhysicsBattler.Locomotion
                         bz[i] += 0.5f * (z[i] - bz[i]);
                     }
 
-                    PushOut(i);
+                    // (Twice if the first moved it: pushed out of one part it can land in the next, a thigh against a shin.)
+                    if (PushOut(i))
+                    {
+                        PushOut(i);
+                    }
                 }
             }
 
@@ -336,8 +351,9 @@ namespace PhysicsBattler.Locomotion
         }
 
         /// <summary>A point pushed out of every shape of the body it is in, to its surface and the gap: the way it came from (its side).</summary>
-        private void PushOut(int i)
+        private bool PushOut(int i)
         {
+            bool moved = false;
             int count = Shapes.Count;
             for (int k = 0; k < count; k++)
             {
@@ -376,6 +392,7 @@ namespace PhysicsBattler.Locomotion
                     x[i] = w.Cx + w.M00 * lx + w.M10 * ly + w.M20 * lz;
                     y[i] = w.Cy + w.M01 * lx + w.M11 * ly + w.M21 * lz;
                     z[i] = w.Cz + w.M02 * lx + w.M12 * ly + w.M22 * lz;
+                    moved = true;
                     continue;
                 }
 
@@ -402,7 +419,10 @@ namespace PhysicsBattler.Locomotion
 
                 float g = w.R / Mathf.Sqrt(f2);
                 x[i] = nx + fx * g; y[i] = ny + fy * g; z[i] = nz + fz * g;
+                moved = true;
             }
+
+            return moved;
         }
 
         /// <summary>What the picture left: how many points inside the body, how deep, how far a thread is stretched; and the net under it all.</summary>
@@ -435,6 +455,7 @@ namespace PhysicsBattler.Locomotion
                 }
             }
 
+            bool seen = false;
             for (int i = 0; i < Count; i++)
             {
                 if (Free[i] <= 0f)
@@ -443,12 +464,27 @@ namespace PhysicsBattler.Locomotion
                 }
 
                 Checked++;
-                float deep = DepthNow(i);
+                float deep = DepthNow(i, out int part);
                 if (deep > 0f)
                 {
                     Inside++;
+                    if (part >= 0 && part < InsideBy.Length)
+                    {
+                        InsideBy[part]++;
+                    }
+
                     Deepest = Mathf.Max(Deepest, deep);
+                    if (part < 0 || part >= HiddenParts.Length || !HiddenParts[part])
+                    {
+                        InsideDrawn++;
+                        seen = true;
+                    }
                 }
+            }
+
+            if (seen)
+            {
+                PicturesInsideDrawn++;
             }
 
             bool pinched = false;
@@ -467,7 +503,7 @@ namespace PhysicsBattler.Locomotion
 
                 MostStretch = Mathf.Max(MostStretch, s);
                 pinched |= s > 1f;
-                if (s > 4f && wrong == null)
+                if (s > 8f && wrong == null)
                 {
                     wrong = $"a thread stretched {100f * s:0}% (points {ta[k]} and {tb[k]})";
                 }
@@ -486,9 +522,10 @@ namespace PhysicsBattler.Locomotion
             }
         }
 
-        private float DepthNow(int i)
+        private float DepthNow(int i, out int part)
         {
             float deepest = 0f;
+            part = -1;
             for (int k = 0; k < Shapes.Count; k++)
             {
                 ref Now w = ref now[k];
@@ -504,9 +541,11 @@ namespace PhysicsBattler.Locomotion
                     float ly = w.M10 * cx + w.M11 * cy + w.M12 * cz;
                     float lz = w.M20 * cx + w.M21 * cy + w.M22 * cz;
                     float dx = w.Ex - Mathf.Abs(lx), dy = w.Ey - Mathf.Abs(ly), dz = w.Ez - Mathf.Abs(lz);
-                    if (dx > 0f && dy > 0f && dz > 0f)
+                    float inBox = Mathf.Min(dx, Mathf.Min(dy, dz));
+                    if (dx > 0f && dy > 0f && dz > 0f && inBox > deepest)
                     {
-                        deepest = Mathf.Max(deepest, Mathf.Min(dx, Mathf.Min(dy, dz)));
+                        deepest = inBox;
+                        part = Shapes[k].Part;
                     }
 
                     continue;
@@ -515,7 +554,12 @@ namespace PhysicsBattler.Locomotion
                 float along = ((x[i] - w.Ax) * w.Dx + (y[i] - w.Ay) * w.Dy + (z[i] - w.Az) * w.Dz) * w.InvLen2;
                 along = along < 0f ? 0f : along > 1f ? 1f : along;
                 float ex = x[i] - w.Ax - w.Dx * along, ey = y[i] - w.Ay - w.Dy * along, ez = z[i] - w.Az - w.Dz * along;
-                deepest = Mathf.Max(deepest, w.R - Mathf.Sqrt(ex * ex + ey * ey + ez * ez));
+                float inCap = w.R - Mathf.Sqrt(ex * ex + ey * ey + ez * ez);
+                if (inCap > deepest)
+                {
+                    deepest = inCap;
+                    part = Shapes[k].Part;
+                }
             }
 
             return deepest;

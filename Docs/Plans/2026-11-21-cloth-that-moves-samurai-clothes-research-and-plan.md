@@ -190,3 +190,14 @@ Magica Cloth 2 (https://magicasoft.jp/en/magica-cloth-2-2/); Obi Cloth (Unity As
 14. From my own knowledge: the tasuki; that Unity's and Unreal's cloth are built on position based dynamics; that Burst
 makes such loops several times faster. From the game's code: `Rig/UnitBuilder.cs` (each part a box, a sphere or a
 capsule with its own mesh), `Rig/PartId.cs`, the package list (no Burst today).
+
+## Progress
+
+**21 November, night: steps 1 to 3 built, and a first piece of step 4. Headless only, built blind.** His answers
+(21:33): as recommended, after the shock waves. Our own solver (`ClothNet.cs`) with all six safeguards and the net; the
+hakama (skirt kind, 640 points, pinned at a sash), two tied-back sleeves, and a top over the chest that bends with him
+but is not simulated; hips, thighs, spine, chest and upper arms hidden. Duel lab: heading "Clothes", "Clothes:" none
+(old) / skirt / skirt and top, "Shake him", the sliders. Labs and dance only. Measured: a point of cloth inside a drawn
+part in 0.4% of pictures through "Shake him" and 1.2% in a dance (the plan's mark was 0.1%: missed, mostly the skirt
+against the shins); nothing put back to hanging; about 4 ms a fighter a picture headless. The build log's entry
+"clothes that move" has the table. Not done: steps 5 and 6, crisp pleats, pattern, two-legged trousers, full sleeves.

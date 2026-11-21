@@ -14,8 +14,8 @@ namespace PhysicsBattler.Locomotion
     {
         // ---- Switches and sliders (Combat Feel pushes them) ----------------------------------------------------------
 
-        /// <summary>What the fighters in the labs and the dance wear: 0 none (old), 1 the skirt, 2 the skirt and sleeves.</summary>
-        public static int Wear = 0;
+        /// <summary>What the fighters in the labs and the dance wear: 0 none (old), 1 the skirt, 2 the skirt and the top (a jacket and tied-back sleeves).</summary>
+        public static int Wear = 2;
 
         /// <summary>On: the parts the clothes cover are not drawn (the hips and thighs under the skirt, the upper arms under the sleeves).</summary>
         public static bool HideCovered = true;
@@ -60,7 +60,10 @@ namespace PhysicsBattler.Locomotion
 
         // ---- Measured, everywhere --------------------------------------------------------------------------------------
 
-        public static long AllChecked, AllInside;
+        public static long AllChecked, AllInside, AllInsideDrawn;
+
+        /// <summary>Fighter-pictures with a point of cloth inside a part that is drawn.</summary>
+        public static int AllPicturesSeenInside;
 
         /// <summary>The last garment put back to hanging, and why.</summary>
         public static string LastReset = "";
@@ -69,8 +72,8 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>Everything the clothes measured so far, told.</summary>
         public static string Counted() => AllSteps == 0 ? "none worn" : string.Format(System.Globalization.CultureInfo.InvariantCulture,
-            "{0} cloth steps; a point inside his body {1:0.000}% of the time ({2} of {3} point-steps), the deepest {4:0.0} cm; a thread stretched {5:0}% at most, to twice its length in {9} pictures; put back to hanging {6} times{8}; {7:0.00} ms a fighter a picture",
-            AllSteps, AllChecked > 0 ? 100.0 * AllInside / AllChecked : 0.0, AllInside, AllChecked, 100f * AllDeepest, 100f * AllStretch, AllResets, AllSteps > 0 ? AllCostMs / AllSteps : 0f, LastReset.Length > 0 ? " (the last: " + LastReset + ")" : "", AllPinched);
+            "{0} cloth steps; a point inside his body {1:0.000}% of the time ({2} of {3} point-steps), the deepest {4:0.0} cm; inside a part that is drawn {10} point-steps, in {11} pictures ({12:0.0}% of them); a thread stretched {5:0}% at most, to twice its length in {9} pictures; put back to hanging {6} times{8}; {7:0.00} ms a fighter a picture",
+            AllSteps, AllChecked > 0 ? 100.0 * AllInside / AllChecked : 0.0, AllInside, AllChecked, 100f * AllDeepest, 100f * AllStretch, AllResets, AllSteps > 0 ? AllCostMs / AllSteps : 0f, LastReset.Length > 0 ? " (the last: " + LastReset + ")" : "", AllPinched, AllInsideDrawn, AllPicturesSeenInside, AllSteps > 0 ? 100.0 * AllPicturesSeenInside / AllSteps : 0.0);
 
         // ---- One garment -----------------------------------------------------------------------------------------------
 
@@ -86,6 +89,7 @@ namespace PhysicsBattler.Locomotion
             public readonly List<Vector3> Verts = new List<Vector3>();
             public readonly List<int> Tris = new List<int>();
             public Frame Was;
+            public bool Top;
             public bool Known;
         }
 
@@ -206,6 +210,11 @@ namespace PhysicsBattler.Locomotion
 
                 net.Shapes.Clear();
                 net.Shapes.AddRange(shapes);
+                for (int q = 0; q < net.HiddenParts.Length; q++)
+                {
+                    net.HiddenParts[q] = HideCovered && (q == (int)PartId.Pelvis || q == (int)PartId.ThighL || q == (int)PartId.ThighR
+                        || (worn >= 2 && (q == (int)PartId.UpperArmL || q == (int)PartId.UpperArmR || q == (int)PartId.Spine || q == (int)PartId.Chest)));
+                }
                 net.Gap = Gap * size;
                 net.Thickness = 0.02f * size;
                 net.Air = Air;
@@ -231,6 +240,7 @@ namespace PhysicsBattler.Locomotion
                 Inside = 0;
             }
 
+            DrawTop();
             float ms = (float)clock.Elapsed.TotalMilliseconds;
             AllSteps++;
             AllCostMs += ms;
@@ -255,6 +265,22 @@ namespace PhysicsBattler.Locomotion
 
             AllPinched += pinched - lastPinched;
             lastPinched = pinched;
+            long drawnIn = 0;
+            int seenPictures = 0;
+            foreach (var g in garments)
+            {
+                drawnIn += g.Net.InsideDrawn;
+                seenPictures += g.Net.PicturesInsideDrawn;
+            }
+
+            AllInsideDrawn += drawnIn - lastDrawnIn;
+            lastDrawnIn = drawnIn;
+            if (seenPictures > lastSeenPictures)
+            {
+                AllPicturesSeenInside++;
+            }
+
+            lastSeenPictures = seenPictures;
             AllChecked += c - lastChecked;
             AllInside += inside - lastInside;
             AllResets += Resets - lastResets;
@@ -268,7 +294,8 @@ namespace PhysicsBattler.Locomotion
         }
 
         private long lastChecked, lastInside;
-        private int lastResets, lastPinched;
+        private int lastResets, lastPinched, lastSeenPictures;
+        private long lastDrawnIn;
         private float windClock;
 
         private Vector3 WindNow()
@@ -358,10 +385,26 @@ namespace PhysicsBattler.Locomotion
             }
 
             garments.Clear();
+            if (top != null)
+            {
+                if (Application.isPlaying)
+                {
+                    Object.Destroy(top);
+                }
+                else
+                {
+                    Object.DestroyImmediate(top);
+                }
+
+                top = null;
+            }
+
+            topRing.Clear();
             Hide(false);
             worn = what;
             lastChecked = lastInside = 0;
-            lastResets = lastPinched = 0;
+            lastResets = lastPinched = lastSeenPictures = 0;
+            lastDrawnIn = 0;
             if (what <= 0)
             {
                 return;
@@ -372,6 +415,7 @@ namespace PhysicsBattler.Locomotion
             {
                 garments.Add(Sleeve(PartId.UpperArmL));
                 garments.Add(Sleeve(PartId.UpperArmR));
+                MakeTop();
             }
 
             foreach (var g in garments)
@@ -427,7 +471,7 @@ namespace PhysicsBattler.Locomotion
         private Garment Sleeve(PartId arm)
         {
             const int C = 12, R = 6;
-            var g = new Garment { Name = arm == PartId.UpperArmL ? "left sleeve" : "right sleeve", On = arm, Columns = C, Rows = R, Net = new ClothNet(C * R), Rest = new Vector3[C * R] };
+            var g = new Garment { Top = true, Name = arm == PartId.UpperArmL ? "left sleeve" : "right sleeve", On = arm, Columns = C, Rows = R, Net = new ClothNet(C * R), Rest = new Vector3[C * R] };
             float s = size;
             var t = rig.Part(arm).transform;
             var elbow = rig.Part(arm == PartId.UpperArmL ? PartId.ForearmL : PartId.ForearmR).transform;
@@ -576,6 +620,8 @@ namespace PhysicsBattler.Locomotion
             {
                 covered.Add(PartId.UpperArmL);
                 covered.Add(PartId.UpperArmR);
+                covered.Add(PartId.Spine);
+                covered.Add(PartId.Chest);
             }
 
             foreach (var id in covered)
@@ -610,6 +656,111 @@ namespace PhysicsBattler.Locomotion
             }
         }
 
+        // ---- The top: a jacket over his chest that does not move of itself (the plan's "snug shell") -------------------
+
+        private GameObject top;
+        private Mesh topMesh;
+        private readonly List<(PartId, Vector3)> topRing = new List<(PartId, Vector3)>();
+        private readonly List<Vector3> topVerts = new List<Vector3>();
+        private readonly List<int> topTris = new List<int>();
+        private bool topTrisSet;
+        private const int TopColumns = 24;
+
+        /// <summary>
+        /// The jacket: rings round him from under the sash to his shoulders, each held by the part it is round (the hips,
+        /// the spine, the chest), so it bends as he does; a little outside his body's shapes; a collar at the top. Drawn,
+        /// not simulated.
+        /// </summary>
+        private void MakeTop()
+        {
+            float s = size;
+            // (Part, height in its own space, half its width, half its depth.)
+            var rings = new (PartId, float, float, float)[]
+            {
+                (PartId.Pelvis, 0.05f, 0.16f, 0.12f),
+                (PartId.Spine, 0.085f, 0.135f, 0.105f),
+                (PartId.Chest, 0.03f, 0.18f, 0.125f),
+                (PartId.Chest, 0.13f, 0.195f, 0.13f),
+                (PartId.Chest, 0.2f, 0.16f, 0.11f),
+                (PartId.Chest, 0.235f, 0.075f, 0.07f),
+            };
+            topRing.Clear();
+            foreach (var (part, y, rx, rz) in rings)
+            {
+                for (int c = 0; c < TopColumns; c++)
+                {
+                    float a = 2f * Mathf.PI * c / TopColumns;
+                    // (The wrap of the front: a little lower and fuller at the front of the chest.)
+                    float front = Mathf.Max(0f, Mathf.Cos(a));
+                    topRing.Add((part, new Vector3(Mathf.Sin(a) * rx * s, (y - (part == PartId.Chest && y > 0.15f ? 0.03f * front : 0f)) * s, Mathf.Cos(a) * (rz + 0.01f * front) * s)));
+                }
+            }
+
+            topTris.Clear();
+            int n = topRing.Count, R = rings.Length;
+            for (int r = 0; r + 1 < R; r++)
+            {
+                for (int c = 0; c < TopColumns; c++)
+                {
+                    int a = r * TopColumns + c, b = r * TopColumns + (c + 1) % TopColumns, d = a + TopColumns, e = b + TopColumns;
+                    topTris.AddRange(new[] { a, b, d, b, e, d });
+                    topTris.AddRange(new[] { n + a, n + d, n + b, n + b, n + d, n + e });
+                }
+            }
+
+            topTrisSet = false;
+        }
+
+        private void DrawTop()
+        {
+            if (topRing.Count == 0 || !Application.isPlaying)
+            {
+                return;
+            }
+
+            if (top == null)
+            {
+                top = new GameObject("Clothes: top");
+                if (owner != null)
+                {
+                    top.transform.SetParent(owner, false);
+                }
+
+                topMesh = new Mesh();
+                topMesh.MarkDynamic();
+                top.AddComponent<MeshFilter>().sharedMesh = topMesh;
+                top.AddComponent<MeshRenderer>().sharedMaterial = Cloth(2);
+                topTrisSet = false;
+            }
+
+            topVerts.Clear();
+            var frames = new Dictionary<PartId, Frame>();
+            for (int pass = 0; pass < 2; pass++)
+            {
+                foreach (var (part, local) in topRing)
+                {
+                    if (!frames.TryGetValue(part, out var f))
+                    {
+                        f = FrameOf(part);
+                        frames[part] = f;
+                    }
+
+                    Vector3 w = f.Of(local);
+                    topVerts.Add(owner != null ? top.transform.InverseTransformPoint(w) : w);
+                }
+            }
+
+            topMesh.SetVertices(topVerts);
+            if (!topTrisSet)
+            {
+                topMesh.SetTriangles(topTris, 0);
+                topTrisSet = true;
+            }
+
+            topMesh.RecalculateNormals();
+            topMesh.RecalculateBounds();
+        }
+
         // ---- Drawn ----------------------------------------------------------------------------------------------------
 
         private void Draw(Garment g)
@@ -632,7 +783,7 @@ namespace PhysicsBattler.Locomotion
                 g.Mesh.MarkDynamic();
                 g.Drawn.AddComponent<MeshFilter>().sharedMesh = g.Mesh;
                 var renderer = g.Drawn.AddComponent<MeshRenderer>();
-                renderer.sharedMaterial = Cloth(side);
+                renderer.sharedMaterial = Cloth(g.Top ? 2 : side);
             }
 
             g.Verts.Clear();
@@ -657,12 +808,15 @@ namespace PhysicsBattler.Locomotion
 
         private readonly HashSet<Garment> trisSet = new HashSet<Garment>();
 
-        private static readonly Material[] cloth = new Material[2];
+        private static readonly Material[] cloth = new Material[3];
+
+        /// <summary>The top's colour (the jacket and its sleeves), the same for both sides: undyed cloth.</summary>
+        public static Color TopColour = new Color(0.82f, 0.79f, 0.72f);
 
         /// <summary>The cloth's look: the body's own material, coloured for his side.</summary>
         private Material Cloth(int team)
         {
-            team = team == 1 ? 1 : 0;
+            team = team == 2 ? 2 : team == 1 ? 1 : 0;
             if (cloth[team] != null)
             {
                 return cloth[team];
@@ -683,8 +837,9 @@ namespace PhysicsBattler.Locomotion
             }
 
             var m = from != null ? new Material(from) : new Material(Shader.Find("Universal Render Pipeline/Lit"));
-            m.color = Colours[team];
-            m.SetColor("_BaseColor", Colours[team]);
+            Color colour = team == 2 ? TopColour : Colours[team];
+            m.color = colour;
+            m.SetColor("_BaseColor", colour);
             m.SetFloat("_Smoothness", 0.15f);
             cloth[team] = m;
             return m;
@@ -704,6 +859,16 @@ namespace PhysicsBattler.Locomotion
             {
                 b.Append(string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0}: {1} points, pinched in {2} pictures, stretched {3:0}% at most, inside {4} of {5}, the deepest {6:0.0} cm, put back {7}, last pinched {8}; ",
                     g.Name, g.Net.Count, g.Net.Pinched, 100f * g.Net.MostStretch, g.Net.Inside, g.Net.Checked, 100f * g.Net.Deepest, g.Net.Resets, g.Net.Worst));
+                b.Append("inside by part: ");
+                for (int q = 0; q < g.Net.InsideBy.Length; q++)
+                {
+                    if (g.Net.InsideBy[q] > 0)
+                    {
+                        b.Append($"{(PartId)q} {g.Net.InsideBy[q]}, ");
+                    }
+                }
+
+                b.Append("; ");
             }
 
             return b.ToString();

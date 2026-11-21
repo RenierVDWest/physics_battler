@@ -1292,6 +1292,12 @@ internal static class FightReport
             var combo = (Environment.GetEnvironmentVariable("FIGHT_COMBO") ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
             PhysicsBattler.Locomotion.FlowCombos.Blows = combo.Length > 0 && int.TryParse(combo[0], out int comboCount) ? comboCount : 2;
             PhysicsBattler.Locomotion.FlowCombos.LastBlow = combo.Length > 1 ? Math.Max(0, Array.IndexOf(PhysicsBattler.Locomotion.FlowCombos.LastNames, combo[1].Trim())) : 0;
+            // (FIGHT_COMBOKIND=flat | low: the combos plan's step 7, three flat cuts, or high then low; FIGHT_COMBO's last
+            // may be "sweep".)
+            string comboKind = (Environment.GetEnvironmentVariable("FIGHT_COMBOKIND") ?? "").Trim().ToLowerInvariant();
+            PhysicsBattler.Locomotion.FlowCombos.Kind = comboKind == "flat" ? 1 : comboKind == "low" ? 2 : 0;
+            // (FIGHT_SHIELDASIDE=0: his shield held in cover through a flat or low combo, as before step 7.)
+            PhysicsBattler.Locomotion.ClipFighter.ShieldAsideInFlatCombos = Environment.GetEnvironmentVariable("FIGHT_SHIELDASIDE") != "0";
             // (A dance's combos grow as in Unity, FIGHT_COMBO or not.)
             PhysicsBattler.Locomotion.FlowCombos.Grow = (combo.Length > 0 || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("FIGHT_DANCE"))) && Environment.GetEnvironmentVariable("FIGHT_COMBOGROWS") != "0";
             // (FIGHT_BIGSWING=0: the big one swung as recorded, as at 11:43.)
