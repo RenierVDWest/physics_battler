@@ -613,6 +613,7 @@ lot more impactful, feels weak atm. Do this and proceed".** He plays the combos 
   12.6%, over both budgets, until it was taken out of them. Numbers measured in between were thrown away.
 - **One throw is not a measurement.** The same combo's blade speed runs from 9 to 16 m/s from throw to throw. Compare
   ways with five throws each (`FIGHT_THROWTWO=3,9,15,21,27`, `SECS=33`), at his speeds.
+- Its film: https://claude.ai/artifact/LzVt4cUC7KmwicvM9Vo1N9
 
 **The night of 20 to 21 November: his order (22:40 and 22:44, going to bed).** "Continue with the combos next steps
 until you are blocked by me, then continue with other tasks." "You will need me to look at things between the
