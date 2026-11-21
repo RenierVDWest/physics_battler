@@ -5280,6 +5280,9 @@ namespace PhysicsBattler.Locomotion
         /// <summary>The jump in takes this long (seconds): "almost teleport".</summary>
         public static float FlowJumpsOver = 0.1f;
 
+        /// <summary>His man is led by how he is going for no longer than this (seconds; <c>FIGHT_FLOWLEADSMOST</c>; 9: as it was before 21 November, 12:00).</summary>
+        public static float FlowLeadsAtMost = 0.13f;
+
         /// <summary>
         /// In the jump in his body is carried with him (Combat Feel "In The Jump His Body Is Carried With Him";
         /// <c>FIGHT_FLOWJUMPCARRIES=0</c> for the old way). Renier, 21 November: "Sometimes when he leaps in for the 2nd
@@ -5577,10 +5580,14 @@ namespace PhysicsBattler.Locomotion
                 if (joined != null && FlowJumpsIn && !firstWalked)
                 {
                     // (Where the man will be as it lands: he is still going back.)
-                    float lands = joined.Contact / joined.Rate;
+                    // (At the combos' pace: a blow thrown faster lands sooner. And he is led for no longer than
+                    // FlowLeadsAtMost: a man thrown back stumbling has stopped within a few steps of the clock, and led
+                    // for all of a big blow's long wind-up the jump put him chest to chest with a man who stood still:
+                    // at combo speed 1.44 the big forehand met him at 6 m/s, its arm still bent.)
+                    float lands = joined.Contact / joined.Rate / Mathf.Clamp(AttackMaker.ComboPace, 0.4f, 2.5f);
                     Vector3 going = flowTargetGoing;
                     going.y = 0f;
-                    aimAt += Vector3.ClampMagnitude(going, 4f * Size) * (lands * FlowLeads);
+                    aimAt += Vector3.ClampMagnitude(going, 4f * Size) * Mathf.Min(lands * FlowLeads, FlowLeadsAtMost);
                     Vector3 manLies = InOwnFrame(aimAt), strikes = joined.Strike[Mathf.Clamp(joined.Contact, 0, joined.Strike.Length - 1)];
                     Vector3 to = new Vector3(manLies.x, 0f, manLies.z);
                     float shortBy = to.magnitude - new Vector3(strikes.x, 0f, strikes.z).magnitude;

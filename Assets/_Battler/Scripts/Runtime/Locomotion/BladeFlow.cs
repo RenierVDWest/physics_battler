@@ -490,6 +490,14 @@ namespace PhysicsBattler.Locomotion
                 }
             }
 
+            // (A last blow: where the smoothest join of all is also sooner than the soonest within the allowance, it
+            // is the one. After a forehand, the rising backhand's soonest join within 0.20 s was entered 0.70 s
+            // before its landing; its smoothest, entered at 0.30, is 0.3 s sooner: da ......... DUM against da, DUM.)
+            if (any && leastBefore > 0f && best.HitToHit < soonest.HitToHit - 1e-4f)
+            {
+                return best;
+            }
+
             return any ? soonest : best;
         }
 

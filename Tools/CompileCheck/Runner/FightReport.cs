@@ -1262,6 +1262,7 @@ internal static class FightReport
         PhysicsBattler.Locomotion.ClipFighter.FlowJumpCarriesBody = Environment.GetEnvironmentVariable("FIGHT_FLOWJUMPCARRIES") != "0";
         if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_FLOWSHOVE"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float flowShove)) PhysicsBattler.Locomotion.ClipFighter.FlowTestShoves = flowShove;
         if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_COMBOPACE"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float comboPace)) PhysicsBattler.Locomotion.AttackMaker.ComboPace = comboPace;
+        if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_FLOWLEADSMOST"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float leadsMost)) PhysicsBattler.Locomotion.ClipFighter.FlowLeadsAtMost = leadsMost;
         PhysicsBattler.Locomotion.ClipFighter.FlowsOverHisWalk = Environment.GetEnvironmentVariable("FIGHT_FLOWWALKS") == "1";
         // (FIGHT_BLOWPRESS=0: a weapon's blow does not press, fold or turn the body it lands on, as before.
         // FIGHT_BLOWPRESSED="0.06,9,14": how far the hips drop (m), the trunk folds and the chest turns (degrees) for a hard blow.)

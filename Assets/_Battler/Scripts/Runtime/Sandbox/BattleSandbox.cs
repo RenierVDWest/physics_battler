@@ -4237,7 +4237,7 @@ namespace PhysicsBattler.Sandbox
             "2. In the row \"Last blow:\" try \"chop\" (he leaps and chops down on the head; the freeze catches him in the air) and \"spin\" (a backhand with a turn behind it; he shows his back). The spin is the wildest of the three: tell me if it works at all.",
             "3. In the row \"Combo:\" press \"2 blows\" and throw again: now the rising backhand is the big one. After only one blow before it, the dummy should stumble back and stay on his feet. After two (the combo of three) he goes down.",
             "4. When the dummy is floored the swordsman should run in and stab him, as before.",
-            "5. \"Speed: combos\" sets how fast all of it goes. In my tests three hits take 1.22 s at 1, and 1.15 s at 1.25. To tune the big one: \"Last blow lands with\" and \"Last blow's freeze\". To compare with before: \"A combo's blows: all plain (old)\".",
+            "5. \"Speed: combos\" sets how fast all of it goes. In my tests three hits take 1.25 s at 1, and 1.07 s at the 1.44 you ended on (the spin missed at 1.44). To tune the big one: \"Last blow lands with\" and \"Last blow's freeze\". To compare with before: \"A combo's blows: all plain (old)\".",
             "6. What I would like to hear: is the rhythm right? Is the big one too strong, or the throw too far? Does the chop's leap look right or too much? Spin: keep or drop? Which speed?",
         };
 

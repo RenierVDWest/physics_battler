@@ -584,11 +584,14 @@ in `StepFlow`; `FlowCombos` in `AttackMaker.cs`; `DuelLab.ThrowCombo`): a light 
 (plain), and the big one: forehand, leaping chop or spin (`spin_backhand_mid`), entered at least 0.3 s before it
 lands (its wind-up is the loop), landing at 1.6 after one landed blow and 2.0 after two, the showstopper (freeze up
 to 0.20 s; its knock doubled and the man floored where two landed before it). Headless at speed 1: three hits in
-1.22 s (forehand; the plan's mark is 1.15, met at speed 1.25), 1.48 (chop), 1.57 (spin); the big one 9 to 12 times
-as heavy as the first; floored each time; with two blows he stumbles and stays up. **New tool: `Tools/Headless/strip.py`
+1.25 s (forehand; the plan's mark is 1.15, met at speed 1.25; 1.07 s at his 1.44), 1.48 (chop), 1.60 (spin); the big
+one 9 to 12 times as heavy as the first; floored each time; with two blows (0.70 s) he stumbles and stays up. The
+jump in leads his man for 0.13 s at most (`FlowLeadsAtMost`): led for a big blow's whole wind-up he landed chest to
+chest with him. **New tool: `Tools/Headless/strip.py`
 draws a run's fighters as stick figures from its log: look at what a blow does before sending it to him.** Not
-right yet: the 2nd and 3rd blows are planted even when he walks; the chop's leap (hips +0.76 m) and the forehand's
+right yet: at his own combo speed of 1.44 the spin misses; the 2nd and 3rd blows are planted even when he walks; the chop's leap (hips +0.76 m) and the forehand's
 throw (10 m/s) may be too much; the spin is wild. Next: step 4 (against a man who defends), after his look.
+Its film: https://claude.ai/artifact/3cZJau7b6BLWyTdwq7sJZ1
 
 **The night of 20 to 21 November: his order (22:40 and 22:44, going to bed).** "Continue with the combos next steps
 until you are blocked by me, then continue with other tasks." "You will need me to look at things between the

@@ -49,19 +49,22 @@ miss of 92 cm) and `sns_backhand_lunge` (117 cm).
 
 | combo | first hit to last | the big one against the first | what it did to him | the last join |
 |---|---|---|---|---|
-| 3, forehand | 1.22 s (three throws) | 9 to 11 times as heavy | thrown at 9 to 10.6 m/s, more than his legs catch (4.4): down, 2.6 to 3.0 m off | left 0.10 s after the landing, entered 0.40 s before; kink 25 cm |
+| 3, forehand | 1.25 s | 11 times as heavy | thrown at 9.4 m/s, more than his legs catch (4.4): down, 2.3 m off | left 0.10 s after the landing, entered 0.40 s before; kink 25 cm |
 | 3, chop | 1.48 s | 12 times | on the head, thrown back at 2.8 m/s, floored by the rule; 0.8 m off | left 0.17, entered 0.60; kink 17 cm |
-| 3, spin | 1.57 s | 11 times | on the forearm, floored by the rule; 2.2 m off | left 0.33, entered 0.30; kink 23 cm |
-| 2 blows | 0.68 s | 4.8 times | thrown back stumbling at 2.8 m/s, on his feet, 1.3 m off | (the pair's own) |
+| 3, spin | 1.60 s | 9 times | on the forearm, floored by the rule; 2.3 m off | left 0.33, entered 0.30; kink 23 cm |
+| 2 blows | 0.70 s | 4.8 times | thrown back stumbling at 1.3 m/s, on his feet, 0.6 m off | left 0.20, entered 0.30 |
 | 3, forehand, all plain (old) | 1.47 s | 1.0 times | a head reaction, driven back at 1.0 m/s, on his feet where he stood | the soonest within 0.15 s |
-| 3, forehand, combos' speed 1.25 | 1.15 s | | down | |
+| 3, forehand, combos' speed 1.25 | 1.15 s (measured before the 12:15 changes below) | | down | |
+| 3, forehand, his speeds (combos 1.44, single 1.15) | 1.07 s | 7 times | thrown at 6.1 m/s: down | |
+| 3, chop, his speeds | 1.25 s (before the 12:15 changes) | | floored by the rule | |
+| 3, spin, his speeds | **met nothing** | | | |
 
 The freeze on the big one: 0.16 to 0.19 s (0.04 and 0.05 on the first two). The second hit comes 0.52 to 0.55 s after
-the first; the third 0.67 s after the second (forehand): da, da ... DUM.
+the first; the third 0.70 s after the second (forehand): da, da ... DUM.
 
-**Against the plan's pass marks:** "1.15 s or less from the first hit to the third": **1.22 s at speed 1, not met;
-1.15 s at speed 1.25** (and he plays at 1.44). "The last hit throws him at least twice as hard as the first": met,
-9 to 12 times. "He is floored, or stumbles 3 m or more": floored by all three last blows of a combo of three.
+**Against the plan's pass marks:** "1.15 s or less from the first hit to the third": **1.25 s at speed 1, not met;
+1.15 s at speed 1.25 and 1.07 s at the 1.44 he plays at.** "The last hit throws him at least twice as hard as the first": met,
+9 to 12 times at speed 1, 7 at his. "He is floored, or stumbles 3 m or more": floored by all three last blows of a combo of three.
 
 **Looked at, not only counted:** `Tools/Headless/strip.py name t0 t1` draws a run's two fighters as stick figures
 from its log, from the side and from above (new today; `$S/name.strip.png`). In them: the forehand goes up and back
@@ -87,3 +90,19 @@ landed, the last: floors him / only if thrown", readout "His last combo". "Throw
 `FIGHT_COMBO`, `FIGHT_THROWTWO` throws two plain blows as before. `Tools/Headless/wait.sh name...` waits for runs.
 
 Checks: 0 errors; the panel's look list 10 of 10; `flow.sh` OK; the fight of six (40 s, seed 5) at its baseline of this morning: crossings 0.07% (budget 0.5%), tremble 4.8% (budget 8%); no exception in any run.
+
+**Two changes after the first push (12:15; the table above is as it stands now; the film's numbers are from before
+them: 1.22 s, 1.57 s, 0.68 s):**
+- **His man is led for no longer than 0.13 s** (`ClipFighter.FlowLeadsAtMost`; `FIGHT_FLOWLEADSMOST=9` for before),
+  and the time to the landing is counted at the combos' pace. As a blow is begun, the jump in aims at where his man
+  will be when it lands, by how he is going. For the big one that was his speed times the whole of its long
+  wind-up, and a man thrown back stumbling has stopped long before. At his combo speed of 1.44 (the second blow
+  throws the dummy back at 2.4 m/s there, 0.9 at speed 1) the jump put him chest to chest with a man standing still
+  (seen in the stick figures) and the big forehand met him at 6.3 m/s, its arm still bent. Now: 10.0 m/s, on the
+  chest, thrown at 6.1 m/s, down. At speed 1 it moved the forehand from 1.22 to 1.25 s.
+- **A last blow takes its smoothest join where that is also the sooner one** (`BladeFlow.Join`). With two blows, the
+  rising backhand's soonest join within the allowance was entered 0.70 s before its landing (1.05 s hit to hit);
+  its smoothest is entered at 0.30 s: 0.70 s hit to hit.
+**The spin still meets nothing at combo speed 1.44** (it lands at 1). Not looked into.
+
+**Its film** (21 November, 12:02; 3b2b, made by Opus at medium effort; 6 scenes, 26 beats, about 3 minutes 30): https://claude.ai/artifact/3cZJau7b6BLWyTdwq7sJZ1
