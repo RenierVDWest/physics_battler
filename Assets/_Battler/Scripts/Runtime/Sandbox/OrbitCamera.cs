@@ -52,7 +52,39 @@ namespace PhysicsBattler.Sandbox
                 shake = Mathf.MoveTowards(shake, 0f, Time.unscaledDeltaTime / ShakeTime);
             }
 
+            if (kick.sqrMagnitude > 1e-8f)
+            {
+                // (A combo's big one: the camera is knocked a few centimetres the way the blow went and comes back.)
+                position += kick * (distance / 7f);
+                kick = Vector3.Lerp(kick, Vector3.zero, 1f - Mathf.Exp(-Time.unscaledDeltaTime / KickTime));
+            }
+
             transform.SetPositionAndRotation(position, rotation);
+        }
+
+        private Vector3 kick;
+
+        /// <summary>The kick dies away over about this long (seconds of the real clock).</summary>
+        private const float KickTime = 0.09f;
+
+        /// <summary>A kick of the camera along <paramref name="way"/> (the world's), 0 to 1: the big one of a combo landing (the combos plan's step 6).</summary>
+        public void Kick(Vector3 way, float amount)
+        {
+            if (way.sqrMagnitude > 1e-6f)
+            {
+                kick = way.normalized * (0.22f * Mathf.Clamp01(amount));
+                shake = Mathf.Clamp01(Mathf.Max(shake, 0.6f * amount));
+            }
+        }
+
+        private void OnEnable()
+        {
+            PhysicsBattler.Locomotion.ComboShow.Kicked += Kick;
+        }
+
+        private void OnDisable()
+        {
+            PhysicsBattler.Locomotion.ComboShow.Kicked -= Kick;
         }
 
         private float shake;

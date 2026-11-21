@@ -355,6 +355,7 @@ namespace PhysicsBattler.Sandbox
         {
             UnitController.Hit += OnHit;
             PhysicsBattler.Locomotion.ClipFighter.GetUpBegan += OnGetUpBegan;
+            PhysicsBattler.Locomotion.ComboShow.Slowed += OnSlowed;
             HitFlashes.Ensure();
         }
 
@@ -362,6 +363,7 @@ namespace PhysicsBattler.Sandbox
         {
             UnitController.Hit -= OnHit;
             PhysicsBattler.Locomotion.ClipFighter.GetUpBegan -= OnGetUpBegan;
+            PhysicsBattler.Locomotion.ComboShow.Slowed -= OnSlowed;
             SandboxInput.OverPanel = false;
             SandboxInput.Typing = false;
             if (Application.isPlaying)
@@ -1284,6 +1286,21 @@ namespace PhysicsBattler.Sandbox
                 if (Press(feel.aParryEndsACombo ? "[ends the combo]" : "ends the combo", "Nothing follows a parried blow.")) feel.aParryEndsACombo = true;
                 if (Press(!feel.aParryEndsACombo ? "[does not (old)]" : "does not (old)", "The next blow is begun all the same.")) feel.aParryEndsACombo = false;
                 EndRow();
+                BeginRow();
+                Words(new GUIContent("The show:", "The cues a combo gives as it goes (the combos plan's step 6), each with its own switch in Combat Feel. Streaks: a streak behind the blade, short and pale on the light first blow, longer on the next, the longest and brightest on the big one. Swish: each blow's swish is higher than the one before. Deep hit: the big one lands with a boom of its own. Camera kick: the camera is knocked the way the big one went. Slow beat: a third of a second of slow motion when a combo floors its man. Sparks: a spark and a ring when a blow is stopped by a shield or a blade."));
+                feel.aCombosBladeLeavesAStreak = Tick(feel.aCombosBladeLeavesAStreak, "streaks", "A streak behind the blade that grows with each blow of a combo.");
+                feel.aCombosSwishRises = Tick(feel.aCombosSwishRises, "swish", "Each blow of a combo swishes higher than the one before.");
+                feel.theBigOneLandsWithADeepHit = Tick(feel.theBigOneLandsWithADeepHit, "deep hit", "The big one lands with a boom of its own.");
+                feel.theBigOneKicksTheCamera = Tick(feel.theBigOneKicksTheCamera, "camera kick", "The camera is knocked the way the big one went.");
+                feel.aFlooringComboSlowsTheGame = Tick(feel.aFlooringComboSlowsTheGame, "slow beat", "A third of a second of slow motion when a combo floors its man.");
+                feel.aStoppedBlowSparksAndRings = Tick(feel.aStoppedBlowSparksAndRings, "sparks", "A spark and a ring when a shield or a blade stops a blow of a combo.");
+                EndRow();
+                BeginRow();
+                Words(new GUIContent("The show, all:", "All six cues on, or all off as it was before step 6."));
+                if (Press("all on", "Every cue of the show.")) feel.aCombosBladeLeavesAStreak = feel.aCombosSwishRises = feel.theBigOneLandsWithADeepHit = feel.theBigOneKicksTheCamera = feel.aFlooringComboSlowsTheGame = feel.aStoppedBlowSparksAndRings = true;
+                if (Press("all off (old)", "No streaks, a plain swish, no camera kick, no slow beat, no sparks; the deep hit off too.")) feel.aCombosBladeLeavesAStreak = feel.aCombosSwishRises = feel.theBigOneLandsWithADeepHit = feel.theBigOneKicksTheCamera = feel.aFlooringComboSlowsTheGame = feel.aStoppedBlowSparksAndRings = false;
+                EndRow();
+                Readout(new GUIContent("The show so far: " + PhysicsBattler.Locomotion.ComboShow.Counted + ".", "Every cue of the show given since the scene began, counted as it was asked for, whether or not it could be seen or heard."), 2);
                 Readout(new GUIContent("His last combo: " + Duel.ComboTold + ".", "Each blow of the last combo: how hard it was set to land (x a plain blow), when it landed after the first, what it met and how fast, how heavy it was on him, how long both froze, and what it did to him. Then the time from the first hit to the last, how much heavier the last landed than the first, and where his man was 1.5 s after the last hit."), 7);
                 BeginRow();
                 Words(new GUIContent("Two blows:", "Step 2 of the combos plan: a forehand down and a rising backhand back up the same line, at the chest (Combat Feel \"A Second Blow Flows Out Of The First\"). Flowing (new): one swing. The first blow's own carry-through is played as far as the corner where the blade turns, and there the second is begun in the middle of its own wind-up: the blade never goes back to the guard between the hits. One after the other (old): a whole attack, and when he is free again the other."));
@@ -3134,8 +3151,26 @@ namespace PhysicsBattler.Sandbox
             }
         }
 
+        // The show's slow beat (the combos plan's step 6): the game goes slow for a moment as a combo floors its man.
+        private float slowLeft, slowTo = 1f;
+
+        private void OnSlowed(float to, float lasts)
+        {
+            slowTo = Mathf.Clamp(to, 0.05f, 1f);
+            slowLeft = Mathf.Max(slowLeft, lasts);
+        }
+
         private void Update()
         {
+            if (Application.isPlaying && slowLeft > 0f)
+            {
+                slowLeft -= Time.unscaledDeltaTime;
+                if (!paused)
+                {
+                    Time.timeScale = slowLeft > 0f ? timeScale * slowTo : timeScale;
+                }
+            }
+
             if (!Application.isPlaying || Time.frameCount <= watchFrom)
             {
                 return;   // (the key that left the lab is not the fight's too)
@@ -4283,23 +4318,23 @@ namespace PhysicsBattler.Sandbox
         // Names are matched whole, without a chosen button's square brackets; capitals do not matter.
 
         /// <summary>Names this push's list. Change it with every push that needs his eye: his "highlights off" is kept by tag, so a new list is shown again.</summary>
-        private const string LookTag = "21 November, 17:51: the dance fights with combos (and, not yet looked at: the combo that stopped on a shield, mended)";
+        private const string LookTag = "21 November, 19:09: the show of a combo: streaks, a rising swish, a camera kick, a slow beat, sparks (built blind)";
 
         /// <summary>What to do, in order, in plain words.</summary>
         private static readonly string[] LookSteps =
         {
-            "1. Go to \"Duel\" and press \"Dance\". Let the two fight for a minute or two. New: they start combos by themselves. A fighter goes on into a combo when his light blow lands, when he pounces on a man who stumbles or whose guard is knocked open and that blow lands, or when the other is winding up a heavy blow.",
-            "2. It does not happen often: about one combo every 15 seconds between the two. The words over a fighter's head say \"COMBO\" when one starts. The readout \"His combos\" under each dancer counts them and tells his last one blow by blow.",
-            "3. Each dancer has his own habit. Try the fighters \"Strutter\" (three blows, ending in the big forehand, takes nearly every chance), \"Prowler\" (three, ending in the spin) and \"Bull\" (two, the second the big one).",
-            "4. To compare with before: \"Combos (dance): off (old)\".",
-            "5. Still waiting from 16:15: \"Strike at\", \"Dummy: shield up\", \"Last blow: spin\", \"Throw combo\" many times: does a combo still stop when nobody parried?",
-            "6. What I would like to hear: are there too few combos in the dance, or too many? Do they look right when they come out of a pounce?",
+            "1. Go to \"Duel\", find \"Strike at\". \"Dummy:\" press \"no guard\". Press \"Throw combo\" a good many times. New: a streak behind his blade, short and pale on the first blow, longer on the second, the longest and brightest on the big one. Each swish is a little higher than the one before.",
+            "2. As the big one lands, the camera is knocked the way the blow went and comes back. When the combo floors him, the game goes slow for a third of a second.",
+            "3. \"Dummy:\" press \"shield up\" and throw again. When his shield stops a blow, a spark flies from where it met, and it rings.",
+            "4. Each cue has its own tick in the row \"The show:\". \"The show, all:\" turns them all on or off to compare with before. \"The show so far\" counts every cue given.",
+            "5. All of it was built blind: I could not see or hear any of it. Please tell me what is too much, too little or plain wrong: the streak's length and brightness, how far the swish rises, the camera's kick, how long the slow beat is, the spark. The ring is the parry's clang played higher: there is no sound of its own for it yet.",
+            "6. The same cues play in the dance (\"Dance\").",
         };
 
         /// <summary>The names of what he is to press and watch.</summary>
         private static readonly string[] LookHere =
         {
-            "Duel", "Dance", "Combos (dance):", "Strike at", "Dummy:", "Last blow:", "Throw combo", "His last combo",
+            "Duel", "Strike at", "Dummy:", "Throw combo", "The show:", "The show, all:", "The show so far", "Dance",
         };
 
         /// <summary>For the panel check (headless): the names of <see cref="LookHere"/> that were really drawn, and every section taken as open while it looks.</summary>

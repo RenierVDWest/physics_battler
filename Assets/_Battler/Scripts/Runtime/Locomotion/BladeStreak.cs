@@ -216,4 +216,174 @@ namespace PhysicsBattler.Locomotion
             return 0.5f * (2f * p1 + (p2 - p0) * t + (2f * p0 - 5f * p1 + 4f * p2 - p3) * t2 + (3f * p1 - p0 - 3f * p2 + p3) * t3);
         }
     }
+
+    /// <summary>
+    /// The show of a combo (the combos plan's step 6): the cues a combo gives as it goes, each with its own switch
+    /// (the scene's Combat Feel). Streaks that grow with each blow; a swish that rises; the deep hit of the big one; a
+    /// kick of the camera as the big one lands; a short beat of slow motion when a combo floors its man; a spark and a
+    /// ring when a blow is stopped. Each cue is counted as it is given, seen or not (the headless runs count them:
+    /// nothing headless can draw or play them).
+    /// </summary>
+    public static class ComboShow
+    {
+        public static bool Streaks = true, Swish = true, DeepHit = true, CameraKick = true, SlowBeat = true, Sparks = true;
+
+        /// <summary>How much higher each blow's swish is than the one before (a share of the pitch).</summary>
+        public static float SwishRises = 0.14f;
+
+        /// <summary>How hard the camera is kicked as the big one lands (0 to 1), and less on a shield.</summary>
+        public static float KickBy = 0.8f;
+
+        /// <summary>The slow beat: how slow (a share of the game's pace) and how long (seconds of the real clock).</summary>
+        public static float SlowTo = 0.3f, SlowFor = 0.35f;
+
+        /// <summary>Cues given so far: streaks begun (by rank: light, link, big), swishes pitched, deep hits, camera kicks, slow beats, sparks, rings.</summary>
+        public static readonly int[] StreaksBegun = new int[4];
+        public static int Swishes, DeepHits, Kicks, SlowBeats, SparksThrown, Rings;
+
+        /// <summary>The camera is to be kicked: along this way (the world's), this hard (0 to 1).</summary>
+        public static event System.Action<Vector3, float> Kicked;
+
+        /// <summary>The game is to go slow for a beat: to this share of its pace, for this long (seconds of the real clock).</summary>
+        public static event System.Action<float, float> Slowed;
+
+        public static string Counted => $"streaks begun {StreaksBegun[1]} light, {StreaksBegun[2]} link, {StreaksBegun[3]} big; swishes pitched {Swishes}; deep hits {DeepHits}; camera kicks {Kicks}; slow beats {SlowBeats}; sparks {SparksThrown}, rings {Rings}";
+
+        public static void Reset()
+        {
+            System.Array.Clear(StreaksBegun, 0, StreaksBegun.Length);
+            Swishes = DeepHits = Kicks = SlowBeats = SparksThrown = Rings = 0;
+        }
+
+        /// <summary>A blow of a combo has met something: the big one kicks the camera and lands deep; a stopped blow throws a spark and rings.</summary>
+        public static void BlowMet(bool last, bool onBody, Vector3 point, Vector3 way)
+        {
+            if (last)
+            {
+                DeepHits += DeepHit ? 1 : 0;
+                if (CameraKick)
+                {
+                    Kicks++;
+                    Kicked?.Invoke(way, onBody ? KickBy : 0.5f * KickBy);
+                }
+            }
+
+            if (!onBody && Sparks)
+            {
+                SparksThrown++;
+                Rings++;
+                if (Application.isPlaying)
+                {
+                    HitSpark.Throw(point, way, last ? 1.5f : 1f);
+                }
+
+                PhysicsBattler.Audio.Sfx.Play(PhysicsBattler.Audio.SfxIds.ParryClang, point, last ? 0.7f : 0.45f, last ? 1.25f : 1.45f);
+            }
+        }
+
+        /// <summary>A combo has floored its man: a short beat of slow motion.</summary>
+        public static void Floored()
+        {
+            if (SlowBeat)
+            {
+                SlowBeats++;
+                Slowed?.Invoke(SlowTo, SlowFor);
+            }
+        }
+    }
+
+    /// <summary>
+    /// A spark where a blow is stopped (the combos plan's step 6): a dozen short bright lines thrown out from the
+    /// point, back along the way the blade came and to the sides, gone in a fifth of a second. Built blind: nothing
+    /// headless draws it.
+    /// </summary>
+    public sealed class HitSpark : MonoBehaviour
+    {
+        private const int Lines = 12;
+        private const float Lasts = 0.2f;
+        private readonly Vector3[] goes = new Vector3[Lines];
+        private Mesh mesh;
+        private float born, size = 1f;
+        private static Material material;
+        private static readonly System.Random luck = new System.Random(7);
+
+        public static void Throw(Vector3 at, Vector3 way, float size)
+        {
+            var go = new GameObject("Hit spark");
+            go.transform.position = at;
+            var spark = go.AddComponent<HitSpark>();
+            spark.size = size;
+            spark.born = Time.time;
+            Vector3 back = way.sqrMagnitude > 1e-6f ? -way.normalized : Vector3.up;
+            for (int i = 0; i < Lines; i++)
+            {
+                var any = new Vector3((float)luck.NextDouble() * 2f - 1f, (float)luck.NextDouble() * 2f - 1f, (float)luck.NextDouble() * 2f - 1f);
+                spark.goes[i] = (back * 0.6f + any).normalized * (2.5f + 3.5f * (float)luck.NextDouble());
+            }
+
+            spark.mesh = new Mesh { name = "Hit spark" };
+            spark.mesh.MarkDynamic();
+            go.AddComponent<MeshFilter>().sharedMesh = spark.mesh;
+            var renderer = go.AddComponent<MeshRenderer>();
+            if (material == null)
+            {
+                var shader = Shader.Find("Sprites/Default") ?? Shader.Find("Universal Render Pipeline/Particles/Unlit");
+                material = shader != null ? new Material(shader) { name = "Hit spark", hideFlags = HideFlags.DontSave } : null;
+            }
+
+            renderer.sharedMaterial = material;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+        }
+
+        private void LateUpdate()
+        {
+            float age = Time.time - born;
+            if (age >= Lasts || mesh == null)
+            {
+                Destroy(gameObject);
+                return;
+            }
+
+            // Each line: a thin quad from where its head was a moment ago to where it is, facing the camera.
+            float k = age / Lasts, fade = 1f - k;
+            var cam = Camera.main;
+            Vector3 toEye = cam != null ? (cam.transform.position - transform.position).normalized : Vector3.up;
+            var vertices = new Vector3[Lines * 4];
+            var colors = new Color[Lines * 4];
+            var triangles = new int[Lines * 6];
+            for (int i = 0; i < Lines; i++)
+            {
+                // (Slowing as it flies, and falling a little.)
+                Vector3 head = goes[i] * (age * (1f - 0.5f * k)) * 0.5f * size + Vector3.down * (1.5f * age * age);
+                Vector3 tail = head - goes[i].normalized * (0.07f * size * fade + 0.01f);
+                Vector3 side = Vector3.Cross(goes[i], toEye).normalized * (0.006f * size);
+                int v = i * 4;
+                vertices[v] = tail - side;
+                vertices[v + 1] = tail + side;
+                vertices[v + 2] = head + side;
+                vertices[v + 3] = head - side;
+                var bright = new Color(1f, 0.92f, 0.6f, fade);
+                colors[v] = colors[v + 1] = new Color(1f, 0.6f, 0.2f, 0f);
+                colors[v + 2] = colors[v + 3] = bright;
+                int t = i * 6;
+                triangles[t] = v; triangles[t + 1] = v + 1; triangles[t + 2] = v + 2;
+                triangles[t + 3] = v; triangles[t + 4] = v + 2; triangles[t + 5] = v + 3;
+            }
+
+            mesh.Clear();
+            mesh.SetVertices(new List<Vector3>(vertices));
+            mesh.SetColors(new List<Color>(colors));
+            mesh.SetTriangles(new List<int>(triangles), 0);
+            mesh.RecalculateBounds();
+        }
+
+        private void OnDestroy()
+        {
+            if (mesh != null)
+            {
+                Destroy(mesh);
+            }
+        }
+    }
 }

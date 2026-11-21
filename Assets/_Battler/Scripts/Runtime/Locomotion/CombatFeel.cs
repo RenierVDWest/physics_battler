@@ -315,6 +315,25 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("On: the dance's fighters start combos by themselves (the combos plan's step 5). A combo starts when a light blow of his lands on the other's body (he goes on out of it), or when something has opened the other as he strikes: his guard knocked open, a stumble, or his own heavy wind-up. Each dancer has his own habit: the Strutter three blows ending in the big forehand, and he takes nearly every chance; the Prowler three ending in the spin; the Bull two, the second the big one, and he takes half his chances. Off (as it was): every blow in the dance is a blow on its own.")]
         public bool theDanceFightsWithCombos = true;
 
+        [Header("The show of a combo (the combos plan's step 6): each cue has its switch")]
+        [Tooltip("On: a combo's blade leaves a streak behind it that grows with each blow: short and pale on the light first blow, longer on the next, the longest and brightest on the big one. Off (as it was): no streak.")]
+        public bool aCombosBladeLeavesAStreak = true;
+
+        [Tooltip("On: each blow of a combo swishes a little higher than the one before. Off (as it was): every swish at the same pitch.")]
+        public bool aCombosSwishRises = true;
+
+        [Tooltip("On (as it was): the big one of a combo lands with a deep boom of its own, on top of the hit's own sound. Off: only the hit's own sound.")]
+        public bool theBigOneLandsWithADeepHit = true;
+
+        [Tooltip("On: as the big one of a combo lands, the camera is knocked a few centimetres the way the blow went and comes back (half as far when a shield stops it). Off (as it was): the camera only shakes on a very heavy hit.")]
+        public bool theBigOneKicksTheCamera = true;
+
+        [Tooltip("On: when a combo floors its man, the game goes to a third of its pace for a third of a second. Off (as it was): no slow motion.")]
+        public bool aFlooringComboSlowsTheGame = true;
+
+        [Tooltip("On: a blow of a combo that a shield or a blade stops throws a spark from where it met, and rings. Off (as it was): the block's own sound only.")]
+        public bool aStoppedBlowSparksAndRings = true;
+
         [Tooltip("On: in the dance a fighter goes for a man who is down by himself: he runs to him and stabs down from beside him. Off: he lets him get up. Only the dance: in the duel lab \"A Fighter Goes For A Man Who Is Down\" decides. Decided on 20 November: fighters go for him.")]
         public bool theDanceStrikesAManWhoIsDown = true;
 
@@ -1933,6 +1952,12 @@ namespace PhysicsBattler.Locomotion
             PhysicsBattler.Sandbox.Dance.HardBashAttacks = aHardBashIsAnAttackInTheDance;
             PhysicsBattler.Sandbox.Dance.Pounces = theDancePouncesOnAnOpening;
             PhysicsBattler.Sandbox.Dance.Combos = theDanceFightsWithCombos;
+            ComboShow.Streaks = aCombosBladeLeavesAStreak;
+            ComboShow.Swish = aCombosSwishRises;
+            ComboShow.DeepHit = theBigOneLandsWithADeepHit;
+            ComboShow.CameraKick = theBigOneKicksTheCamera;
+            ComboShow.SlowBeat = aFlooringComboSlowsTheGame;
+            ComboShow.Sparks = aStoppedBlowSparksAndRings;
             PhysicsBattler.Sandbox.Dance.StrikesDowned = theDanceStrikesAManWhoIsDown;
             PhysicsBattler.Sandbox.Dance.Kicks = theDanceKicks;
             PhysicsBattler.Sandbox.Dance.KickShare = Mathf.Clamp01(danceKicksInsteadOfBashing);

@@ -7,8 +7,8 @@ have my permission to push to that branch.
    and went through when asked again after I said "you may push" in the chat. If it is refused, tell me at once and
    carry on reading.) Read `CLAUDE.md` at its top first and follow it: it is the briefing, and it is up to date as
    of 21 November 2026, 16:15 (newer than the rest of this prompt: where the two disagree, CLAUDE.md and the
-   README's last entries are right; steps 1 to 4 of the combos plan are built and I have looked at them; step 5
-   is built and measured; I have not yet looked at the fixes of 13:57 and 16:15 or at step 5; step 6 waits for my look). `README.md` is the build log (over 8,400 lines: search it, never read it
+   README's last entries are right; steps 1 to 4 of the combos plan are built and I have looked at them; steps 5
+   and 6 are built; I have looked at 1 to 5 and not yet at step 6 (the show, built blind); step 7 waits for my look). `README.md` is the build log (over 8,400 lines: search it, never read it
    whole, and add entries at its end, never write over it). The
    last entries, from "### 19 November, 22:10" on, are the night of 19 to 20 November; "### 20 November, 08:30" is
    the second pass after my look, the entry after it is what came of my "this all looks good", "### 20 November,

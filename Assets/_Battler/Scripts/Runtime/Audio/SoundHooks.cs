@@ -86,7 +86,7 @@ namespace PhysicsBattler.Audio
             }
 
             // (The combo's last blow lands with a boom of its own: Bam! Bam! BAM!)
-            if (showstopper && (met == StrikeHits.Met.Flesh || met == StrikeHits.Met.Parry || met == StrikeHits.Met.Shield))
+            if (showstopper && PhysicsBattler.Locomotion.ComboShow.DeepHit && (met == StrikeHits.Met.Flesh || met == StrikeHits.Met.Parry || met == StrikeHits.Met.Shield))
             {
                 Sfx.Play(SfxIds.HitShowstopper, at, met == StrikeHits.Met.Flesh ? 1f : 0.6f);
             }
@@ -94,7 +94,8 @@ namespace PhysicsBattler.Audio
 
         private static void OnLabSwung(Vector3 at, bool club, bool heavy)
         {
-            Sfx.Play(heavy ? SfxIds.SwingHeavy : club ? SfxIds.SwingClub : SfxIds.SwingBlade, at);
+            // (A combo's swishes rise, blow by blow: the pitch is the thrower's.)
+            Sfx.Play(heavy ? SfxIds.SwingHeavy : club ? SfxIds.SwingClub : SfxIds.SwingBlade, at, 1f, StrikeHits.SwungPitch);
         }
 
         // ---- Feet (the lab's and the fight's) --------------------------------------------------------------------

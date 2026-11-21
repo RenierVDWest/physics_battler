@@ -8674,3 +8674,53 @@ its crossings budget in 2 of 4 dances with combos and 1 of 4 without, and over i
 Checks: 0 errors; the panel's look list 8 of 8; the fight of six (40 s, seed 5) at its baseline (0.07%, 4.8%).
 
 **Its film** (3b2b, made by Opus at medium effort; 6 scenes, 24 beats, about 3 minutes 15): https://claude.ai/artifact/LEexE7y6CVHUMGC6mniyj5
+
+### 21 November, 19:09: combos, step 6: the show (built blind)
+
+**What he said (18:32):** "Ok I think everything looks good here. Proceed to the next task". The next task of the
+combos plan is step 6. **Everything here was built blind: nothing headless can draw a streak or a spark, play a
+sound, move the camera or slow the clock. Headless only counts that each cue was given.**
+
+**His log first** (`PlaytestLogs/2026-11-21_18-22-54`, a dance of about six minutes in Unity; frames looked at and
+removed): 26 combos, **25 thrown whole**, 13 of them with a blow begun out of a bounce off a shield: the bug mended at
+16:15 (the combo that stopped when a shield took its second blow) is gone in Unity. The one that broke off: its first
+blow met nothing. 18 of 26 put a blow on the body (28 blows); 4 men were on the floor after one. They began: 11 into
+the other's heavy wind-up, 11 out of a pounce, 4 out of a light blow that landed.
+
+**Built: six cues, each with its switch** (`ComboShow`, in `BladeStreak.cs`; lab "Duel" > "Strike at" > "The show:"
+with a tick for each, "The show, all:", and the readout "The show so far"; `FIGHT_SHOW=0` or `"1,1,1,1,1,1"`):
+
+| Cue | Combat Feel | How |
+|---|---|---|
+| A streak behind the blade that grows with each blow: short and pale, longer, the longest and brightest | A Combos Blade Leaves A Streak | `UnitController.StepStreak`: the walking lab's `BladeStreak` on the sword's slot, its look set by `ClipFighter.ComboRank` (1 light, 2 link, 3 big): lasts 0.1, 0.18, 0.3 s |
+| Each swish a little higher than the one before | A Combos Swish Rises | `StrikeHits.SwingPitch` and `SwungPitch`; `Sfx.Play(id, at, volume, pitch)`; 0.14 of the pitch a blow (`ComboShow.SwishRises`) |
+| The big one's deep hit | The Big One Lands With A Deep Hit | It was there (`SfxIds.HitShowstopper`); it has a switch now |
+| The camera knocked the way the big one went | The Big One Kicks The Camera | `ComboShow.Kicked` > `OrbitCamera.Kick`: 0.22 m at the usual distance, gone in about 0.1 s, half on a shield |
+| A third of a second of slow motion when a combo floors its man | A Flooring Combo Slows The Game | `ComboShow.Slowed` > `BattleSandbox.OnSlowed`: the time scale to 0.3 for 0.35 s of the real clock |
+| A spark and a ring when a blow is stopped | A Stopped Blow Sparks And Rings | `HitSpark` (a dozen short bright lines, drawn by code, 0.2 s) and the parry's clang played higher: there is no ring of its own yet |
+
+The cues are given from `ClipFighter.ComboHit` (`ComboShow.BlowMet`) and where a combo's man is first seen down
+(`ComboShow.Floored`); `StrikeHits.LastPoint` is where a blow met what it met.
+(The weapon's own `TrailRenderer`, `Weapon.ShowTrail`, was tried first and is not used: `UnitController.MainWeapon`
+is never set, the clip fighters' blades are slots, not `Weapon`s.)
+
+**Counted** (headless, five combos each, the defaults: combos 1.88, the dummy middling):
+
+| Five combos against | Streaks begun (light, link, big) | Swishes pitched | Deep hits | Camera kicks | Slow beats | Sparks, rings |
+|---|---|---|---|---|---|---|
+| a man with no guard | 5, 5, 5 | 15 | 5 | 5 | 5 | 0, 0 |
+| the shield dummy | 5, 4, 4 | 13 | 4 | 4 | 1 | 7, 7 |
+| a man with no guard, the show off | 0 | 0 | 0 | 0 | 0 | 0 |
+
+The show changes nothing in how they fight: with it on and off the same five combos landed the same 15 blows and his
+own crossings were the same.
+
+**Found on the way, not from the show:** the forehand combo against a man with no guard, at the default speeds, has
+his own blade through his own shield for 0.28 s of 30 s (0.94%, over the lab's 0.5%; the longest 0.05 s), with the show
+on and with it off. At 15:25 I wrote "the forehand combo: 0.00 s": that was against the shield dummy. Not mended.
+
+**Not right, or not known:** how any of it looks or sounds. The streak's length and strength, the swish's rise, the
+kick's size, the slow beat's length and the spark are first guesses. The slow beat slows sound too. The ring is a
+stand-in.
+
+Checks: 0 errors; the panel's look list 8 of 8; the fight of six (40 s, seed 5) at its baseline (0.07%, 4.8%).

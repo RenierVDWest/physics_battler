@@ -115,6 +115,15 @@ namespace PhysicsBattler.Locomotion
         /// <summary>What the last blow that landed met, in a few words (for a combo's account).</summary>
         public string LastMet = "";
 
+        /// <summary>Where the last blow met what it met (the world's).</summary>
+        public Vector3 LastPoint;
+
+        /// <summary>The pitch the swing about to sound is played at (1: as it is), by whoever throws it: a combo's swishes rise.</summary>
+        public System.Func<float> SwingPitch;
+
+        /// <summary>The pitch of the swing <see cref="Swung"/> is telling of (set just before it).</summary>
+        public static float SwungPitch = 1f;
+
         /// <summary>Whether a body is on its own side (the fight: a blow stops in an ally rather than sweeping on through).</summary>
         public System.Func<ClipFighter, bool> IsAlly;
 
@@ -870,7 +879,9 @@ namespace PhysicsBattler.Locomotion
             if (striking && !swingHeard && PlayTime >= contactAt - SwingHeardBefore)
             {
                 swingHeard = true;
+                SwungPitch = SwingPitch != null ? SwingPitch() : 1f;
                 Swung?.Invoke(Slot != null ? Slot.position : anim.Part(PartId.HandR).position, Club, Finishing != null && Finishing());
+                SwungPitch = 1f;
             }
 
             if (!Blade(striking ? clip : null, out Vector3 grip, out Vector3 tip, out Vector3 strike))
@@ -1466,6 +1477,7 @@ namespace PhysicsBattler.Locomotion
 
             LastWeight = r.Weight * knock * (glanced ? GlanceLeft : 1f);
             LastMet = string.Format(System.Globalization.CultureInfo.InvariantCulture, "at {0:0.0} m/s, {1}", speed, what);
+            LastPoint = point;
             Last = $"{PlayName(clip)} at {speed:0.0} m/s: {what} ({r.Reaction.ToString().ToLowerInvariant()}, impulse {r.Impulse.magnitude:0} N·s, weight {LastWeight:0.00} m/s, hit stop {HitStop:0.00} s{(finishing ? ", the showstopper" : "")}{(LastShieldMeet.HasValue && measuredNow ? "; " + LastShieldMeet.Value : "")})";
             measuredNow = false;
             Landed?.Invoke(Last);

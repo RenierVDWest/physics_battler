@@ -111,6 +111,9 @@ The rest are one-off comparisons from particular days, kept for reference.
 - **The dance fights with combos (step 5):** `FIGHT_DANCECOMBOS=0` for the old way. A `DANCECOMBOS` line for each
   dancer: combos begun and why, how they came out, his habit, and his last combo blow by blow. A dance's combos grow
   (light first, the big one last) without `FIGHT_COMBO`.
+- **The show (step 6):** `FIGHT_SHOW=0` for none of its cues, `"1,1,1,1,1,1"` for streaks, the rising swish, the
+  deep hit, the camera kick, the slow beat, sparks. `COMBOS so far` has "the show: streaks begun ... ; swishes
+  pitched ...": headless can only count that a cue was given.
 - A new recording: put the FBX in a folder of its own, `python3 Tools/Mocap/Combat/combat_sample.py <folder>`, add a
   line to `STRIKES` in `combat_bake.py` (sample, cut from, cut to, landing, kind, about), run it, and read the new
   cut's line in `flow.sh all`. Check with a diff of the clips that nothing else moved.

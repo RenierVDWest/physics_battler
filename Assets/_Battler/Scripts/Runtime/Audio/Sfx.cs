@@ -38,6 +38,16 @@ namespace PhysicsBattler.Audio
         /// <summary>Every sound asked for, whether or not it can play (the headless runners count them).</summary>
         public static event System.Action<string, float> Requested;
 
+        /// <summary>Plays a sound at a pitch of its own (1: as it is; its usual small variation is kept).</summary>
+        public static void Play(string id, Vector3? at, float volume, float pitch)
+        {
+            _pitch = Mathf.Clamp(pitch, 0.5f, 2f);
+            Play(id, at, volume);
+            _pitch = 1f;
+        }
+
+        private static float _pitch = 1f;
+
         public static void Play(string id, Vector3? at = null, float volume = 1f)
         {
             Requested?.Invoke(id, volume);
@@ -372,7 +382,7 @@ namespace PhysicsBattler.Audio
             var source = FreeVoice();
             source.clip = clip;
             source.volume = Mathf.Clamp01(entry.Volume * gain * volume * mix);
-            source.pitch = 1f + Random.Range(-entry.PitchVariation, entry.PitchVariation);
+            source.pitch = (1f + Random.Range(-entry.PitchVariation, entry.PitchVariation)) * _pitch;
             source.panStereo = at.HasValue ? Pan(at.Value) : 0f;
             source.time = Mathf.Min(start, Mathf.Max(0f, clip.length - 0.05f));
             source.Play();

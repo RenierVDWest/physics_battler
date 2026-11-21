@@ -164,8 +164,57 @@ namespace PhysicsBattler.Units
         /// The clip fighter's step: what it sees, its tempo, then its walk toward what the fight loop wants (and round
         /// its opponent, once near), facing the point the loop gave it; the root put where the walk is.
         /// </summary>
+        /// <summary>
+        /// The show (the combos plan's step 6): a streak behind the blade of a combo's blows, growing with each: short
+        /// and pale on its light first blow, longer on a blow between, the longest and brightest on the big one. (The
+        /// walking lab's <see cref="BladeStreak"/>, on the blade in his sword hand.)
+        /// </summary>
+        private void StepStreak()
+        {
+            if (Clip == null)
+            {
+                return;
+            }
+
+            // (While a blow of a combo is his: a made attack's clip does not say it is a strike, so not by Striking.)
+            int rank = ComboShow.Streaks ? Clip.ComboRank : 0;
+            if (rank == streakRank)
+            {
+                return;
+            }
+
+            streakRank = rank;
+            if (rank > 0)
+            {
+                ComboShow.StreaksBegun[rank]++;
+            }
+
+            var main = Loadout != null ? Loadout.Main : null;
+            Transform slot = Clip.Strikes != null && Clip.Strikes.Slot != null ? Clip.Strikes.Slot : Clip.Anim != null ? Clip.Anim.SlotWeaponR : null;
+            if (streak == null && rank > 0 && Application.isPlaying && slot != null && main != null && !main.IsShield)
+            {
+                // (The slot's own space: the weapon sits on it unturned, at the unit's scale.)
+                float scale = Loadout.Scale;
+                Vector3 tip = main.tip.sqrMagnitude > 1e-6f ? main.tip * scale : Vector3.forward * (main.length * scale);
+                streakLook = new StreakSettings();
+                streak = BladeStreak.Sweep(slot, tip * (main.kind == WeaponKind.Club ? 0.45f : 0.25f), tip, streakLook, transform);
+            }
+
+            if (streakLook != null)
+            {
+                streakLook.On = rank > 0;
+                streakLook.Lifetime = rank == 1 ? 0.1f : rank == 3 ? 0.3f : 0.18f;
+                streakLook.Head = rank == 3 ? new Color(1f, 0.95f, 0.8f, 0.9f) : rank == 1 ? new Color(0.86f, 0.87f, 0.88f, 0.35f) : new Color(0.92f, 0.92f, 0.88f, 0.6f);
+                streakLook.Tail = rank == 3 ? new Color(1f, 0.8f, 0.45f, 0f) : new Color(0.62f, 0.64f, 0.66f, 0f);
+            }
+        }
+
+        private BladeStreak streak;
+        private StreakSettings streakLook;
+
         private void StepClips(float dt)
         {
+            StepStreak();
             UpdateSeveredCollisions(dt);
             UpdateBleeding(dt);
             if (!IsAlive)
@@ -879,6 +928,8 @@ namespace PhysicsBattler.Units
             float miss = made.Short * Clip.Loco.Leg;
             ClipStrikeStarted?.Invoke(this, $"a cut as he turns {Mathf.Abs(degrees):0} degrees to his {(degrees > 0f ? "right" : "left")}{(threatened ? " (the other striking at him)" : "")}: {made.Clip.Name} at its {AimSpots.Name(spot)}{(miss > 0.005f ? $" (short by {100f * miss:0} cm)" : "")}; its blade to land in {made.LandsIn:0.00} s, the whole {made.Clip.Duration:0.00} s; for the aim his body turned {made.Turn:+0;-0} degrees more, his hips {(made.Drop >= 0f ? "lowered" : "raised")} {100f * Mathf.Abs(made.Drop) * Clip.Loco.Leg:0} cm", against);
         }
+
+        private int streakRank;
 
         /// <summary>The spot on its target the blow under way was asked for (the aim test), or null: a blow of the fight's, at whatever its clip reaches.</summary>
         public AimSpot? ClipAimSpot { get; private set; }

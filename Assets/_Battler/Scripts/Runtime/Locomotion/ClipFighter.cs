@@ -4903,6 +4903,18 @@ namespace PhysicsBattler.Locomotion
             Strikes.FinisherThrows = () => !FlowLastBlow || chainLanded >= 2;
             Strikes.FinisherCarry = () => FlowLastBlow && FlowCombos.BigSwing ? FlowCombos.BigCarries : 0f;
             Strikes.OpensGuardFor = () => FlowLastBlow ? FlowLastOpensGuardFor : 0f;
+            // (The show: a combo's swishes rise, blow by blow.)
+            Strikes.SwingPitch = () =>
+            {
+                int rank = ComboRank;
+                if (rank == 0 || !ComboShow.Swish)
+                {
+                    return 1f;
+                }
+
+                ComboShow.Swishes++;
+                return 1f + ComboShow.SwishRises * (chainThrown - 1);
+            };
             Strikes.Linking = () => FlowLinksKeepHim && chainBlows > 0 && chainWatched < 0f && !FlowLastBlow && (flowFirst != null || flowSecond != null);
             Strikes.Comboing = () => Combo != null && Combo.Playing && Combo.Cores;
             return Strikes;
@@ -5901,6 +5913,13 @@ namespace PhysicsBattler.Locomotion
         /// </summary>
         public static float FlowLastOpensGuardFor = 0.8f;
 
+        /// <summary>
+        /// The blow of a combo he is throwing now, for the show: 0 none, 1 its light first, 2 a blow between, 3 the big
+        /// one (the streak behind his blade grows by it, the swish rises by it).
+        /// </summary>
+        public int ComboRank => chainBlows > 0 && chainWatched < 0f && (flowFirst != null || flowSecond != null)
+            ? (FlowLastBlow ? 3 : chainThrown <= 0 ? 1 : 2) : 0;
+
         /// <summary>A clean parry ends a combo (the plan's step 4). Off: it goes on at its corner as if nothing had met it.</summary>
         public static bool FlowEndsOnAParry = true;
 
@@ -6076,6 +6095,13 @@ namespace PhysicsBattler.Locomotion
             chainPower[blow] = Strikes.Power;
             chainDid[blow] = chainTarget != null ? chainTarget.LastReaction : "";
             chainOnBody[blow] = flowOnBody;
+            // The show (the plan's step 6): the big one kicks the camera and lands deep; a blow that is stopped sparks and rings.
+            {
+                Vector3 way = chainTarget != null && chainTarget.Loco != null ? chainTarget.Loco.Position - Loco.Position : Vector3.forward;
+                way.y = 0f;
+                ComboShow.BlowMet(flowLast && blow == chainBlows - 1, flowOnBody, Strikes.LastPoint, way.normalized);
+            }
+
             if (!flowOnBody)
             {
                 // (Stopped by his shield or his blade: it met him, but it is not a blow landed on him.)
@@ -6142,6 +6168,12 @@ namespace PhysicsBattler.Locomotion
             // (Floored by the combo: down now and not when it began.)
             if (chainTarget != null && chainTarget.Fallen && !chainWasDown)
             {
+                if (!chainFell)
+                {
+                    // (The show: a short beat of slow motion as a combo floors its man.)
+                    ComboShow.Floored();
+                }
+
                 chainFell = true;
             }
 

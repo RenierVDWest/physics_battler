@@ -6,7 +6,7 @@ writing one, `wc -l README.md` must say more than before.** (On 21 November, 11:
 in it, and two more commits did the same; found and put back whole at 14:20, nothing lost.) Update this file at the end of every milestone or step:
 the "Where things stand" and "Roadmap" sections must always be true.
 
-Last updated: 21 November 2026, 17:51 (combos, step 5: the dance fights with combos, built, measured over four dances and pushed, headless only, waiting for his eye). Before that: 21 November 2026, 16:15 (after his look at step 4: "looks good. proceed"; the combo that stopped when a shield took its second blow mended, unconfirmed in Unity; his speeds the defaults in the labs and the dance; the lab dummy middling; step 5, the dance fights with combos, has a first build being measured). Before that: 21 November 2026, 15:07 (combos, step 4: against a man who defends, built and pushed, headless only, waiting for his eye; he has not yet looked at the 13:57 fixes either). Before that: 21 November 2026, 13:57 (after his look at step 3: the big one made big and given its own speed, a new spin from his recording, the first blows keep him in reach; he said "Ok that looks good ... Do this and proceed" at 12:45, so step 4 is next without waiting). Before that: 21 November 2026, 11:43 (combos, step 3: three blows and the big one, built and pushed, waiting for his eye; he said "Ok this all looks good to me. you can proceed" at 10:41 to the two speeds, the carried jump and the panel). Before that: 21 November 2026, 09:49 (two attack speeds; the fall after a long jump in; the panel held to its width). Before that: 21 November 2026, 07:57 (his morning look answered: the jump in for the second blow, an attack speed slider, the dummy's spot, the pounce). Before that: 20 November 2026, 22:08 (step 2 of the combos plan is built and pushed, waiting for his eye; he said "Yes it sounds good. Go." to the combos plan at 18:42, every
+Last updated: 21 November 2026, 19:09 (combos, step 6: the show, built blind and pushed, waiting for his eye and ear; he said "everything looks good here. Proceed to the next task" at 18:32 of step 5). Before that: 21 November 2026, 17:51 (combos, step 5: the dance fights with combos, built, measured over four dances and pushed, headless only, waiting for his eye). Before that: 21 November 2026, 16:15 (after his look at step 4: "looks good. proceed"; the combo that stopped when a shield took its second blow mended, unconfirmed in Unity; his speeds the defaults in the labs and the dance; the lab dummy middling; step 5, the dance fights with combos, has a first build being measured). Before that: 21 November 2026, 15:07 (combos, step 4: against a man who defends, built and pushed, headless only, waiting for his eye; he has not yet looked at the 13:57 fixes either). Before that: 21 November 2026, 13:57 (after his look at step 3: the big one made big and given its own speed, a new spin from his recording, the first blows keep him in reach; he said "Ok that looks good ... Do this and proceed" at 12:45, so step 4 is next without waiting). Before that: 21 November 2026, 11:43 (combos, step 3: three blows and the big one, built and pushed, waiting for his eye; he said "Ok this all looks good to me. you can proceed" at 10:41 to the two speeds, the carried jump and the panel). Before that: 21 November 2026, 09:49 (two attack speeds; the fall after a long jump in; the panel held to its width). Before that: 21 November 2026, 07:57 (his morning look answered: the jump in for the second blow, an attack speed slider, the dummy's spot, the pounce). Before that: 20 November 2026, 22:08 (step 2 of the combos plan is built and pushed, waiting for his eye; he said "Yes it sounds good. Go." to the combos plan at 18:42, every
 default taken. **Step 1 of the combos plan is built and pushed, waiting for his eye:** every recording's blade is
 measured by a report, and the duel lab can draw a made attack's planned blade path and the path the sword really
 took. A view only: nobody fights differently. Next: step 2, two blows as one swing. Corrected at 20:15: what
@@ -670,7 +670,21 @@ tell me what is up next and what is the roadmap".** (16:15; README.)
   dance is over its tremble budget either way). The Prowler's spin crosses his own shield. Headless dances'
   combos grow without `FIGHT_COMBO`.
 - Step 5's film: https://claude.ai/artifact/LEexE7y6CVHUMGC6mniyj5
-- **What he was told is next:** step 6 (the show), step 7 (more cuts); combos in the six only when he says;
+- **He looked at step 5 (18:32): "Ok I think everything looks good here. Proceed to the next task".** His log of
+  18:22 (a dance in Unity): 26 combos, 25 thrown whole, 13 with a bounce off a shield that went on: **the stop bug
+  is gone in Unity.** He did not say whether battles go at 1.15 too: they keep 1.
+- **Step 6, the show (19:09; README; built blind, headless only counts the cues; waiting for his eye and ear).**
+  `ComboShow` (in `BladeStreak.cs`): streaks that grow (`UnitController.StepStreak`, a `BladeStreak` on the sword's
+  slot, by `ClipFighter.ComboRank`), a swish that rises (`StrikeHits.SwingPitch`, `Sfx.Play(..., pitch)`), the deep
+  hit's switch, the camera kick (`OrbitCamera.Kick`), the slow beat (`BattleSandbox.OnSlowed`), a spark and a ring
+  on a stopped blow (`HitSpark`; the ring is the parry's clang played higher). Lab "The show:" (a tick each), "The
+  show, all:", "The show so far"; six Combat Feel switches; `FIGHT_SHOW=0`. Counted over five combos: no guard 15
+  streaks, 15 swishes, 5 deep hits, 5 kicks, 5 slow beats; the shield dummy 13, 13, 4, 4, 1 and 7 sparks; off: none.
+  **`UnitController.MainWeapon` is never set**: the clip fighters' blades are slots, not `Weapon`s.
+- **Found (19:09): the forehand combo against no guard at the default speeds has his own blade through his own
+  shield 0.94% of the time** (the same with the show off). With the spin's 1.04% and the chop's 0.61% it is the
+  combos' own, at speed 1.88. Not mended.
+- **What he was told is next:** step 7 (more cuts); combos in the six only when he says;
   then the kick at a man who is down (his kick pack), the stab at a downed man that looks odd, the spin combo's own
   sword through his own shield; then the older open things (get-up shield, stumble leftovers, absorbing a hit, the
   blade tip's tremble).
