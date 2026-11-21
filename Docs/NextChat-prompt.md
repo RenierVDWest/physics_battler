@@ -6,9 +6,9 @@ have my permission to push to that branch.
 1. Attach the repository with push access and clone it. (On 19 November the first ask for push access was refused
    and went through when asked again after I said "you may push" in the chat. If it is refused, tell me at once and
    carry on reading.) Read `CLAUDE.md` at its top first and follow it: it is the briefing, and it is up to date as
-   of 21 November 2026, 09:49 (newer than the rest of this prompt: where the two disagree, CLAUDE.md and the
-   README's last entries are right; steps 1 and 2 of the combos plan are built and I have looked at both; step 3
-   waits for my word). `README.md` is the build log (over 7,800 lines: search it, never read it whole). The
+   of 21 November 2026, 11:43 (newer than the rest of this prompt: where the two disagree, CLAUDE.md and the
+   README's last entries are right; steps 1, 2 and 3 of the combos plan are built; I have looked at 1 and 2 and
+   not yet at 3; step 4 waits for my word). `README.md` is the build log (over 7,800 lines: search it, never read it whole). The
    last entries, from "### 19 November, 22:10" on, are the night of 19 to 20 November; "### 20 November, 08:30" is
    the second pass after my look, the entry after it is what came of my "this all looks good", "### 20 November,
    17:05" is my decision on a man who is down and the combos research and plan, and "### 20 November, 20:00" is the
@@ -249,6 +249,9 @@ costs; whether real attacks should be more frequent.
   now crossings 0.07%, tremble 4.8%. Headless numbers of shoved bodies from before were with the stiff hold. And the
   debug panel's layout cannot be seen headless: the rows that wrap (`BattleSandbox.RowTakes`) were built blind; ask
   me how it looks. And never start a headless run under a name that is still running.
+
+- 21 November: `Tools/Headless/strip.py` draws a headless run's fighters as stick figures from its log. Use it
+  before sending me anything that changes how a body moves: numbers alone missed things before.
 
 - Combos, step 2 (20 November, late): the join's kink (the posed point thrown 15 to 19 cm off its course in one
   step as the second blow begins) has no found cause; letting faster parts carry on did not change it. Look at the

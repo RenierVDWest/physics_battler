@@ -86,6 +86,15 @@ namespace PhysicsBattler.Locomotion
         /// <summary>The blow playing is a combo's showstopper (its last): it lands harder (<see cref="FinisherKnock"/>) and its hit stop is longer (<see cref="FinisherStop"/>).</summary>
         public System.Func<bool> Finishing;
 
+        /// <summary>Whether the showstopper playing knocks as one (<see cref="FinisherKnock"/>; null: it does): its freeze and its sound are a showstopper's either way.</summary>
+        public System.Func<bool> FinisherThrows;
+
+        /// <summary>The most a showstopper's hit stop may be now (seconds; 0 or null: <see cref="FinisherStop"/>'s).</summary>
+        public System.Func<float> FinisherStopMost;
+
+        /// <summary>What the last blow that landed met, in a few words (for a combo's account).</summary>
+        public string LastMet = "";
+
         /// <summary>Whether a body is on its own side (the fight: a blow stops in an ally rather than sweeping on through).</summary>
         public System.Func<ClipFighter, bool> IsAlly;
 
@@ -1226,7 +1235,8 @@ namespace PhysicsBattler.Locomotion
             bool finishing = Finishing != null && Finishing() && !glanced;
             bool comboing = Comboing != null && Comboing();
             LastFinished = finishing;
-            float knock = (finishing ? FinisherKnock : comboing ? ComboKnock : 1f) * Power;
+            // (A flowing combo's last blow throws as a showstopper only where two of its blows landed before it.)
+            float knock = (finishing ? (FinisherThrows == null || FinisherThrows() ? FinisherKnock : 1f) : comboing ? ComboKnock : 1f) * Power;
             // (The plan "Weight and momentum", step 4: a square parry holds a blow up to its skill's weight; a heavier one
             // beats it, the blade crushed back into the body and part of the blow landing through it. A glance, taken at a
             // slant, is never beaten. The showstopper counts double, as it lands.)
@@ -1277,7 +1287,9 @@ namespace PhysicsBattler.Locomotion
             HitStop = Mathf.Clamp(CombatFeel.HitStopBase + CombatFeel.HitStopPerWeight * r.Weight * knock, CombatFeel.LeastHitStop, CombatFeel.MostHitStop);
             if (finishing)
             {
-                HitStop = Mathf.Clamp(HitStop * 1.7f, FinisherStop.x, FinisherStop.y);
+                // (A flowing combo's last blow may freeze longer: the combos plan's "to try up to 0.20 s".)
+                float most = FinisherStopMost != null ? FinisherStopMost() : 0f;
+                HitStop = Mathf.Clamp(HitStop * 1.7f, FinisherStop.x, most > 0f ? Mathf.Max(FinisherStop.x, most) : FinisherStop.y);
             }
 
             // (One hit stop a blow: a slash sweeping on through the body strikes part after part, and stopping at each
@@ -1413,6 +1425,7 @@ namespace PhysicsBattler.Locomotion
             }
 
             LastWeight = r.Weight * knock * (glanced ? GlanceLeft : 1f);
+            LastMet = string.Format(System.Globalization.CultureInfo.InvariantCulture, "at {0:0.0} m/s, {1}", speed, what);
             Last = $"{PlayName(clip)} at {speed:0.0} m/s: {what} ({r.Reaction.ToString().ToLowerInvariant()}, impulse {r.Impulse.magnitude:0} N·s, weight {LastWeight:0.00} m/s, hit stop {HitStop:0.00} s{(finishing ? ", the showstopper" : "")}{(LastShieldMeet.HasValue && measuredNow ? "; " + LastShieldMeet.Value : "")})";
             measuredNow = false;
             Landed?.Invoke(Last);

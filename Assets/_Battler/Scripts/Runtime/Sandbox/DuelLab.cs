@@ -550,23 +550,43 @@ namespace PhysicsBattler.Sandbox
         /// as one swing, the second begun out of the first's carry-through. Otherwise the old way: one whole attack,
         /// and when he is free again the other. False: the first could not be thrown.
         /// </summary>
-        public bool ThrowTwo(AimTest aim, PhysicsBattler.Locomotion.AimSpot spot, float now)
+        public bool ThrowTwo(AimTest aim, PhysicsBattler.Locomotion.AimSpot spot, float now) => ThrowCombo(aim, spot, now, 2);
+
+        /// <summary>For the panel and the reports: what the last combo did, blow by blow (the fighter's own account).</summary>
+        public string ComboTold { get; private set; } = "none thrown yet";
+
+        /// <summary>
+        /// A combo at the spot (the combos plan's step 3): a forehand, a rising backhand, and with three blows a last
+        /// one (<see cref="PhysicsBattler.Locomotion.FlowCombos"/>). Flowing, each out of the one before. Not flowing
+        /// (old): two whole attacks, one after the other. False: the first could not be thrown.
+        /// </summary>
+        public bool ThrowCombo(AimTest aim, PhysicsBattler.Locomotion.AimSpot spot, float now, int blows = 0)
         {
-            if (!Running || aim == null || Mover.Clip == null || Other.Clip == null || Mover.Clip.Flowing || twoStage != 0)
+            if (!Running || aim == null || Mover.Clip == null || Other.Clip == null || Mover.Clip.Flowing || Mover.Clip.InCombo || twoStage != 0)
             {
                 return false;
             }
 
+            blows = Mathf.Clamp(blows > 0 ? blows : PhysicsBattler.Locomotion.FlowCombos.Blows, 2, 3);
+            bool grow = PhysicsBattler.Locomotion.FlowCombos.Grow && PhysicsBattler.Locomotion.ClipFighter.BlowsFlow;
             string was = aim.Attack;
+            var styleWas = aim.Style;
             aim.Attack = TwoFirst;
-            // (Both blows of a pair at the combos' pace.)
+            aim.Style = grow ? PhysicsBattler.Locomotion.FlowCombos.First : (PhysicsBattler.Locomotion.AttackStyle?)null;
+            // (Every blow of a combo at the combos' pace.)
             Mover.Clip.ThrowsACombo = true;
             bool begun = Strike(aim, spot, now);
             Mover.Clip.ThrowsACombo = false;
             aim.Attack = was;
+            aim.Style = styleWas;
             if (!begun)
             {
                 return false;
+            }
+
+            if (grow && Mover.Clip.Strikes != null)
+            {
+                Mover.Clip.Strikes.Power = PhysicsBattler.Locomotion.FlowCombos.FirstPower;
             }
 
             twoAim = aim;
@@ -576,10 +596,36 @@ namespace PhysicsBattler.Sandbox
             twoLandings = Landings();
             var other = Other;
             var second = TwoSecondSpot ?? spot;
-            if (PhysicsBattler.Locomotion.ClipFighter.BlowsFlow && Mover.Clip.FlowInto(Other.Clip, () => PhysicsBattler.Locomotion.AimSpots.Point(other.Clip, second), PhysicsBattler.Locomotion.AttackClasses.StyleOf(aim.Kind), TwoNext))
+            var plain = PhysicsBattler.Locomotion.AttackClasses.StyleOf(aim.Kind);
+            var rest = new System.Collections.Generic.List<PhysicsBattler.Locomotion.ClipFighter.FlowBlow>
+            {
+                new PhysicsBattler.Locomotion.ClipFighter.FlowBlow
+                {
+                    Strike = TwoNext, Says = "rising backhand" + (grow && blows == 2 ? ", the big one" : ""),
+                    Style = grow && blows == 2 ? PhysicsBattler.Locomotion.FlowCombos.Last : plain,
+                    Power = !grow ? 1f : blows == 2 ? PhysicsBattler.Locomotion.FlowCombos.LastPower : PhysicsBattler.Locomotion.FlowCombos.LinkPower,
+                    Last = grow && blows == 2,
+                    Point = () => PhysicsBattler.Locomotion.AimSpots.Point(other.Clip, second),
+                },
+            };
+            if (blows >= 3)
+            {
+                int which = Mathf.Clamp(PhysicsBattler.Locomotion.FlowCombos.LastBlow, 0, PhysicsBattler.Locomotion.FlowCombos.Lasts.Length - 1);
+                rest.Add(new PhysicsBattler.Locomotion.ClipFighter.FlowBlow
+                {
+                    Strike = PhysicsBattler.Locomotion.FlowCombos.Lasts[which], Says = PhysicsBattler.Locomotion.FlowCombos.LastNames[which] + (grow ? ", the big one" : ""),
+                    Style = grow ? PhysicsBattler.Locomotion.FlowCombos.Last : plain,
+                    Power = grow ? PhysicsBattler.Locomotion.FlowCombos.LastPower : 1f,
+                    Last = grow,
+                    Point = () => PhysicsBattler.Locomotion.AimSpots.Point(other.Clip, spot),
+                });
+            }
+
+            if (PhysicsBattler.Locomotion.ClipFighter.BlowsFlow && Mover.Clip.FlowCombo(Other.Clip, () => PhysicsBattler.Locomotion.AimSpots.Point(other.Clip, second), "forehand" + (grow ? ", light" : ""), rest))
             {
                 twoStage = 3;
                 TwoTold = "flowing: under way";
+                ComboTold = "under way";
             }
             else
             {
@@ -605,9 +651,11 @@ namespace PhysicsBattler.Sandbox
             if (twoStage == 3)
             {
                 // (Flowing: the fighter's own account, as it ends.)
-                if (!Mover.Clip.Flowing)
+                // (And what its last blow did to the man: watched a moment longer.)
+                if (!Mover.Clip.Flowing && !Mover.Clip.InCombo)
                 {
                     TwoTold = "flowing: " + Mover.Clip.FlowTold;
+                    ComboTold = Mover.Clip.ComboTold;
                     twoStage = 0;
                 }
 
@@ -1786,7 +1834,8 @@ namespace PhysicsBattler.Sandbox
             }
 
             openFor += dt;
-            if (pounceGone || going || openFor < PounceReadsIn || gap > PounceFromAtMost * mine.Size || mine.Fallen || mine.Stumbling)
+            // (Not out of the middle of a combo: its own blows are what he is doing about the opening.)
+            if (pounceGone || going || openFor < PounceReadsIn || gap > PounceFromAtMost * mine.Size || mine.Fallen || mine.Stumbling || mine.Flowing)
             {
                 return;
             }

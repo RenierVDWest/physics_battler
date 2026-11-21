@@ -140,6 +140,9 @@ namespace PhysicsBattler.Sandbox
         /// <summary>The class of the blows asked for: plain (as every blow was), light or heavy (<see cref="AttackClasses"/>).</summary>
         public AttackClass Kind = AttackClass.Plain;
 
+        /// <summary>The style the next blow is made in, in place of its class's (null: its class's): a combo's first blow.</summary>
+        public AttackStyle? Style;
+
         /// <summary>A made attack's score, named by its clip; null: the one that fits the spot best. And when it is to land (seconds after it is asked; 0: in its own time).</summary>
         public string Attack;
         public float LandIn;
@@ -189,7 +192,7 @@ namespace PhysicsBattler.Sandbox
 
             // (In the labs a sword passes the body its blow drove on through: ClipFighter.BladePassesWhatItCut.)
             Attacker.Clip.BladePassesHere = Target.Clip.BladePassesHere = true;
-            if (!Attacker.AimStrike(Target, spot, out string strike, out float miss, Line, Size, Attack, LandIn, Legs, Kind))
+            if (!Attacker.AimStrike(Target, spot, out string strike, out float miss, Line, Size, Attack, LandIn, Legs, Kind, Style))
             {
                 return false;
             }

@@ -1205,6 +1205,41 @@ namespace PhysicsBattler.Sandbox
                 if (Press(!feel.inTheJumpHisBodyIsCarriedWithHim ? "[dragged (old)]" : "dragged (old)", "As before: he could fall after a long jump.")) feel.inTheJumpHisBodyIsCarriedWithHim = false;
                 EndRow();
                 BeginRow();
+                Words(new GUIContent("Combo:", "Step 3 of the combos plan: several blows as one swing, at the chest, the last the big one (Combat Feel \"A Combo Has This Many Blows\"). 2 blows: a forehand, then a rising backhand. 3 blows: and a last blow, chosen in the row below. Each blow flows out of the carry-through of the one before; the first is a quick light cut, the last lands hardest, freezes longest and throws him."));
+                if (Press(feel.aComboHasThisManyBlows <= 2 ? "[2 blows]" : "2 blows", "A forehand, then a rising backhand as the big one.")) feel.aComboHasThisManyBlows = 2;
+                if (Press(feel.aComboHasThisManyBlows >= 3 ? "[3 blows]" : "3 blows", "A light forehand, a rising backhand, and the big one.")) feel.aComboHasThisManyBlows = 3;
+                if (Press("Throw combo", "He throws the combo at the chest now."))
+                {
+                    message = Duel.ThrowCombo(Aim, PhysicsBattler.Locomotion.AimSpot.Chest, Time.time) ? "Duel lab: a combo asked for at the chest." : "Duel lab: he can't throw a combo just now (he is busy or down, or the last combo is still being watched).";
+                }
+
+                EndRow();
+                BeginRow();
+                Words(new GUIContent("Last blow:", "The last blow of a combo of three (Combat Feel \"A Combos Last Blow Is\"). Forehand: brought round over his shoulder. Chop: he leaps, the blade comes over his head and down. Spin: a backhand with a turn behind it; he shows his back for a moment. Each begins early in its own wind-up, which is the loop that brings the blade round: da, da ... DUM."));
+                for (int last = 0; last < PhysicsBattler.Locomotion.FlowCombos.LastNames.Length; last++)
+                {
+                    string lastName = PhysicsBattler.Locomotion.FlowCombos.LastNames[last];
+                    if (Press(feel.aCombosLastBlowIs == last ? "[" + lastName + "]" : lastName, "The combo of three ends in this.")) feel.aCombosLastBlowIs = last;
+                }
+
+                EndRow();
+                BeginRow();
+                Words(new GUIContent("A combo's blows:", "Whether each blow has more behind it than the one before (Combat Feel \"A Combos Blows Grow\"). Light, plain, heavy (new): a quick light first cut, a plain linking blow, and a last blow that lands hardest, freezes longest and throws him. All plain (old): as step 2 had them."));
+                if (Press(feel.aCombosBlowsGrow ? "[light, plain, heavy]" : "light, plain, heavy", "Each blow bigger than the last.")) feel.aCombosBlowsGrow = true;
+                if (Press(!feel.aCombosBlowsGrow ? "[all plain (old)]" : "all plain (old)", "As step 2 had them.")) feel.aCombosBlowsGrow = false;
+                EndRow();
+                feel.aCombosLastBlowLandsWith = Lever("Last blow lands with", feel.aCombosLastBlowLandsWith, 1f, 3f, "How hard the last blow lands against a plain blow (1), before what it gains from the blows landed before it. It is also the showstopper: twice the knock.");
+                feel.theLastBlowGrowsWithEachBlowLanded = Lever("Grows, a blow landed", feel.theLastBlowGrowsWithEachBlowLanded, 0f, 0.6f, "The last blow lands this much harder for each blow of the combo that landed before it.");
+                feel.theLastBlowsFreezeIsAtMost = Lever("Last blow's freeze", feel.theLastBlowsFreezeIsAtMost, 0.1f, 0.3f, "The longest the last blow freezes both men on the hit (seconds).");
+                feel.theLastBlowWindsUpAtLeast = Lever("Last blow winds up", feel.theLastBlowWindsUpAtLeast, 0.15f, 0.6f, "The last blow is begun at least this long before it lands (seconds): longer is a bigger, later blow.");
+                feel.theLastBlowsJoinMakesUpAtMost = Lever("Last join makes up", feel.theLastBlowsJoinMakesUpAtMost, 0f, 0.4f, "How much there may be to make up where the last blow is joined on, as time (seconds). 0.2: the last blow comes sooner, the blade's course kinks a little more at the join. 0: the smoothest join, the last blow about 0.2 s later.");
+                BeginRow();
+                Words(new GUIContent("After two landed, the last:", "What the last blow does to a man two blows of the combo have already landed on (Combat Feel \"After Two Landed The Last Blow Floors Him\"). Floors him (new): he goes down, whatever the blow threw him at. Only if thrown: he goes down only where the blow throws him faster than his legs can catch (a chop onto the head then leaves him standing)."));
+                if (Press(feel.afterTwoLandedTheLastBlowFloorsHim ? "[floors him]" : "floors him", "He goes down.")) feel.afterTwoLandedTheLastBlowFloorsHim = true;
+                if (Press(!feel.afterTwoLandedTheLastBlowFloorsHim ? "[only if thrown]" : "only if thrown", "By the blow's own throw.")) feel.afterTwoLandedTheLastBlowFloorsHim = false;
+                EndRow();
+                Readout(new GUIContent("His last combo: " + Duel.ComboTold + ".", "Each blow of the last combo: how hard it was set to land (x a plain blow), when it landed after the first, what it met and how fast, how heavy it was on him, how long both froze, and what it did to him. Then the time from the first hit to the last, how much heavier the last landed than the first, and where his man was 1.5 s after the last hit."), 7);
+                BeginRow();
                 Words(new GUIContent("Two blows:", "Step 2 of the combos plan: a forehand down and a rising backhand back up the same line, at the chest (Combat Feel \"A Second Blow Flows Out Of The First\"). Flowing (new): one swing. The first blow's own carry-through is played as far as the corner where the blade turns, and there the second is begun in the middle of its own wind-up: the blade never goes back to the guard between the hits. One after the other (old): a whole attack, and when he is free again the other."));
                 if (Press(feel.aSecondBlowFlowsOutOfTheFirst ? "[flowing]" : "flowing", "One swing with two hits.")) feel.aSecondBlowFlowsOutOfTheFirst = true;
                 if (Press(!feel.aSecondBlowFlowsOutOfTheFirst ? "[one after the other (old)]" : "one after the other (old)", "Two whole attacks.")) feel.aSecondBlowFlowsOutOfTheFirst = false;
@@ -4193,22 +4228,23 @@ namespace PhysicsBattler.Sandbox
         // Names are matched whole, without a chosen button's square brackets; capitals do not matter.
 
         /// <summary>Names this push's list. Change it with every push that needs his eye: his "highlights off" is kept by tag, so a new list is shown again.</summary>
-        private const string LookTag = "21 November, 09:49: two attack speed sliders; he no longer falls after a long jump in; the panel needs no scrolling sideways";
+        private const string LookTag = "21 November, 11:43: combos, step 3: three blows and the big one";
 
         /// <summary>What to do, in order, in plain words.</summary>
         private static readonly string[] LookSteps =
         {
-            "1. First look at this panel itself: nothing should be cut off at its right edge and there should be no scroll bar along the bottom. Rows of buttons too long for the panel now go on on a second line. I could not see this panel from here, so tell me what still sticks out, or looks odd.",
-            "2. Go to \"Duel\", find \"Strike at\". The one attack speed slider is now two: \"Speed: single\" is for one blow (press \"Chest\"), \"Speed: combos\" is for both blows of \"Throw two\". Move one and check the other kind of attack did not change. Tell me the two numbers that feel right.",
-            "3. Press \"Throw two\" a good many times, most of all when the first blow drives the dummy far back and he makes a long jump in. He should no longer fall after it. \"His last two blows\" now also says how far his chest got from its pose in the jump: in your last log that was 52 cm before he fell.",
-            "4. To compare, the row \"In the jump, his body:\" has \"dragged (old)\": with that he may fall again after a long jump. Put it back on \"carried\".",
-            "5. What I would like to hear: does anything still need scrolling sideways? Does he still fall after a jump in? Which two speeds?",
+            "1. Go to \"Duel\", find \"Strike at\", and press \"Throw combo\" a good many times. New: three blows as one swing. A quick light forehand, a rising backhand, and then the big one: a forehand brought round over his shoulder with a deep lunge. Da, da ... DUM. The big one freezes longer on the hit and throws the dummy down. \"His last combo\" tells each blow.",
+            "2. In the row \"Last blow:\" try \"chop\" (he leaps and chops down on the head; the freeze catches him in the air) and \"spin\" (a backhand with a turn behind it; he shows his back). The spin is the wildest of the three: tell me if it works at all.",
+            "3. In the row \"Combo:\" press \"2 blows\" and throw again: now the rising backhand is the big one. After only one blow before it, the dummy should stumble back and stay on his feet. After two (the combo of three) he goes down.",
+            "4. When the dummy is floored the swordsman should run in and stab him, as before.",
+            "5. \"Speed: combos\" sets how fast all of it goes. In my tests three hits take 1.22 s at 1, and 1.15 s at 1.25. To tune the big one: \"Last blow lands with\" and \"Last blow's freeze\". To compare with before: \"A combo's blows: all plain (old)\".",
+            "6. What I would like to hear: is the rhythm right? Is the big one too strong, or the throw too far? Does the chop's leap look right or too much? Spin: keep or drop? Which speed?",
         };
 
         /// <summary>The names of what he is to press and watch.</summary>
         private static readonly string[] LookHere =
         {
-            "Duel", "Strike at", "Speed: single", "Speed: combos", "In the jump, his body:", "Two blows:", "Throw two", "His last two blows",
+            "Duel", "Strike at", "Combo:", "Throw combo", "Last blow:", "A combo's blows:", "Last blow lands with", "Last blow's freeze", "His last combo", "Speed: combos",
         };
 
         /// <summary>For the panel check (headless): the names of <see cref="LookHere"/> that were really drawn, and every section taken as open while it looks.</summary>

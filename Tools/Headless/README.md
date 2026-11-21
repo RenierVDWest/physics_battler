@@ -84,6 +84,16 @@ The rest are one-off comparisons from particular days, kept for reference.
 - `FIGHT_FLOWJUMPS=0`: he does not jump in for the second blow (old). `FIGHT_FLOWJUMP="0.2,1.4,0.8"`: from how far
   short (m), at most (m), and the share of his man's going he is led by. Use `FIGHT_STUMBLEFROM=0.5` with it, or the
   headless target does not go back. `FLOWMADE` says "[he jumped in N cm; his man was going V m/s]".
+- `FIGHT_COMBO="3,chop"`: `FIGHT_THROWTWO` throws a combo of 2 or 3 blows, a three's last a `forehand`, `chop` or
+  `spin`; light, plain, heavy unless `FIGHT_COMBOGROWS=0`. Without `FIGHT_COMBO` it throws two plain blows, as step 2
+  had them. `FIGHT_COMBOLAST="1.6,0.25,0.2,0.3,0.2"`: the last blow's power, its growth for a blow landed, its longest
+  freeze (s), its least wind-up (s), and the most to make up at its join (s; 0: the smoothest).
+  `FIGHT_COMBOFLOORS=0`: it floors him only if it throws him. `FIGHT_COMBOSPIN=name`: the recording the spin is. A
+  `COMBO` line as each combo's account is ready (1.5 s after its last hit), a `FLOW` line for each pair of it.
+  `FIGHT_DOWNED=1` (and no `FIGHT_POUNCE=0`) to see him go for the man it floored.
+- `strip.py name t0 t1 [frames]`: the two fighters of a run as stick figures between two times of its log (the
+  events' first column), from the side and from above: `$S/name.strip.png`. Look at it with the Read tool. The
+  sword is not in it (headless does not record the blade). `wait.sh name...`: waits for runs to end, at most 110 s.
 - `FIGHT_ATTACKPACE=1.3`: a blow on its own thrown that much faster. `FIGHT_COMBOPACE=1.3`: both blows of a pair
   (`FIGHT_THROWTWO`). `FLOWMADE` says when each blow lands as made and both paces.
 - `FIGHT_FLOWJUMPCARRIES=0`: in the jump in his body is dragged after his root (old). `FIGHT_FLOWSHOVE=0.54`: for

@@ -167,6 +167,41 @@ namespace PhysicsBattler.Locomotion
     }
 
     /// <summary>
+    /// What a flowing combo is made of (the combos plan's step 3, 21 November; Combat Feel "A Combo Has This Many
+    /// Blows", "A Combos Last Blow Is", "A Combos Blows Grow"): a quick light forehand from the guard, a rising
+    /// backhand that flows out of it, and a last blow that is the big one: a forehand brought round over the
+    /// shoulder, a chop brought round over the head, or a backhand with a spin behind it. With two blows the rising
+    /// backhand is the big one. Each blow has more swing behind it than the one before: the first lands at
+    /// <see cref="FirstPower"/> of a plain blow, a linking blow at 1, the last at <see cref="LastPower"/> and more
+    /// for each blow landed before it (<see cref="ClipFighter.FlowLastGrows"/>), as the combo's showstopper.
+    /// <see cref="Grow"/> off: every blow a plain one, as step 2 had them.
+    /// </summary>
+    public static class FlowCombos
+    {
+        public static int Blows = 3, LastBlow;
+        public static bool Grow = true;
+        public static float FirstPower = 0.6f, LinkPower = 1f, LastPower = 1.6f;
+
+        /// <summary>The last blows a combo of three can end in: the strike, and its name on the panel.</summary>
+        public static readonly string[] Lasts = { "sns_forehand", "sns_chop_lunge", "spin_backhand_mid" };
+        public static readonly string[] LastNames = { "forehand", "chop", "spin" };
+
+        /// <summary>
+        /// The first blow: a quick light cut, little wound up and soon thrown. What comes after its landing is as
+        /// recorded: its carry-through is the next blow's wind-up, and the join is laid on the recording's own.
+        /// </summary>
+        public static AttackStyle First = new AttackStyle { WindUp = 0.6f, ArmSwing = 1f, HipDrive = 1f, Twist = 1f, Lean = 1f, Lunge = 1f, Drop = 1f, FollowThrough = 1f, WindUpTime = 0.7f, DriveTime = 1f, RecoveryTime = 1f };
+
+        /// <summary>
+        /// The last blow: carried all the way through and stepped into. Its wind-up is as recorded: it begins as
+        /// the blow before it, bent onto its own, and wound further back it would not carry on from there.
+        /// </summary>
+        public static AttackStyle Last = new AttackStyle { WindUp = 1f, ArmSwing = 1f, HipDrive = 1.15f, Twist = 1f, Lean = 1f, Lunge = 1.15f, Drop = 1f, FollowThrough = 1.3f, WindUpTime = 1f, DriveTime = 1f, RecoveryTime = 1.3f };
+
+        public static string LastName => LastNames[Mathf.Clamp(LastBlow, 0, LastNames.Length - 1)];
+    }
+
+    /// <summary>
     /// A cut made while turning round (17 November; Combat Feel "A Fighter Cuts As He Turns Round"): a fighter whose
     /// enemy is at his side or behind him, near enough to reach and striking at him (or, by chance, not), makes his
     /// quick turn round with a cut in it. The legs are the quick turn's (<see cref="Locomotor.QuickTurns"/>: the

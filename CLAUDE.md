@@ -4,7 +4,7 @@ This is the briefing a new chat reads first. It is kept short on purpose. The fu
 (over 6,000 lines: search it, never read it whole). Update this file at the end of every milestone or step:
 the "Where things stand" and "Roadmap" sections must always be true.
 
-Last updated: 21 November 2026, 09:49 (two attack speeds; the fall after a long jump in; the panel held to its width). Before that: 21 November 2026, 07:57 (his morning look answered: the jump in for the second blow, an attack speed slider, the dummy's spot, the pounce). Before that: 20 November 2026, 22:08 (step 2 of the combos plan is built and pushed, waiting for his eye; he said "Yes it sounds good. Go." to the combos plan at 18:42, every
+Last updated: 21 November 2026, 11:43 (combos, step 3: three blows and the big one, built and pushed, waiting for his eye; he said "Ok this all looks good to me. you can proceed" at 10:41 to the two speeds, the carried jump and the panel). Before that: 21 November 2026, 09:49 (two attack speeds; the fall after a long jump in; the panel held to its width). Before that: 21 November 2026, 07:57 (his morning look answered: the jump in for the second blow, an attack speed slider, the dummy's spot, the pounce). Before that: 20 November 2026, 22:08 (step 2 of the combos plan is built and pushed, waiting for his eye; he said "Yes it sounds good. Go." to the combos plan at 18:42, every
 default taken. **Step 1 of the combos plan is built and pushed, waiting for his eye:** every recording's blade is
 measured by a report, and the duel lab can draw a made attack's planned blade path and the path the sword really
 took. A view only: nobody fights differently. Next: step 2, two blows as one swing. Corrected at 20:15: what
@@ -572,6 +572,23 @@ it as Unity has it by default (`PHYSX_JOINTFORCES=0`: as headless was). With it 
 crossings 0.07%, tremble 4.8% (before: 0.00% and 6.6%).** Headless numbers of shoved bodies from before 21 November
 were measured with the stiff hold. **The jump and the panel are not seen in Unity.**
 Its film: https://claude.ai/artifact/F7ew9gozgHUsen4kmxRVDk
+
+**He looked (21 November, 10:41): "Ok this all looks good to me. you can proceed".** His log of 10:38 (Unity): 10
+jumps in of 21 to 90 cm, his chest within 4 to 8 cm of its pose in every one, no fall: the carried jump works in
+Unity. **The speeds he ended on: a single blow 1.15, a combo's blows 1.44** (his own Combat Feel; the code's defaults
+are still 1 and 1; ask before changing them).
+
+**Combos, step 3 is built (21 November, 11:43; README; headless only, waiting for his eye):** "Throw combo" in the
+duel lab throws 2 or 3 blows as one swing. A combo is a chain of step 2's pairs (`ClipFighter.FlowCombo`, the roll
+in `StepFlow`; `FlowCombos` in `AttackMaker.cs`; `DuelLab.ThrowCombo`): a light forehand (0.6), a rising backhand
+(plain), and the big one: forehand, leaping chop or spin (`spin_backhand_mid`), entered at least 0.3 s before it
+lands (its wind-up is the loop), landing at 1.6 after one landed blow and 2.0 after two, the showstopper (freeze up
+to 0.20 s; its knock doubled and the man floored where two landed before it). Headless at speed 1: three hits in
+1.22 s (forehand; the plan's mark is 1.15, met at speed 1.25), 1.48 (chop), 1.57 (spin); the big one 9 to 12 times
+as heavy as the first; floored each time; with two blows he stumbles and stays up. **New tool: `Tools/Headless/strip.py`
+draws a run's fighters as stick figures from its log: look at what a blow does before sending it to him.** Not
+right yet: the 2nd and 3rd blows are planted even when he walks; the chop's leap (hips +0.76 m) and the forehand's
+throw (10 m/s) may be too much; the spin is wild. Next: step 4 (against a man who defends), after his look.
 
 **The night of 20 to 21 November: his order (22:40 and 22:44, going to bed).** "Continue with the combos next steps
 until you are blocked by me, then continue with other tasks." "You will need me to look at things between the

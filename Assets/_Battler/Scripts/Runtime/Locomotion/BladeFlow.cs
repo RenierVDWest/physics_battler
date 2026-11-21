@@ -453,11 +453,23 @@ namespace PhysicsBattler.Locomotion
         /// The same, but the soonest second landing of all the joins with no more than <paramref name="mostBend"/>
         /// to make up (seconds; <see cref="PlanBend"/>: what the plan allows); none so good: the one with the least.
         /// </summary>
-        public static BladeJoin Join(BladeFlow first, BladeFlow next, float mostBend)
+        public static BladeJoin Join(BladeFlow first, BladeFlow next, float mostBend) => Join(first, next, mostBend, 0f);
+
+        /// <summary>
+        /// The same, with the next cut entered no later than <paramref name="leastBefore"/> seconds before it lands (a
+        /// combo's last blow, the plan's step 3: a big blow has its whole swing behind it, and its own wind-up is the
+        /// loop that brings the blade round: over the shoulder for a forehand, over the head for a chop).
+        /// </summary>
+        public static BladeJoin Join(BladeFlow first, BladeFlow next, float mostBend, float leastBefore)
         {
             int iLo = Mathf.Min(first.Count - 1, first.Hit + Mathf.RoundToInt(NotWithin * first.Rate));
             int iHi = Mathf.Clamp(first.Leave + Mathf.RoundToInt(LeavesWithin * first.Rate), iLo, first.Count - 1);
             int jHi = Mathf.Clamp(next.Enter, 0, next.Count - 1);
+            if (leastBefore > 0f)
+            {
+                jHi = Mathf.Clamp(Mathf.Min(jHi, next.Hit - Mathf.RoundToInt(leastBefore * next.Rate)), 0, next.Count - 1);
+            }
+
             BladeJoin best = At(first, next, iHi, 0), soonest = best;
             bool any = false;
             for (int i = iLo; i <= iHi; i++)

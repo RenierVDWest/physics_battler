@@ -942,7 +942,8 @@ namespace PhysicsBattler.Locomotion
                 return this;
             }
 
-            string key = Name + "|from|" + before.Name + "|" + leave + "|" + enter + "|" + bend + (JoinTurnsRoot ? "|t" : "") + (JoinWindsOverBend ? "|w" : "") + (overWalk ? "|walk" : "");
+            // (The blow before may itself be one entered out of another, a combo's second: its own key says how.)
+            string key = Name + "|from|" + (before.JoinKey ?? before.Name) + "|" + leave + "|" + enter + "|" + bend + (JoinTurnsRoot ? "|t" : "") + (JoinWindsOverBend ? "|w" : "") + (overWalk ? "|walk" : "");
             // (To the nearest twentieth of a leg, so that the same jump is the same score.)
             jump = new Vector3(Mathf.Round(jump.x * 20f) / 20f, 0f, Mathf.Round(jump.z * 20f) / 20f);
             if (jump.sqrMagnitude > 1e-6f)
@@ -953,10 +954,23 @@ namespace PhysicsBattler.Locomotion
             if (!scores.TryGetValue(key, out var score))
             {
                 scores[key] = score = new AttackScore(before, this, leave, enter, bend, overWalk, jump);
+                score.JoinKey = key;
             }
 
             return score;
         }
+
+        /// <summary>
+        /// For a blow entered out of another (<see cref="EnteredFrom"/>): the recording it is, and which of the
+        /// recording's frames its own first frame is (its frame f is the recording's <c>EnteredAt + f</c>). So a
+        /// third blow can be joined to it by the recording's own map (<see cref="BladeFlow"/>). Null and 0 for a
+        /// recording itself.
+        /// </summary>
+        public AttackScore Raw { get; private set; }
+        public int EnteredAt { get; private set; }
+
+        /// <summary>For a blow entered out of another: all that it was made from, in a word (the same join is the same score).</summary>
+        public string JoinKey { get; private set; }
 
         /// <summary>How high he is off the ground at the middle of a jump in (leg lengths).</summary>
         public const float JumpHops = 0.06f;
@@ -975,6 +989,8 @@ namespace PhysicsBattler.Locomotion
             enter = Mathf.Clamp(enter, 0, next.Contact - 2);
             bend = Mathf.Clamp(bend, 2, 2 * enter);
             int half = bend / 2, first = enter - half, n = next.Frames.Length - first;
+            Raw = next.Raw ?? next;
+            EnteredAt = next.EnteredAt + first;
             Frames = new BodyTracks[n];
             Root = new Vector3[n];
             Facing = new float[n];

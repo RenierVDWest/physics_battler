@@ -834,7 +834,7 @@ internal static class FightReport
         string openedTold = "none watched yet";
         bool openTold = false;
         bool startWatched = false;
-        string twoTold = "none thrown yet";
+        string twoTold = "none thrown yet", comboTold = "none thrown yet", pairTold = "none thrown yet";
         int aimRounds = 0;
         if (aimLineup)
         {
@@ -1237,6 +1237,27 @@ internal static class FightReport
         // (FIGHT_FLOWJUMPCARRIES=0: in the jump in his body is dragged after his root, as before. FIGHT_FLOWSHOVE=0.9:
         // for the tests, at the join his man is put that much further off, as a blow that drove him far would have.
         // FIGHT_COMBOPACE=1.3: a combo's blows thrown that much faster; FIGHT_ATTACKPACE is then a blow's on its own.)
+        // (FIGHT_COMBO="3,chop": FIGHT_THROWTWO throws a combo of that many blows (2 or 3), a three's last blow a
+        // forehand, chop or spin; light, plain, heavy unless FIGHT_COMBOGROWS=0. Without FIGHT_COMBO: two plain blows,
+        // as step 2 had them. FIGHT_COMBOLAST="1.6,0.25,0.2,0.3": the last blow's power, what it grows by for each
+        // blow landed, its longest freeze (s) and its least wind-up (s). A COMBO line as each ends.)
+        {
+            var combo = (Environment.GetEnvironmentVariable("FIGHT_COMBO") ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+            PhysicsBattler.Locomotion.FlowCombos.Blows = combo.Length > 0 && int.TryParse(combo[0], out int comboCount) ? comboCount : 2;
+            PhysicsBattler.Locomotion.FlowCombos.LastBlow = combo.Length > 1 ? Math.Max(0, Array.IndexOf(PhysicsBattler.Locomotion.FlowCombos.LastNames, combo[1].Trim())) : 0;
+            PhysicsBattler.Locomotion.FlowCombos.Grow = combo.Length > 0 && Environment.GetEnvironmentVariable("FIGHT_COMBOGROWS") != "0";
+            PhysicsBattler.Locomotion.ClipFighter.FlowLastFloors = Environment.GetEnvironmentVariable("FIGHT_COMBOFLOORS") != "0";
+            // (FIGHT_COMBOSPIN=sns_backhand_lunge: the recording the "spin" is.)
+            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("FIGHT_COMBOSPIN"))) PhysicsBattler.Locomotion.FlowCombos.Lasts[2] = Environment.GetEnvironmentVariable("FIGHT_COMBOSPIN");
+            var cl = (Environment.GetEnvironmentVariable("FIGHT_COMBOLAST") ?? "").Split(',');
+            var ci = System.Globalization.CultureInfo.InvariantCulture;
+            if (cl.Length > 0 && float.TryParse(cl[0], System.Globalization.NumberStyles.Float, ci, out float cl0)) PhysicsBattler.Locomotion.FlowCombos.LastPower = cl0;
+            if (cl.Length > 1 && float.TryParse(cl[1], System.Globalization.NumberStyles.Float, ci, out float cl1)) PhysicsBattler.Locomotion.ClipFighter.FlowLastGrows = cl1;
+            if (cl.Length > 2 && float.TryParse(cl[2], System.Globalization.NumberStyles.Float, ci, out float cl2)) PhysicsBattler.Locomotion.ClipFighter.FlowLastStop = cl2;
+            if (cl.Length > 3 && float.TryParse(cl[3], System.Globalization.NumberStyles.Float, ci, out float cl3)) PhysicsBattler.Locomotion.ClipFighter.FlowLastWindsUp = cl3;
+            // (And a fifth: how much there may be to make up at the last blow's join (s; 0: the join with the least).)
+            if (cl.Length > 4 && float.TryParse(cl[4], System.Globalization.NumberStyles.Float, ci, out float cl4)) PhysicsBattler.Locomotion.ClipFighter.FlowLoopBend = cl4;
+        }
         PhysicsBattler.Locomotion.ClipFighter.FlowJumpTraced = Environment.GetEnvironmentVariable("FIGHT_FLOWJUMPTRACE") == "1";
         PhysicsBattler.Locomotion.ClipFighter.FlowJumpCarriesBody = Environment.GetEnvironmentVariable("FIGHT_FLOWJUMPCARRIES") != "0";
         if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_FLOWSHOVE"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float flowShove)) PhysicsBattler.Locomotion.ClipFighter.FlowTestShoves = flowShove;
@@ -2444,16 +2465,27 @@ internal static class FightReport
                     {
                         if (float.TryParse(at, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float twoAt) && paceAt >= twoAt && paceAt - dt < twoAt)
                         {
-                            bool thrown = duel.ThrowTwo(aim, PhysicsBattler.Locomotion.AimSpot.Chest, Time.time);
+                            bool thrown = duel.ThrowCombo(aim, PhysicsBattler.Locomotion.AimSpot.Chest, Time.time);
+                            comboTold = duel.ComboTold;
                             twoTold = duel.TwoTold;
                             Console.WriteLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "TWO {0:0.00}: {1}, {2:0.00} m apart, going {3:0.00} m/s", paceAt, thrown ? "begun (" + duel.TwoTold + ")" : "he could not", duel.Gap, duel.Speed));
                         }
                     }
 
-                    if (duel.TwoTold != twoTold && !duel.TwoTold.EndsWith("under way"))
+                    if (duel.ComboTold != comboTold && duel.ComboTold != "under way")
                     {
-                        twoTold = duel.TwoTold;
-                        Console.WriteLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "FLOW {0:0.00}: {1}", paceAt, duel.TwoTold));
+                        comboTold = duel.ComboTold;
+                        Console.WriteLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "COMBO {0:0.00}: {1}", paceAt, duel.ComboTold));
+                    }
+
+                    // (Each pair of a flowing combo as it is closed, the fighter's own account; the old way, the lab's.)
+                    bool pairEnded = duel.Mover.Clip != null && (duel.Mover.Clip.FlowTold ?? "") != pairTold && (duel.Mover.Clip.FlowTold ?? "").Length > 0;
+                    bool oldEnded = duel.TwoTold != twoTold && duel.TwoTold.StartsWith("one after the other") && !duel.TwoTold.EndsWith("under way");
+                    twoTold = duel.TwoTold;
+                    if (pairEnded || oldEnded)
+                    {
+                        pairTold = duel.Mover.Clip != null ? duel.Mover.Clip.FlowTold ?? "" : "";
+                        Console.WriteLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "FLOW {0:0.00}: {1}", paceAt, pairEnded ? "flowing: " + pairTold : duel.TwoTold));
                         Console.WriteLine("FLOWMADE" + duel.Mover.Clip.FlowMade);
                         Console.WriteLine("FLOWJOIN " + PhysicsBattler.Locomotion.AttackScore.JoinNote);
                         Console.WriteLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "FLOWJUMP {0:0.00}: jumped in {1:0} cm, his body {2}; his chest got {3:0} cm from its pose in it; falls after a jump so far {4}; borne down so far {5}; fallen now {6}",

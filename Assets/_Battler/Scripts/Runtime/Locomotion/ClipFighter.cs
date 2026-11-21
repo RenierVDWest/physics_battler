@@ -4897,7 +4897,10 @@ namespace PhysicsBattler.Locomotion
             Strikes = new StrikeHits(Loco, Poser, Anim) { Weapon = weapon, Scale = Size, Slot = Authority != null ? Rig.SlotWeaponR : null, Mass = Mass, Owner = this };
             StrikeClips = StrikesOf(Poser.BodyKey);
             windUpsBehind = -1;
-            Strikes.Finishing = () => Combo != null && Combo.LastBlow;
+            Strikes.Finishing = () => (Combo != null && Combo.LastBlow) || FlowLastBlow;
+            Strikes.FinisherStopMost = () => FlowLastBlow ? FlowLastStop : 0f;
+            // (The plan's rule 4: after one landed blow the big one sends him stumbling; after two it throws him down.)
+            Strikes.FinisherThrows = () => !FlowLastBlow || chainLanded >= 2;
             Strikes.Comboing = () => Combo != null && Combo.Playing && Combo.Cores;
             return Strikes;
         }
@@ -5322,7 +5325,11 @@ namespace PhysicsBattler.Locomotion
         /// aimed where <paramref name="point"/> says as it is begun. False: nothing is playing to follow, the strike is
         /// not his, or blows do not flow.
         /// </summary>
-        public bool FlowInto(ClipFighter target, System.Func<Vector3> point, in AttackStyle style, string next)
+        public bool FlowInto(ClipFighter target, System.Func<Vector3> point, in AttackStyle style, string next) => FlowInto(target, point, style, next, false, 1f);
+
+        /// <param name="last">A combo's last blow (<see cref="FlowCombo"/>): it is entered early in its own wind-up, which is the loop that brings the blade round, and it lands as the big one.</param>
+        /// <param name="power">How hard it lands, against a plain blow (<see cref="StrikeHits.Power"/>).</param>
+        public bool FlowInto(ClipFighter target, System.Func<Vector3> point, in AttackStyle style, string next, bool last, float power)
         {
             flowFirst = flowSecond = null;
             if (!BlowsFlow || Made == null || Made.Posture || Made.Score == null || Loco.Shot != Made.Clip || point == null)
@@ -5330,28 +5337,29 @@ namespace PhysicsBattler.Locomotion
                 return false;
             }
 
-            AttackScore nextScore = null;
-            foreach (var clip in StrikeClips)
-            {
-                if (clip.Name == next)
-                {
-                    nextScore = AttackScore.Of(clip);
-                }
-            }
-
+            AttackScore nextScore = FlowScore(next);
             if (nextScore == null)
             {
                 return false;
             }
 
-            var join = BladeFlow.Join(BladeFlow.Of(Made.Score), BladeFlow.Of(nextScore), FlowBend);
-            flowLeave = join.Leave;
+            flowLast = last;
+            flowPower = power;
+
+            // (The blow playing may itself have been entered out of another, a combo's second: the map is of its
+            // recording, whose frame EnteredAt its own first frame is.)
+            int entered = Made.Score.EnteredAt;
+            var join = last
+                ? BladeFlow.Join(BladeFlow.Of(Made.Score.Raw ?? Made.Score), BladeFlow.Of(nextScore), FlowLoopBend, FlowLastWindsUp)
+                : BladeFlow.Join(BladeFlow.Of(Made.Score.Raw ?? Made.Score), BladeFlow.Of(nextScore), FlowBend);
+            flowLeave = Mathf.Clamp(join.Leave - entered, Mathf.Min(Made.Score.Contact + 1, Made.Score.Frames.Length - 1), Made.Score.Frames.Length - 1);
             flowEnter = join.Enter;
-            // (When that moment of the recording comes in the made clip: after its landing the clip goes at the drive's pace.)
-            float driveTime = Mathf.Clamp(AttackMaker.Paced(style, true).DriveTime, 0.4f, 3f);
+            // (When that moment of the recording comes in the made clip: after its landing the clip goes at the drive's
+            // pace of the blow as it was made.)
+            float driveTime = Mathf.Clamp(Made.Style.DriveTime > 0f ? Made.Style.DriveTime : AttackMaker.Paced(style, true).DriveTime, 0.4f, 3f);
             // (Left at the corner itself, where the blade is slowest: begun half the bend sooner, with the blade still at
             // 17 m/s, the posed point was thrown 38 cm off its course in a step; at the corner, 13 cm or less.)
-            flowLeaveAt = Made.ContactAt + Mathf.Max(0.05f, join.Leave / Made.Score.Rate - Made.ScoreTime) * driveTime;
+            flowLeaveAt = Made.ContactAt + Mathf.Max(0.05f, flowLeave / Made.Score.Rate - Made.ScoreTime) * driveTime;
             flowFirst = Made;
             flowTargetKnown = false;
             flowJumped = 0f;
@@ -5445,6 +5453,7 @@ namespace PhysicsBattler.Locomotion
 
         private void StepFlow(float dt)
         {
+            StepComboAfter(dt);
             if (flowFirst == null && flowSecond == null)
             {
                 return;
@@ -5480,11 +5489,13 @@ namespace PhysicsBattler.Locomotion
             {
                 flowFirstHit = clock;
                 flowFirstMet = Strikes.Last;
+                ComboHit(chainAt);
             }
             else if (landed && flowSecond != null && flowSecondHit < 0f)
             {
                 flowSecondHit = clock;
                 flowSecondMet = Strikes.Last;
+                ComboHit(chainAt + 1);
                 FlowHitToHit = flowFirstHit >= 0f ? clock - flowFirstHit : 0f;
                 FlowSecondMiss = seen && flowPoint != null ? Vector3.Distance(strike, flowPoint()) : -1f;
                 flowEnds = clock + 0.25f;
@@ -5536,17 +5547,10 @@ namespace PhysicsBattler.Locomotion
             if (flowSecond == null && Loco.ShotTime >= flowLeaveAt && Strikes.HitStop <= 0f && !Loco.Rewinding)
             {
                 // The corner: the next blow is begun out of this one's carry-through, in the middle of its own wind-up.
-                AttackScore nextScore = null;
-                foreach (var clip in StrikeClips)
-                {
-                    if (clip.Name == flowNext)
-                    {
-                        nextScore = AttackScore.Of(clip);
-                    }
-                }
-
+                AttackScore nextScore = FlowScore(flowNext);
                 var first = flowFirst;
-                int bendFrames = nextScore != null ? Mathf.Max(2, Mathf.RoundToInt(FlowBendOver * nextScore.Rate)) : 2;
+                // (A combo's last blow is bent onto over longer: there is a loop to make, and its own wind-up to make it in.)
+                int bendFrames = nextScore != null ? Mathf.Max(2, Mathf.RoundToInt((flowLast ? Mathf.Max(FlowBendOver, FlowLoopOver) : FlowBendOver) * nextScore.Rate)) : 2;
                 // (Where the first blow went over his walk his root is the walk's: it did not turn as the blow's own
                 // root does, and he still faces his man. The joined score is then in the frame the first blow began
                 // in, whichever way the second is thrown.)
@@ -5644,6 +5648,15 @@ namespace PhysicsBattler.Locomotion
 
                 flowSecond = second;
                 flowJoinedAt = clock;
+                // (How hard it lands: a made blow begins as a plain one. A combo's last is its showstopper.)
+                // (The big one: as set after one landed blow, that much more after two, that much less after none.)
+                Strikes.Power = flowPower * (flowLast ? Mathf.Max(0.5f, 1f + FlowLastGrows * (chainLanded - 1)) : 1f);
+                if (chainBlows > 0 && chainAt + 1 < chainPower.Count)
+                {
+                    chainPower[chainAt + 1] = Strikes.Power;
+                    chainThrown = chainAt + 1;
+                }
+
                 flowMade = string.Format(System.Globalization.CultureInfo.InvariantCulture, " [the second as made: its score {0} frames at {1:0} a second, drive at {2}, lands at {3}; turned {4:0} degrees, lunge x{5:0.00}, hips dropped {6:0} cm, leaned {7:0} degrees, hand moved {8:0} cm, wrist steered {9:0} degrees; lands {10:0.00} s in, at {16:0.00} s of its score. The first: turned {11:0}, lunge x{12:0.00}, dropped {13:0} cm, leaned {14:0}, hand moved {15:0} cm]",
                     joined.Frames.Length, joined.Rate, joined.Drive, joined.Contact, second.Turn, second.Lunge, 100f * second.Drop * Loco.Leg, second.Lean, 100f * second.HandMoved * Loco.Leg, second.Steer, second.ContactAt,
                     first.Turn, first.Lunge, 100f * first.Drop * Loco.Leg, first.Lean, 100f * first.HandMoved * Loco.Leg, second.ScoreTime)
@@ -5657,10 +5670,315 @@ namespace PhysicsBattler.Locomotion
                 flowEnds = clock + 3f;
                 FlowJoined?.Invoke(this, second);
             }
+            else if (flowSecond != null && flowRest.Count > 0 && Strikes.HitStop <= 0f && (flowSecondHit >= 0f || Loco.ShotTime >= flowSecond.ContactAt + 0.08f))
+            {
+                // A combo goes on: the blow that has just landed (or passed where it should have) is the one the next
+                // flows out of. This pair's account is closed and the next pair's opened on the same blow.
+                float hit = flowSecondHit;
+                string met = flowSecondMet;
+                var then = flowRest[0];
+                flowRest.RemoveAt(0);
+                flowRolls = true;
+                EndFlow(null);
+                flowRolls = false;
+                chainAt++;
+                if (!FlowInto(flowTarget, then.Point ?? flowPoint, then.Style, then.Strike, flowRest.Count == 0 && then.Last, then.Power))
+                {
+                    flowRest.Clear();
+                    EndCombo("the next blow could not follow (" + then.Strike + ")");
+                    return;
+                }
+
+                flowFirstHit = hit;
+                flowFirstMet = met ?? "";
+            }
             else if (flowSecond != null && flowSecondHit >= 0f && clock >= flowEnds)
             {
                 EndFlow(null);
             }
+        }
+
+        // ---- A combo: several blows as one swing, the last the big one (the combos plan's step 3) --------------------
+
+        /// <summary>A blow of a combo after its first: the strike, its style, how hard it lands, where it is aimed as it is begun (null: where the blow before was), and whether it is the big one.</summary>
+        public struct FlowBlow
+        {
+            public string Strike, Says;
+            public AttackStyle Style;
+            public float Power;
+            public bool Last;
+            public System.Func<Vector3> Point;
+        }
+
+        /// <summary>
+        /// A combo's last blow (Combat Feel "A Combos Last Blow ..."): it is entered no later than
+        /// <see cref="FlowLastWindsUp"/> seconds before it lands, its own wind-up being the loop that brings the blade
+        /// round (the soonest join with no more than <see cref="FlowLoopBend"/> to make up is taken, 0: the one with
+        /// the least; it is bent over <see cref="FlowLoopOver"/> seconds); it lands <see cref="FlowLastGrows"/> harder for each blow of the combo
+        /// that landed before it; and its freeze on the hit is at most <see cref="FlowLastStop"/> seconds.
+        /// </summary>
+        public static float FlowLastWindsUp = 0.3f, FlowLoopBend = 0.2f, FlowLoopOver = 0.2f, FlowLastGrows = 0.25f, FlowLastStop = 0.2f;
+
+        /// <summary>A combo's last blow floors its man where two blows of the combo landed before it (Combat Feel "After Two Landed The Last Blow Floors Him"; <c>FIGHT_COMBOFLOORS=0</c>: only where it throws him faster than his legs can catch).</summary>
+        public static bool FlowLastFloors = true;
+
+        private readonly List<FlowBlow> flowRest = new List<FlowBlow>();
+        private bool flowLast, flowRolls;
+        private float flowPower = 1f;
+
+        /// <summary>The strike of that name as a score: one of his own, or any recorded cut (a last blow may be one he does not throw alone).</summary>
+        private AttackScore FlowScore(string name)
+        {
+            foreach (var clip in StrikeClips)
+            {
+                if (clip.Name == name)
+                {
+                    return AttackScore.Of(clip);
+                }
+            }
+
+            var any = name != null ? LocoLibrary.Get(name) : null;
+            return any != null ? AttackScore.Of(any) : null;
+        }
+
+        private readonly List<string> chainSays = new List<string>(), chainMet = new List<string>(), chainDid = new List<string>();
+        private readonly List<float> chainHitAt = new List<float>(), chainWeight = new List<float>(), chainStop = new List<float>(), chainPower = new List<float>();
+        private int chainBlows, chainAt, chainLanded, chainThrown;
+        private float chainBegan, chainWatched = -1f;
+        private Vector3 chainStood;
+        private bool chainFell, chainWasDown;
+        private string chainBroke;
+        private ClipFighter chainTarget;
+
+        /// <summary>For the panel and the reports: what the last combo did, blow by blow.</summary>
+        public string ComboTold { get; private set; } = "none thrown yet";
+
+        /// <summary>Combos begun, combos whose every blow was begun, and combos that floored their man (for the reports).</summary>
+        public int CombosBegun { get; private set; }
+        public int CombosWhole { get; private set; }
+        public int CombosFloored { get; private set; }
+
+        /// <summary>The last combo: from its first hit to its last (seconds; 0: fewer than two landed), how hard its last blow landed against its first (times; 0: not both), and how far its man was driven in the 1.5 s after the last hit (metres).</summary>
+        public float ComboFirstToLast { get; private set; }
+        public float ComboLastAgainstFirst { get; private set; }
+        public float ComboThrew { get; private set; }
+
+        /// <summary>A combo is being thrown, or what its last blow did is still being watched.</summary>
+        public bool InCombo => chainBlows > 0;
+
+        /// <summary>The blow playing is a combo's last, the big one.</summary>
+        public bool FlowLastBlow => chainBlows > 0 && flowSecond != null && flowLast;
+
+        /// <summary>Told as a combo's account is ready.</summary>
+        public System.Action<ClipFighter> ComboEnded;
+
+        /// <summary>
+        /// The blow just begun (<see cref="Made"/>) is a combo's first: the rest follow it, each out of the
+        /// carry-through of the one before (<see cref="FlowInto(ClipFighter, System.Func{Vector3}, in AttackStyle, string, bool, float)"/>).
+        /// False: the first of the rest could not follow, and nothing is begun.
+        /// </summary>
+        /// <param name="firstSays">The first blow in a word, for the account.</param>
+        public bool FlowCombo(ClipFighter target, System.Func<Vector3> point, string firstSays, IList<FlowBlow> rest)
+        {
+            if (rest == null || rest.Count == 0 || Strikes == null || chainWatched >= 0f)
+            {
+                return false;
+            }
+
+            flowRest.Clear();
+            chainBlows = 0;
+            var next = rest[0];
+            if (!FlowInto(target, next.Point ?? point, next.Style, next.Strike, rest.Count == 1 && next.Last, next.Power))
+            {
+                return false;
+            }
+
+            for (int i = 1; i < rest.Count; i++)
+            {
+                flowRest.Add(rest[i]);
+            }
+
+            chainSays.Clear();
+            chainMet.Clear();
+            chainDid.Clear();
+            chainHitAt.Clear();
+            chainWeight.Clear();
+            chainStop.Clear();
+            chainPower.Clear();
+            chainSays.Add(firstSays ?? "");
+            chainPower.Add(Strikes.Power);
+            foreach (var blow in rest)
+            {
+                chainSays.Add(blow.Says ?? blow.Strike);
+                chainPower.Add(blow.Power);
+            }
+
+            for (int i = 0; i < chainSays.Count; i++)
+            {
+                chainMet.Add("");
+                chainDid.Add("");
+                chainHitAt.Add(-1f);
+                chainWeight.Add(0f);
+                chainStop.Add(0f);
+            }
+
+            chainBlows = chainSays.Count;
+            chainAt = 0;
+            chainThrown = 0;
+            chainLanded = 0;
+            chainBegan = clock;
+            chainTarget = target;
+            chainBroke = null;
+            chainFell = false;
+            chainWasDown = target != null && target.Fallen;
+            CombosBegun++;
+            return true;
+        }
+
+        /// <summary>A blow of the combo has landed: when, on what, how hard, and what it did to the man.</summary>
+        private void ComboHit(int blow)
+        {
+            if (chainBlows <= 0 || blow < 0 || blow >= chainBlows || chainHitAt[blow] >= 0f)
+            {
+                return;
+            }
+
+            chainHitAt[blow] = clock;
+            chainMet[blow] = Strikes.LastMet ?? "";
+            chainWeight[blow] = Strikes.LastWeight;
+            chainStop[blow] = Strikes.HitStop;
+            chainPower[blow] = Strikes.Power;
+            chainDid[blow] = chainTarget != null ? chainTarget.LastReaction : "";
+            chainLanded++;
+            if (chainTarget != null && chainTarget.Loco != null)
+            {
+                chainStoodAtHit = chainTarget.Loco.Position;
+                chainStoodKnown = true;
+            }
+
+            // The big one floors him where two blows of the combo landed before it (the plan's rule 4: "After one
+            // landed blow it sends him stumbling. After two it floors him."), whatever it threw him at: a chop onto
+            // the head drives him down, not back, and would leave him standing.
+            if (FlowLastFloors && flowLast && blow == chainBlows - 1 && chainLanded >= 3 && chainTarget != null && !chainTarget.Fallen && !chainWasDown)
+            {
+                Vector3 way = chainTarget.Loco.Position - Loco.Position;
+                way.y = 0f;
+                chainTarget.KnockOver(way.normalized * 3f, 0.8f, "floored by the last blow of a combo, two having landed before it (" + chainDid[blow] + ")");
+                chainDid[blow] += "; floored, as a combo's last blow after two that landed";
+            }
+        }
+
+        /// <summary>The combo is over (its last blow done, or broken off): what its last hit does to the man is watched a moment, then its account is given.</summary>
+        private void EndCombo(string broke)
+        {
+            if (chainBlows <= 0 || chainWatched >= 0f)
+            {
+                return;
+            }
+
+            chainBroke = broke;
+            chainWatched = 0f;
+            chainStood = chainTarget != null && chainTarget.Loco != null ? chainTarget.Loco.Position : Vector3.zero;
+            float last = -1f;
+            for (int i = 0; i < chainBlows; i++)
+            {
+                last = Mathf.Max(last, chainHitAt[i]);
+            }
+
+            // (Already watched since the last hit: the pair's own end comes a quarter of a second after it.)
+            chainWatched = last >= 0f ? Mathf.Max(0f, clock - last) : ComboWatches;
+            if (chainAt + 2 >= chainBlows && broke == null)
+            {
+                CombosWhole++;
+            }
+        }
+
+        /// <summary>What a combo's last hit does to its man is watched this long after it (seconds).</summary>
+        public const float ComboWatches = 1.5f;
+
+        private Vector3 chainStoodAtHit;
+        private bool chainStoodKnown;
+
+        private void StepComboAfter(float dt)
+        {
+            if (chainBlows <= 0)
+            {
+                return;
+            }
+
+            // (Floored by the combo: down now and not when it began.)
+            if (chainTarget != null && chainTarget.Fallen && !chainWasDown)
+            {
+                chainFell = true;
+            }
+
+            if (chainWatched < 0f)
+            {
+                return;
+            }
+
+            chainWatched += dt;
+            if (chainWatched < ComboWatches)
+            {
+                return;
+            }
+
+            var inv = System.Globalization.CultureInfo.InvariantCulture;
+            var told = new System.Text.StringBuilder();
+            int first = -1, last = -1;
+            for (int i = 0; i < chainBlows; i++)
+            {
+                if (chainHitAt[i] >= 0f)
+                {
+                    first = first < 0 ? i : first;
+                    last = i;
+                }
+            }
+
+            told.AppendFormat(inv, "{0} blows", chainBlows);
+            if (chainBroke != null)
+            {
+                told.Append(", broken off: ").Append(chainBroke);
+            }
+
+            for (int i = 0; i < chainBlows; i++)
+            {
+                told.AppendFormat(inv, ". {0}: {1}", i + 1, chainSays[i]);
+                if (chainHitAt[i] >= 0f)
+                {
+                    told.AppendFormat(inv, " (x{0:0.00}) {1}, {2}, as heavy as {3:0.00} m/s on him, frozen {4:0.00} s{5}", chainPower[i],
+                        first == i ? "landed" : string.Format(inv, "landed {0:0.00} s after the first", chainHitAt[i] - chainHitAt[first]),
+                        chainMet[i], chainWeight[i], chainStop[i], chainDid[i].Length > 0 ? "; he: " + chainDid[i] : "");
+                }
+                else
+                {
+                    told.Append(i > chainThrown ? " was not thrown" : " met nothing");
+                }
+            }
+
+            ComboFirstToLast = first >= 0 && last > first ? chainHitAt[last] - chainHitAt[first] : 0f;
+            ComboLastAgainstFirst = first >= 0 && last > first && chainWeight[first] > 1e-4f ? chainWeight[last] / chainWeight[first] : 0f;
+            Vector3 went = chainTarget != null && chainTarget.Loco != null ? chainTarget.Loco.Position - chainStoodAtHit : Vector3.zero;
+            went.y = 0f;
+            ComboThrew = chainStoodKnown ? went.magnitude : 0f;
+            if (chainFell)
+            {
+                CombosFloored++;
+            }
+
+            if (last > first && first >= 0)
+            {
+                told.AppendFormat(inv, ". First hit to last: {0:0.00} s. The last landed {1:0.0} times as heavy as the first", ComboFirstToLast, ComboLastAgainstFirst);
+            }
+
+            told.AppendFormat(inv, ". His man in the {0:0.0} s after the last hit: {1}, {2:0.00} m from where he stood", ComboWatches, chainFell ? "floored" : chainTarget != null && chainTarget.Stumbling ? "still stumbling" : "on his feet", ComboThrew);
+            ComboTold = told.ToString();
+            Diagnostics.PlaytestTrace.Note(FightUnit, "combo", ComboTold);
+            chainBlows = 0;
+            chainWatched = -1f;
+            chainStoodKnown = false;
+            flowRest.Clear();
+            ComboEnded?.Invoke(this);
         }
 
         /// <summary>Told as the second blow is begun (the lab gives it its class and names it in the log).</summary>
@@ -5683,8 +6001,22 @@ namespace PhysicsBattler.Locomotion
             }
 
             Diagnostics.PlaytestTrace.Note(FightUnit, "flow", FlowTold);
-            FlowEnded?.Invoke(this);
+            bool whole = flowSecond != null;
             flowFirst = flowSecond = null;
+            if (flowRolls)
+            {
+                // (A combo going on: the next pair is opened at once, on the blow that is playing.)
+                return;
+            }
+
+            if (chainBlows > 0)
+            {
+                string left = flowRest.Count > 0 || !whole ? (why ?? "it ended before its last blow") : null;
+                flowRest.Clear();
+                EndCombo(left);
+            }
+
+            FlowEnded?.Invoke(this);
         }
 
         /// <summary>Told as a flow is over (for the reports).</summary>

@@ -1126,6 +1126,37 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("How fast a combo's blows are thrown: both blows of \"Throw two\". 1: as recorded. 1.25: a quarter faster throughout, and the blades land that much faster and harder. Apart from a single blow's speed, \"Attacks Are Thrown At\". The slider \"Attack speed: combos\" in the lab's \"Strike at\" sets this.")]
         [Range(0.6f, 2f)] public float aCombosBlowsAreThrownAt = 1f;
 
+        [Header("Combos: several blows as one swing, the last the big one (the combos plan's step 3)")]
+        [Tooltip("How many blows the duel lab's \"Throw combo\" throws: 2 (a forehand, then a rising backhand) or 3 (and a last blow: \"A Combos Last Blow Is\"). Each flows out of the carry-through of the one before.")]
+        [Range(2, 3)] public int aComboHasThisManyBlows = 3;
+
+        [Tooltip("The last blow of a combo of three. 0: a forehand, brought round over the shoulder. 1: a chop: he leaps, the blade comes round over his head and down. 2: a backhand with a spin behind it (he shows his back for a moment). Each is entered early in its own wind-up, which is the loop that brings the blade round.")]
+        [Range(0, 2)] public int aCombosLastBlowIs = 0;
+
+        [Tooltip("On: each blow of a combo has more behind it than the one before. The first is a quick light cut (it lands with \"A Combos First Blow Lands With\" of a plain blow), a linking blow is a plain one, and the last is the big one: it lands with \"A Combos Last Blow Lands With\", harder still for each blow landed before it, as the combo's showstopper (twice the knock, a longer freeze). Off: every blow a plain one, as step 2 had them.")]
+        public bool aCombosBlowsGrow = true;
+
+        [Tooltip("How hard a combo's first blow lands, against a plain blow (1). Light: it opens him and leaves him in reach.")]
+        [Range(0.3f, 1f)] public float aCombosFirstBlowLandsWith = 0.6f;
+
+        [Tooltip("How hard a combo's last blow lands, against a plain blow (1), before what it gains from the blows landed before it. On top of this it is the showstopper: twice the knock on the body.")]
+        [Range(1f, 3f)] public float aCombosLastBlowLandsWith = 1.6f;
+
+        [Tooltip("The last blow lands this much harder for each blow of the combo that landed before it (0.25: after two landed blows, half again as hard).")]
+        [Range(0f, 0.6f)] public float theLastBlowGrowsWithEachBlowLanded = 0.25f;
+
+        [Tooltip("The longest a combo's last blow freezes both men on the hit (seconds). A single blow's showstopper freeze is 0.13 to 0.17 s; the plan's \"to try up to 0.20\".")]
+        [Range(0.1f, 0.3f)] public float theLastBlowsFreezeIsAtMost = 0.2f;
+
+        [Tooltip("A combo's last blow is entered at least this long before it lands (seconds): its own wind-up is the loop that brings the blade round, and what tells the eye the big one is coming. Longer: a bigger, later blow (da, da ... DUM).")]
+        [Range(0.15f, 0.6f)] public float theLastBlowWindsUpAtLeast = 0.3f;
+
+        [Tooltip("How much there may be to make up where the last blow is joined to the one before it, as time (seconds): the soonest join within it is taken. 0.2: after a rising backhand the forehand lands 0.67 s later (headless), the blade's course kinking 25 cm at the join. 0: the smoothest join whatever it costs in time: 0.85 s later, 18 cm.")]
+        [Range(0f, 0.4f)] public float theLastBlowsJoinMakesUpAtMost = 0.2f;
+
+        [Tooltip("On: a combo's last blow floors its man where two blows of the combo landed before it, whatever it threw him at (a chop onto the head drives him down, not back). Off: he goes down only where the blow throws him faster than his legs can catch.")]
+        public bool afterTwoLandedTheLastBlowFloorsHim = true;
+
         [Tooltip("On: in the jump in for a second blow his physical body is carried with him: the jump begins and ends gently, and his whole body is given the speed he is carried at and has it taken off again as the jump ends. Nothing of his physics is put out. Off (as it was): he was carried off at once and his body dragged after him by its hips; in Renier's log of 21 November 08:33 his chest was left 52 cm behind in a jump of 87 cm, which the game took for a man borne down, and he fell (3 times in 39 pairs).")]
         public bool inTheJumpHisBodyIsCarriedWithHim = true;
 
@@ -2066,6 +2097,16 @@ namespace PhysicsBattler.Locomotion
             ClipFighter.FlowBend = Mathf.Clamp(theJoinMakesUpAtMost, 0.05f, 0.4f);
             AttackMaker.Pace = Mathf.Clamp(attacksAreThrownAt, 0.6f, 2f);
             AttackMaker.ComboPace = Mathf.Clamp(aCombosBlowsAreThrownAt, 0.6f, 2f);
+            FlowCombos.Blows = Mathf.Clamp(aComboHasThisManyBlows, 2, 3);
+            FlowCombos.LastBlow = Mathf.Clamp(aCombosLastBlowIs, 0, 2);
+            FlowCombos.Grow = aCombosBlowsGrow;
+            FlowCombos.FirstPower = Mathf.Clamp(aCombosFirstBlowLandsWith, 0.3f, 1f);
+            FlowCombos.LastPower = Mathf.Clamp(aCombosLastBlowLandsWith, 1f, 3f);
+            ClipFighter.FlowLastGrows = Mathf.Clamp(theLastBlowGrowsWithEachBlowLanded, 0f, 0.6f);
+            ClipFighter.FlowLastStop = Mathf.Clamp(theLastBlowsFreezeIsAtMost, 0.1f, 0.3f);
+            ClipFighter.FlowLastWindsUp = Mathf.Clamp(theLastBlowWindsUpAtLeast, 0.15f, 0.6f);
+            ClipFighter.FlowLastFloors = afterTwoLandedTheLastBlowFloorsHim;
+            ClipFighter.FlowLoopBend = Mathf.Clamp(theLastBlowsJoinMakesUpAtMost, 0f, 0.4f);
             ClipFighter.FlowJumpCarriesBody = inTheJumpHisBodyIsCarriedWithHim;
             ClipFighter.FlowJumpsIn = forTheSecondBlowHeJumpsIn;
             ClipFighter.FlowJumpsFrom = Mathf.Clamp(heJumpsInFrom, 0f, 1f);
