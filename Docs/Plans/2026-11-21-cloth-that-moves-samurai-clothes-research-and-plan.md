@@ -3,6 +3,8 @@
 21 November 2026. The live document: https://claude.ai/artifact/3Jev6uXAQk3Nsncq7GCtAh (this is its copy in the
 repository; where the two differ, the live one is newer). **Nothing here is built: this is the research and the plan.**
 
+Its film (3b2b, about five minutes): https://claude.ai/artifact/TtEraxUG6Bk2VKuR9n6uiu
+
 ## Bottom line
 
 It can be done, and I recommend we write our own small cloth solver instead of using Unity's or buying one.

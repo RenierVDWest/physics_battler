@@ -8785,3 +8785,7 @@ Müller's lecture 15, Lewin's paper.
 
 **Order now:** clothes, then the shock waves, then the combos plan's step 7. **Six questions put to him** (our own
 solver or bought; the skirt kind first; sleeves tied back first; who wears them; Burst later; the order).
+
+**Its film** (3b2b, made by Opus at medium effort; 8 scenes, 34 beats, about 5 minutes; added 21:22): https://claude.ai/artifact/TtEraxUG6Bk2VKuR9n6uiu
+Checked by its maker: every beat looked at in light and dark, every number against the plan. Not tried: the voice,
+the question box, saving notes.
