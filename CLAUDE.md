@@ -1,7 +1,9 @@
 # Physics Battler: start here
 
 This is the briefing a new chat reads first. It is kept short on purpose. The full build log is `README.md`
-(over 6,000 lines: search it, never read it whole). Update this file at the end of every milestone or step:
+(over 8,000 lines: search it, never read it whole). **New entries are added at its end, never written over it: after
+writing one, `wc -l README.md` must say more than before.** (On 21 November, 11:44, a commit left only the newest entry
+in it, and two more commits did the same; found and put back whole at 14:40, nothing lost.) Update this file at the end of every milestone or step:
 the "Where things stand" and "Roadmap" sections must always be true.
 
 Last updated: 21 November 2026, 13:57 (after his look at step 3: the big one made big and given its own speed, a new spin from his recording, the first blows keep him in reach; he said "Ok that looks good ... Do this and proceed" at 12:45, so step 4 is next without waiting). Before that: 21 November 2026, 11:43 (combos, step 3: three blows and the big one, built and pushed, waiting for his eye; he said "Ok this all looks good to me. you can proceed" at 10:41 to the two speeds, the carried jump and the panel). Before that: 21 November 2026, 09:49 (two attack speeds; the fall after a long jump in; the panel held to its width). Before that: 21 November 2026, 07:57 (his morning look answered: the jump in for the second blow, an attack speed slider, the dummy's spot, the pounce). Before that: 20 November 2026, 22:08 (step 2 of the combos plan is built and pushed, waiting for his eye; he said "Yes it sounds good. Go." to the combos plan at 18:42, every
