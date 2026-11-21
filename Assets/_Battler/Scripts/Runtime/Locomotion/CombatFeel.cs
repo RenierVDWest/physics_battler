@@ -312,6 +312,9 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("On: in the dance a fighter pounces on an opening by himself. When the other stumbles, has his guard knocked open or turns his back, he runs in and strikes in one motion, as the duel lab's fighter does from its buttons. Off: he keeps to his pattern.")]
         public bool theDancePouncesOnAnOpening = true;
 
+        [Tooltip("On: the dance's fighters start combos by themselves (the combos plan's step 5). A combo starts when a light blow of his lands on the other's body (he goes on out of it), or when something has opened the other as he strikes: his guard knocked open, a stumble, or his own heavy wind-up. Each dancer has his own habit: the Strutter three blows ending in the big forehand, and he takes nearly every chance; the Prowler three ending in the spin; the Bull two, the second the big one, and he takes half his chances. Off (as it was): every blow in the dance is a blow on its own.")]
+        public bool theDanceFightsWithCombos = true;
+
         [Tooltip("On: in the dance a fighter goes for a man who is down by himself: he runs to him and stabs down from beside him. Off: he lets him get up. Only the dance: in the duel lab \"A Fighter Goes For A Man Who Is Down\" decides. Decided on 20 November: fighters go for him.")]
         public bool theDanceStrikesAManWhoIsDown = true;
 
@@ -1120,11 +1123,14 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("On: the duel lab's \"Throw two\" throws two blows as one swing (the combos plan's step 2). The first blow is not played to its end: its own carry-through is played as far as the corner where the blade turns, and there the second is begun in the middle of its own wind-up. Off (old): one whole attack, and when he is free again the other, about 1.7 s from hit to hit.")]
         public bool aSecondBlowFlowsOutOfTheFirst = true;
 
-        [Tooltip("How fast a blow on its own is thrown (not a combo's: those have \"A Combos Blows Are Thrown At\"). 1: as it was. 1.25: a quarter faster throughout (the wind-up, the drive and the way back to the guard), and the blade lands that much faster and harder. Under 1: slower. The slider \"Attack speed: single\" in the lab's \"Strike at\" sets this.")]
-        [Range(0.6f, 2f)] public float attacksAreThrownAt = 1f;
+        [Tooltip("How fast a blow on its own is thrown (not a combo's: those have \"A Combos Blows Go At\"). 1.15 (Renier's, 21 November; it was 1 under the name \"Attacks Are Thrown At\"): a little faster than recorded throughout (the wind-up, the drive and the way back to the guard), and the blade lands that much faster and harder. 1: as recorded. Under 1: slower. The slider \"Speed: single\" in the lab's \"Strike at\" sets this.")]
+        [Range(0.6f, 2f)] public float aBlowOnItsOwnGoesAt = 1.15f;
 
-        [Tooltip("How fast a combo's blows are thrown: both blows of \"Throw two\". 1: as recorded. 1.25: a quarter faster throughout, and the blades land that much faster and harder. Apart from a single blow's speed, \"Attacks Are Thrown At\". The slider \"Attack speed: combos\" in the lab's \"Strike at\" sets this.")]
-        [Range(0.6f, 2f)] public float aCombosBlowsAreThrownAt = 1f;
+        [Tooltip("How fast a blow on its own is thrown in a battle (the fight of six), where \"A Blow On Its Own Goes At\" is for the labs and the dance. 1: as recorded, as the battle has always been. At 1.15 the headless fight of six's two checks were worse (his sword through his own shield 0.29% of the time against 0.07%, the shield's tremble 5.9% against 4.8%), though inside their budgets: so it waits for Renier's word.")]
+        [Range(0.6f, 2f)] public float inABattleABlowOnItsOwnGoesAt = 1f;
+
+        [Tooltip("How fast a combo's blows before its last are thrown. 1.88 (Renier's, 21 November; it was 1 under the name \"A Combos Blows Are Thrown At\"): nearly twice as fast as recorded, and the blades land that much faster and harder. 1: as recorded. Apart from a single blow's speed, \"A Blow On Its Own Goes At\", and the big one's, \"A Combos Big Blow Is Thrown At\". The slider \"Speed: combos\" in the lab's \"Strike at\" sets this.")]
+        [Range(0.6f, 2f)] public float aCombosBlowsGoAt = 1.88f;
 
         [Header("Combos: several blows as one swing, the last the big one (the combos plan's step 3)")]
         [Tooltip("How many blows the duel lab's \"Throw combo\" throws: 2 (a forehand, then a rising backhand) or 3 (and a last blow: \"A Combos Last Blow Is\"). Each flows out of the carry-through of the one before.")]
@@ -1926,6 +1932,7 @@ namespace PhysicsBattler.Locomotion
             PhysicsBattler.Sandbox.Dance.MediumShare = spaceBashesThatAreMedium;
             PhysicsBattler.Sandbox.Dance.HardBashAttacks = aHardBashIsAnAttackInTheDance;
             PhysicsBattler.Sandbox.Dance.Pounces = theDancePouncesOnAnOpening;
+            PhysicsBattler.Sandbox.Dance.Combos = theDanceFightsWithCombos;
             PhysicsBattler.Sandbox.Dance.StrikesDowned = theDanceStrikesAManWhoIsDown;
             PhysicsBattler.Sandbox.Dance.Kicks = theDanceKicks;
             PhysicsBattler.Sandbox.Dance.KickShare = Mathf.Clamp01(danceKicksInsteadOfBashing);
@@ -2119,8 +2126,9 @@ namespace PhysicsBattler.Locomotion
             ClipFighter.BlowsFlow = aSecondBlowFlowsOutOfTheFirst;
             ClipFighter.FlowBendOver = Mathf.Clamp(theJoinBendsOver, 0.04f, 0.3f);
             ClipFighter.FlowBend = Mathf.Clamp(theJoinMakesUpAtMost, 0.05f, 0.4f);
-            AttackMaker.Pace = Mathf.Clamp(attacksAreThrownAt, 0.6f, 2f);
-            AttackMaker.ComboPace = Mathf.Clamp(aCombosBlowsAreThrownAt, 0.6f, 2f);
+            AttackMaker.Pace = Mathf.Clamp(aBlowOnItsOwnGoesAt, 0.6f, 2f);
+            AttackMaker.FightPace = Mathf.Clamp(inABattleABlowOnItsOwnGoesAt, 0.6f, 2f);
+            AttackMaker.ComboPace = Mathf.Clamp(aCombosBlowsGoAt, 0.6f, 2f);
             FlowCombos.Blows = Mathf.Clamp(aComboHasThisManyBlows, 2, 3);
             FlowCombos.LastBlow = Mathf.Clamp(aCombosLastBlowIs, 0, 2);
             FlowCombos.Grow = aCombosBlowsGrow;

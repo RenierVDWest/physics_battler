@@ -48,6 +48,13 @@ namespace PhysicsBattler.Sandbox
         /// <summary>Mixed up: the number of gestures before the tell is drawn afresh each time (1 to 3), and one tell in three has no blow after it.</summary>
         public bool MixedUp;
 
+        /// <summary>
+        /// His combos (the combos plan's step 5): how many blows (2 or 3), what the big one is (0 the forehand, 1 the
+        /// chop, 2 the spin), and how many of his chances for one he takes (0 to 1).
+        /// </summary>
+        public int ComboBlows = 3, ComboLast;
+        public float ComboTakes = 0.7f;
+
         public string Text
         {
             get
@@ -76,15 +83,15 @@ namespace PhysicsBattler.Sandbox
             {
                 case "prowler":
                     // (Quick small feelers, then he sinks before he springs: low, at the legs and feet.)
-                    return new GesturePattern { Name = "Prowler", Fillers = new[] { Gesture.BladeFlick, Gesture.Dodge, Gesture.BladeDip, Gesture.ShortFake }, Count = 3, Tell = Gesture.Drop, Beat = 1.2f, BlowAfter = 0.45f,
+                    return new GesturePattern { Name = "Prowler", Fillers = new[] { Gesture.BladeFlick, Gesture.Dodge, Gesture.BladeDip, Gesture.ShortFake }, Count = 3, Tell = Gesture.Drop, Beat = 1.2f, BlowAfter = 0.45f, ComboBlows = 3, ComboLast = 2, ComboTakes = 0.6f,
                         Spots = new[] { AimSpot.ShinL, AimSpot.ThighR, AimSpot.FootR, AimSpot.ThighL, AimSpot.ShinR, AimSpot.Head } };
                 case "strutter":
                     // (Showy: a blade circle, a dip and a short fake, and a long fake slash before the real one: high, at the head and shoulders.)
-                    return new GesturePattern { Name = "Strutter", Fillers = new[] { Gesture.BladeCircle, Gesture.BladeDip, Gesture.ShortFake }, Count = 3, Tell = Gesture.LongFake, Beat = 1.5f, BlowAfter = 1.2f,
+                    return new GesturePattern { Name = "Strutter", Fillers = new[] { Gesture.BladeCircle, Gesture.BladeDip, Gesture.ShortFake }, Count = 3, Tell = Gesture.LongFake, Beat = 1.5f, BlowAfter = 1.2f, ComboBlows = 3, ComboLast = 0, ComboTakes = 0.9f,
                         Spots = new[] { AimSpot.Head, AimSpot.ShoulderR, AimSpot.Neck, AimSpot.UpperArmR, AimSpot.ThighR } };
                 case "bull":
                     // (Few frills: two flicks of the point, and it dips before he cuts: at the body and the thighs.)
-                    return new GesturePattern { Name = "Bull", Fillers = new[] { Gesture.BladeFlick }, Count = 2, Tell = Gesture.BladeDip, Beat = 1.9f, BlowAfter = 0.3f,
+                    return new GesturePattern { Name = "Bull", Fillers = new[] { Gesture.BladeFlick }, Count = 2, Tell = Gesture.BladeDip, Beat = 1.9f, BlowAfter = 0.3f, ComboBlows = 2, ComboLast = 1, ComboTakes = 0.5f,
                         Spots = new[] { AimSpot.ThighR, AimSpot.Belly, AimSpot.ShoulderR, AimSpot.ThighL, AimSpot.Hips } };
                 default:
                     return new GesturePattern();
@@ -184,6 +191,9 @@ namespace PhysicsBattler.Sandbox
 
         /// <summary>His running in and striking: the pounce on an opening and the blow at a man who is down (20 November: by himself, in the dance).</summary>
         public readonly RunIn Run = new RunIn();
+
+        /// <summary>Combos he began by himself: out of a light blow that landed; at a man opened (his guard, a stumble, his heavy wind-up); chances he let go.</summary>
+        public int CombosByHit, CombosByOpening, CombosOnGuard, CombosOnStumble, CombosOnWindUp, CombosLetGo;
 
         /// <summary>Kicks he threw by himself: for space, and as his pattern's blow (soft, medium, hard).</summary>
         public int SpaceKicks;
@@ -608,6 +618,25 @@ namespace PhysicsBattler.Sandbox
                 return;
             }
 
+            if (Combos && !hit.Shield && !hit.Parried && blow.Kind != AttackClass.Heavy && by.Unit.Clip != null && !by.Unit.Clip.Flowing && !by.Unit.Clip.InCombo && !foe.Unit.Clip.Fallen)
+            {
+                // A combo starts when a light cut lands (the plan's step 5): he goes on out of the blow that has just
+                // landed, into a rising backhand and, his habit having three, the big one.
+                if (dice.NextDouble() >= by.Pattern.ComboTakes)
+                {
+                    by.CombosLetGo++;
+                }
+                else if (by.Unit.GoOnIntoCombo(foe.Unit, AimSpot.Chest, by.Pattern.ComboBlows, by.Pattern.ComboLast, "his light blow, landed"))
+                {
+                    by.CombosByHit++;
+                    by.Say("COMBO: his light blow landed", now, 1.2f);
+                    if (Diagnostics.PlaytestTrace.Enabled)
+                    {
+                        Diagnostics.PlaytestTrace.Note(by.Unit, "dance", $"goes on into a combo out of a light blow that landed ({by.Pattern.ComboBlows} blows)");
+                    }
+                }
+            }
+
             blow.Met = true;
             blow.MetAt = now;
             blow.Shield = hit.Shield;
@@ -727,6 +756,52 @@ namespace PhysicsBattler.Sandbox
         }
 
         // ---- By themselves: the pounce, the blow at a man who is down, kicks (20 November) -----------------------
+
+        /// <summary>
+        /// The dance's fighters start combos by themselves (Combat Feel "The Dance Fights With Combos"; the combos
+        /// plan's step 5). A combo starts when a light blow of his lands on the other's body (he goes on out of it), or
+        /// when something has opened the other as he strikes: his guard knocked open, a stumble, or his own heavy
+        /// wind-up. How long it is, what its big one is and how many of his chances he takes are his pattern's
+        /// (<see cref="GesturePattern.ComboBlows"/>). Off: every blow is a blow on its own, as before.
+        /// </summary>
+        public static bool Combos = true;
+
+        /// <summary>His combos so far, in words (for the lab's readout and the report).</summary>
+        public string ComboMoves(Dancer d)
+        {
+            var c = d.Unit != null ? d.Unit.Clip : null;
+            return $"combos begun {d.CombosByHit + d.CombosByOpening} ({d.CombosByHit} out of a light blow that landed, {d.CombosByOpening} at a man opened: {d.CombosOnGuard} his guard open, {d.CombosOnStumble} stumbling, {d.CombosOnWindUp} in his heavy wind-up); chances let go {d.CombosLetGo}"
+                + (c != null ? $"; thrown whole {c.CombosWhole}, with a blow on his body {c.CombosOnBody} ({c.ComboBlowsOnBody} blows), floored him {c.CombosFloored}, ended by a parry {c.FlowParried}" : "")
+                + $"; his habit: {d.Pattern.ComboBlows} blows, the big one the {PhysicsBattler.Locomotion.FlowCombos.LastNames[Mathf.Clamp(d.Pattern.ComboLast, 0, 2)]}, takes {d.Pattern.ComboTakes:0.0} of his chances";
+        }
+
+        /// <summary>Why the other is open to a combo as he strikes, or null: his guard knocked open, he is stumbling, or he is winding up a heavy blow.</summary>
+        private string OpenToCombo(Dancer d, float now)
+        {
+            var foe = d.Foe;
+            var his = foe.Unit.Clip;
+            if (his == null || his.Fallen)
+            {
+                return null;
+            }
+
+            if (his.Stumbling)
+            {
+                return "stumble";
+            }
+
+            if (his.GuardOpen)
+            {
+                return "guard";
+            }
+
+            if (foe.blow != null && !foe.blow.Done && !foe.blow.Met && foe.blow.Kind == AttackClass.Heavy && now - foe.blow.AskedAt < foe.blow.LandsIn)
+            {
+                return "windup";
+            }
+
+            return null;
+        }
 
         /// <summary>
         /// The dance's fighters pounce on an opening by themselves (Combat Feel "The Dance Pounces On An Opening"):
@@ -1524,7 +1599,35 @@ namespace PhysicsBattler.Sandbox
             // (His pattern's blow is heavy or light by how he fights; every blow thrown to take a chance, or in answer,
             // is a light one: quick enough to get there.)
             var kind = !AttackClasses.On ? AttackClass.Plain : why == "pattern" ? (dice.NextDouble() < Heavy(d) ? AttackClass.Heavy : AttackClass.Light) : AttackClass.Light;
-            if (!d.Unit.AimStrike(d.Foe.Unit, spot, out _, out _, null, null, null, landIn, null, kind))
+            // (Something has opened him as he strikes: his guard knocked open, a stumble, his own heavy wind-up. The blow
+            // is a combo's first, the plan's step 5, as often as his habit has it.)
+            string opened = Combos ? OpenToCombo(d, now) : null;
+            bool combo = false;
+            if (opened != null && d.Unit.Clip != null && !d.Unit.Clip.Flowing && !d.Unit.Clip.InCombo)
+            {
+                if (dice.NextDouble() >= d.Pattern.ComboTakes)
+                {
+                    d.CombosLetGo++;
+                }
+                else if (d.Unit.ThrowCombo(d.Foe.Unit, AimSpot.Chest, d.Pattern.ComboBlows, d.Pattern.ComboLast, landIn))
+                {
+                    // (A combo goes for the chest, each later blow for what is open of its own spots: a rising
+                    // backhand asked for at a shin, his pattern's spot, met nothing.)
+                    combo = true;
+                    spot = AimSpot.Chest;
+                    kind = AttackClasses.On ? AttackClass.Light : AttackClass.Plain;
+                    d.CombosByOpening++;
+                    d.CombosOnGuard += opened == "guard" ? 1 : 0;
+                    d.CombosOnStumble += opened == "stumble" ? 1 : 0;
+                    d.CombosOnWindUp += opened == "windup" ? 1 : 0;
+                    if (Diagnostics.PlaytestTrace.Enabled)
+                    {
+                        Diagnostics.PlaytestTrace.Note(d.Unit, "dance", $"begins a combo of {d.Pattern.ComboBlows} blows: the other {(opened == "guard" ? "has his guard knocked open" : opened == "stumble" ? "is stumbling" : "is winding up a heavy blow")}");
+                    }
+                }
+            }
+
+            if (!combo && !d.Unit.AimStrike(d.Foe.Unit, spot, out _, out _, null, null, null, landIn, null, kind))
             {
                 return false;
             }

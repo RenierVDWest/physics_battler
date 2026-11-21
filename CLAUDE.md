@@ -6,7 +6,7 @@ writing one, `wc -l README.md` must say more than before.** (On 21 November, 11:
 in it, and two more commits did the same; found and put back whole at 14:20, nothing lost.) Update this file at the end of every milestone or step:
 the "Where things stand" and "Roadmap" sections must always be true.
 
-Last updated: 21 November 2026, 15:07 (combos, step 4: against a man who defends, built and pushed, headless only, waiting for his eye; he has not yet looked at the 13:57 fixes either). Before that: 21 November 2026, 13:57 (after his look at step 3: the big one made big and given its own speed, a new spin from his recording, the first blows keep him in reach; he said "Ok that looks good ... Do this and proceed" at 12:45, so step 4 is next without waiting). Before that: 21 November 2026, 11:43 (combos, step 3: three blows and the big one, built and pushed, waiting for his eye; he said "Ok this all looks good to me. you can proceed" at 10:41 to the two speeds, the carried jump and the panel). Before that: 21 November 2026, 09:49 (two attack speeds; the fall after a long jump in; the panel held to its width). Before that: 21 November 2026, 07:57 (his morning look answered: the jump in for the second blow, an attack speed slider, the dummy's spot, the pounce). Before that: 20 November 2026, 22:08 (step 2 of the combos plan is built and pushed, waiting for his eye; he said "Yes it sounds good. Go." to the combos plan at 18:42, every
+Last updated: 21 November 2026, 16:15 (after his look at step 4: "looks good. proceed"; the combo that stopped when a shield took its second blow mended, unconfirmed in Unity; his speeds the defaults in the labs and the dance; the lab dummy middling; step 5, the dance fights with combos, has a first build being measured). Before that: 21 November 2026, 15:07 (combos, step 4: against a man who defends, built and pushed, headless only, waiting for his eye; he has not yet looked at the 13:57 fixes either). Before that: 21 November 2026, 13:57 (after his look at step 3: the big one made big and given its own speed, a new spin from his recording, the first blows keep him in reach; he said "Ok that looks good ... Do this and proceed" at 12:45, so step 4 is next without waiting). Before that: 21 November 2026, 11:43 (combos, step 3: three blows and the big one, built and pushed, waiting for his eye; he said "Ok this all looks good to me. you can proceed" at 10:41 to the two speeds, the carried jump and the panel). Before that: 21 November 2026, 09:49 (two attack speeds; the fall after a long jump in; the panel held to its width). Before that: 21 November 2026, 07:57 (his morning look answered: the jump in for the second blow, an attack speed slider, the dummy's spot, the pounce). Before that: 20 November 2026, 22:08 (step 2 of the combos plan is built and pushed, waiting for his eye; he said "Yes it sounds good. Go." to the combos plan at 18:42, every
 default taken. **Step 1 of the combos plan is built and pushed, waiting for his eye:** every recording's blade is
 measured by a report, and the duel lab can draw a made attack's planned blade path and the path the sword really
 took. A view only: nobody fights differently. Next: step 2, two blows as one swing. Corrected at 20:15: what
@@ -641,6 +641,29 @@ lot more impactful, feels weak atm. Do this and proceed".** He plays the combos 
   against the middling shield: 3 of 4 and 3 of 5 combos with a blow on his body.
 - Its film: https://claude.ai/artifact/GtQDpng7EsNv7xxjnJusJn
 - **The build log was cut short by three of my commits today and put back whole** (see the top of this file).
+
+**He looked at step 4 (21 November, 15:35): "yes [the bounce reads as one flowing combo] but it does still stop the
+combo many times, is this intentional? ... Middling ... yes [his speeds as defaults]. Ok so looks good. proceed but
+tell me what is up next and what is the roadmap".** (16:15; README.)
+- **The stops were a bug in 12 of his 46 combos:** whenever the shield stopped the second blow the big one was never
+  thrown, and the next combo began "out of the bounce" with its first blow skipped. Mended: the roll comes before the
+  join in the same step (`StepFlow`), and `flowBounced` is cleared as a pair opens and as a flow ends. **Unity only:
+  headless never showed it, so the fix is unconfirmed until his next log.** 7 more ended at a parry and 3 at a glance
+  off his sword: meant.
+- **His speeds are the defaults, under new field names:** "A Blow On Its Own Goes At" 1.15, "A Combos Blows Go At"
+  1.88. **A blow on its own goes at 1.15 only in the labs and the dance** (`AttackMaker.InALab`); a battle keeps
+  `FightPace` 1 (Combat Feel "In A Battle A Blow On Its Own Goes At"), because at 1.15 the six's checks were worse
+  (0.29% and 5.9% against 0.07% and 4.8%). **Ask him whether battles go at 1.15 too.**
+- **The duel lab's dummy is middling** (`DuelLab.OtherGuardSkill` 0.5; headless too, `FIGHT_DUMMYSKILL=1` for an expert).
+- **Step 5, the dance fights with combos: a first build** (`Dance.Combos`, Combat Feel "The Dance Fights With
+  Combos", lab "Combos (dance):", `FIGHT_DANCECOMBOS=0`; `UnitController.ThrowCombo` and `GoOnIntoCombo`;
+  `GesturePattern.ComboBlows`, `ComboLast`, `ComboTakes`; `DANCECOMBOS` lines). A combo starts when his light blow
+  lands, or the other is opened as he strikes (guard open, stumbling, his own heavy wind-up). **Not measured yet as
+  the plan asks (four dances of 70 s, with and without); no look list and no film for it yet.**
+- **What he was told is next:** step 5, step 6 (the show), step 7 (more cuts); combos in the six only when he says;
+  then the kick at a man who is down (his kick pack), the stab at a downed man that looks odd, the spin combo's own
+  sword through his own shield; then the older open things (get-up shield, stumble leftovers, absorbing a hit, the
+  blade tip's tremble).
 
 **The night of 20 to 21 November: his order (22:40 and 22:44, going to bed).** "Continue with the combos next steps
 until you are blocked by me, then continue with other tasks." "You will need me to look at things between the

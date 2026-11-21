@@ -105,6 +105,12 @@ The rest are one-off comparisons from particular days, kept for reference.
   bounce winds up (s), how long its blade is not live (s). `COMBOS so far` counts combos with a blow on his body,
   blows begun out of a bounce, combos a parry ended and guards knocked open. Single blows to compare with:
   `FIGHT_DUELBLOW="3:Chest,9:Head,15:Hips,21:Chest,27:Head"` and read the `AIM` lines and "its hits".
+- **Defaults since 21 November, 16:15:** a combo's blows go at 1.88 and a blow on its own at 1.15 in the aim
+  lineup (the aim test, the duel, the dance: `AttackMaker.InALab`), and at 1 in every other lineup, the six among
+  them; `FIGHT_ATTACKPACE` sets both. The duel's dummy is middling (`FIGHT_DUMMYSKILL=1` for an expert).
+- **The dance fights with combos (step 5):** `FIGHT_DANCECOMBOS=0` for the old way. A `DANCECOMBOS` line for each
+  dancer: combos begun and why, how they came out, his habit, and his last combo blow by blow. A dance's combos grow
+  (light first, the big one last) without `FIGHT_COMBO`.
 - A new recording: put the FBX in a folder of its own, `python3 Tools/Mocap/Combat/combat_sample.py <folder>`, add a
   line to `STRIKES` in `combat_bake.py` (sample, cut from, cut to, landing, kind, about), run it, and read the new
   cut's line in `flow.sh all`. Check with a diff of the clips that nothing else moved.

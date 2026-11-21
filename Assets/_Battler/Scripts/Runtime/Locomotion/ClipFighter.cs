@@ -5360,6 +5360,10 @@ namespace PhysicsBattler.Locomotion
             flowHits = Strikes != null ? Strikes.Hits : 0;
             flowBlocks = Strikes != null ? Strikes.Blocks : 0;
             flowParries = Strikes != null ? Strikes.Parries : 0;
+            // (Nothing is left over from the combo before: a bounce it never took made the next combo begin its second
+            // blow at once, "out of the bounce", its first never landing.)
+            flowBounced = false;
+            flowBounceNote = "";
 
             // (The blow playing may itself have been entered out of another, a combo's second: the map is of its
             // recording, whose frame EnteredAt its own first frame is.)
@@ -5495,6 +5499,22 @@ namespace PhysicsBattler.Locomotion
                 flowTargetKnown = true;
             }
 
+            if (flowFirstOwed)
+            {
+                flowFirstOwed = false;
+                flowLandings = Strikes.Hits + Strikes.Blocks + Strikes.Parries + Strikes.Deflects;
+                flowHits = Strikes.Hits;
+                flowBlocks = Strikes.Blocks;
+                flowParries = Strikes.Parries;
+                if (flowFirstHit < 0f && flowSecond == null)
+                {
+                    flowOnBody = true;
+                    flowFirstHit = clock;
+                    flowFirstMet = Strikes.Last ?? "";
+                    ComboHit(chainAt);
+                }
+            }
+
             int landings = Strikes.Hits + Strikes.Blocks + Strikes.Parries + Strikes.Deflects;
             bool landed = landings != flowLandings;
             flowLandings = landings;
@@ -5587,6 +5607,36 @@ namespace PhysicsBattler.Locomotion
                 flowTipStep = flowTipKnown ? tip - flowTip : Vector3.zero;
                 flowTip = tip;
                 flowTipKnown = true;
+            }
+
+            // (The roll comes before the join, in the same step: a blow his shield stops is over two steps of the clock
+            // after its freeze, and in Unity on 21 November the bounce, taken a step after the roll, came too late
+            // every time the second blow was blocked: "the first blow ended before its corner", the big one never
+            // thrown, in 12 of 46 combos.)
+            if (flowSecond != null && flowRest.Count > 0 && Strikes.HitStop <= 0f && (flowSecondHit >= 0f || Loco.ShotTime >= flowSecond.ContactAt + 0.08f))
+            {
+                // A combo goes on: the blow that has just landed (or passed where it should have) is the one the next
+                // flows out of. This pair's account is closed and the next pair's opened on the same blow.
+                float hit = flowSecondHit;
+                string met = flowSecondMet;
+                bool offShield = flowBounced;
+                var then = flowRest[0];
+                flowRest.RemoveAt(0);
+                flowRolls = true;
+                EndFlow(null);
+                flowRolls = false;
+                chainAt++;
+                FlowAllows(then);
+                if (!FlowInto(flowTarget, then.Point ?? flowPoint, then.Style, then.Strike, flowRest.Count == 0 && then.Last, then.Power, then.WindsUp))
+                {
+                    flowRest.Clear();
+                    EndCombo("the next blow could not follow (" + then.Strike + ")");
+                    return;
+                }
+
+                flowFirstHit = hit;
+                flowFirstMet = met ?? "";
+                flowBounced = offShield;
             }
 
             bool bounce = flowSecond == null && flowBounced && Strikes.HitStop <= 0f;
@@ -5791,31 +5841,6 @@ namespace PhysicsBattler.Locomotion
                 flowEnds = clock + 3f;
                 FlowJoined?.Invoke(this, second);
             }
-            else if (flowSecond != null && flowRest.Count > 0 && Strikes.HitStop <= 0f && (flowSecondHit >= 0f || Loco.ShotTime >= flowSecond.ContactAt + 0.08f))
-            {
-                // A combo goes on: the blow that has just landed (or passed where it should have) is the one the next
-                // flows out of. This pair's account is closed and the next pair's opened on the same blow.
-                float hit = flowSecondHit;
-                string met = flowSecondMet;
-                bool offShield = flowBounced;
-                var then = flowRest[0];
-                flowRest.RemoveAt(0);
-                flowRolls = true;
-                EndFlow(null);
-                flowRolls = false;
-                chainAt++;
-                FlowAllows(then);
-                if (!FlowInto(flowTarget, then.Point ?? flowPoint, then.Style, then.Strike, flowRest.Count == 0 && then.Last, then.Power, then.WindsUp))
-                {
-                    flowRest.Clear();
-                    EndCombo("the next blow could not follow (" + then.Strike + ")");
-                    return;
-                }
-
-                flowFirstHit = hit;
-                flowFirstMet = met ?? "";
-                flowBounced = offShield;
-            }
             else if (flowSecond != null && flowSecondHit >= 0f && clock >= flowEnds)
             {
                 EndFlow(null);
@@ -5868,6 +5893,7 @@ namespace PhysicsBattler.Locomotion
         private bool flowLast, flowRolls, flowAsRecorded, flowNextAsRecorded, flowBounced, flowOnBody;
         private float flowPower = 1f, flowMostTurn, flowNextMostTurn, flowWindsUp;
         private int flowHits, flowBlocks, flowParries;
+        private bool flowFirstOwed;
 
         /// <summary>
         /// A combo's big one on a shield knocks the guard open for this long (seconds; 0: only as any blow does, by its
@@ -5966,7 +5992,10 @@ namespace PhysicsBattler.Locomotion
         /// False: the first of the rest could not follow, and nothing is begun.
         /// </summary>
         /// <param name="firstSays">The first blow in a word, for the account.</param>
-        public bool FlowCombo(ClipFighter target, System.Func<Vector3> point, string firstSays, IList<FlowBlow> rest)
+        public bool FlowCombo(ClipFighter target, System.Func<Vector3> point, string firstSays, IList<FlowBlow> rest) => FlowCombo(target, point, firstSays, rest, false);
+
+        /// <param name="firstHasLanded">The blow playing has already landed on his body (a combo begun because a light blow landed, the plan's step 5): it counts as the combo's first blow landed.</param>
+        public bool FlowCombo(ClipFighter target, System.Func<Vector3> point, string firstSays, IList<FlowBlow> rest, bool firstHasLanded)
         {
             if (rest == null || rest.Count == 0 || Strikes == null || chainWatched >= 0f)
             {
@@ -6025,6 +6054,10 @@ namespace PhysicsBattler.Locomotion
             chainFell = false;
             chainWasDown = target != null && target.Fallen;
             CombosBegun++;
+            // (Its first blow has landed already: taken up in the next step, when the blow's own account of what it
+            // met is complete. Asked for from inside the hit's report, the account was still empty.)
+            flowFirstOwed = firstHasLanded;
+
             return true;
         }
 
@@ -6224,6 +6257,8 @@ namespace PhysicsBattler.Locomotion
                 return;
             }
 
+            flowBounced = false;
+            flowBounceNote = "";
             if (chainBlows > 0)
             {
                 string left = flowRest.Count > 0 || !whole ? (why ?? "it ended before its last blow") : null;

@@ -884,6 +884,90 @@ namespace PhysicsBattler.Units
         public AimSpot? ClipAimSpot { get; private set; }
 
         /// <summary>
+        /// A combo at <paramref name="target"/>, a fighter's own (the combos plan's step 5): a quick light forehand at
+        /// <paramref name="spot"/>, a rising backhand, and with three blows the big one (<paramref name="last"/>: 0 the
+        /// forehand, 1 the chop, 2 the spin), each flowing out of the one before (<see cref="ClipFighter.FlowCombo"/>).
+        /// False: he could not begin it (busy, no made attacks, a combo of his still going).
+        /// </summary>
+        public bool ThrowCombo(UnitController target, AimSpot spot, int blows, int last, float landIn = 0f)
+        {
+            if (Clip == null || !AttackMaker.On || !ClipFighter.BlowsFlow || Clip.Flowing || Clip.InCombo)
+            {
+                return false;
+            }
+
+            bool grow = FlowCombos.Grow;
+            Clip.ThrowsACombo = true;
+            bool begun = AimStrike(target, spot, out _, out _, null, null, "sns_forehand", landIn, null, AttackClass.Plain, grow ? FlowCombos.First : (AttackStyle?)null);
+            Clip.ThrowsACombo = false;
+            if (!begun)
+            {
+                return false;
+            }
+
+            if (grow && Clip.Strikes != null)
+            {
+                Clip.Strikes.Power = FlowCombos.FirstPower;
+            }
+
+            Clip.FlowCombo(target.Clip, () => AimSpots.Point(target.Clip, spot), "forehand" + (grow ? ", light" : ""), ComboRest(target, spot, blows, last), false);
+            return true;
+        }
+
+        /// <summary>
+        /// The blow he is in the middle of has landed: he goes on into a combo out of it (the combos plan's step 5: "a
+        /// combo starts when a light cut lands"): a rising backhand, and with three blows the big one. False: he could not.
+        /// </summary>
+        public bool GoOnIntoCombo(UnitController target, AimSpot spot, int blows, int last, string firstSays)
+        {
+            if (Clip == null || !AttackMaker.On || !ClipFighter.BlowsFlow || Clip.Flowing || Clip.InCombo || target == null || target.Clip == null)
+            {
+                return false;
+            }
+
+            return Clip.FlowCombo(target.Clip, () => AimSpots.Point(target.Clip, spot), firstSays, ComboRest(target, spot, blows, last), true);
+        }
+
+        private static System.Collections.Generic.List<ClipFighter.FlowBlow> ComboRest(UnitController target, AimSpot spot, int blows, int last)
+        {
+            blows = Mathf.Clamp(blows, 2, 3);
+            bool grow = FlowCombos.Grow;
+            var plain = AttackClasses.StyleOf(AttackClass.Plain);
+            var rest = new System.Collections.Generic.List<ClipFighter.FlowBlow>
+            {
+                new ClipFighter.FlowBlow
+                {
+                    Strike = "sns_rising", Says = "rising backhand" + (grow && blows == 2 ? ", the big one" : ""),
+                    Style = grow && blows == 2 ? FlowCombos.Last : plain,
+                    Power = !grow ? 1f : blows == 2 ? FlowCombos.LastPower : FlowCombos.LinkPower,
+                    Last = grow && blows == 2,
+                    Point = () => AimSpots.Point(target.Clip, spot),
+                    Spots = FlowCombos.GoesFor(spot, FlowCombos.RisingGoesFor),
+                },
+            };
+            if (blows >= 3)
+            {
+                int which = Mathf.Clamp(last, 0, FlowCombos.Lasts.Length - 1);
+                rest.Add(new ClipFighter.FlowBlow
+                {
+                    Strike = FlowCombos.Lasts[which], Says = FlowCombos.LastNames[which] + (grow ? ", the big one" : ""),
+                    Style = !grow ? plain : which == 2 ? FlowCombos.Spin : FlowCombos.Last,
+                    Power = grow ? FlowCombos.LastPower : 1f,
+                    Last = grow,
+                    WindsUp = which == 2 ? FlowCombos.SpinWindsUp : 0f,
+                    MostTurn = which == 2 ? FlowCombos.SpinTurnsAtMost : 0f,
+                    AsRecorded = which == 2,
+                    Spots = which == 2 ? FlowCombos.SpinGoesFor : FlowCombos.GoesFor(spot, which == 1 ? FlowCombos.ChopGoesFor : FlowCombos.ForehandGoesFor),
+                    Point = which == 2 && FlowCombos.SpinGoesLow
+                        ? () => AimSpots.Point(target.Clip, AimSpot.Hips)
+                        : () => AimSpots.Point(target.Clip, spot),
+                });
+            }
+
+            return rest;
+        }
+
+        /// <summary>
         /// One blow at one spot on <paramref name="target"/> (the plan "Aimed attacks", step 0: with the strikes there
         /// are today, the one that comes nearest it, aimed at the spot and not at the hips, chest or face). False when
         /// it is busy or has no strikes. <paramref name="what"/>: the strike, and how far it expects to miss.

@@ -1080,7 +1080,7 @@ namespace PhysicsBattler.Locomotion
         /// what a fighter's blow is made in (<see cref="Paced"/>, at ClipFighter.StrikeMade and StrikeOnTheMove), so
         /// when it lands, its steps and its join are all counted in the paced times.
         /// </summary>
-        public static float Pace = 1f;
+        public static float Pace = 1.15f;
 
         /// <summary>
         /// How fast a combo's blows are thrown (Combat Feel "A Combos Blows Are Thrown At", 1 = as recorded;
@@ -1088,7 +1088,7 @@ namespace PhysicsBattler.Locomotion
         /// November: "Seems this attack speed is for all attacks? give me a slider for the combos attack speed and
         /// one for the normal attacks."
         /// </summary>
-        public static float ComboPace = 1f;
+        public static float ComboPace = 1.88f;
 
         /// <summary>
         /// How fast a combo's last blow, the big one, is thrown (Combat Feel "A Combos Big Blow Is Thrown At", 1 = as
@@ -1100,9 +1100,20 @@ namespace PhysicsBattler.Locomotion
         /// </summary>
         public static float BigPace = 1f;
 
+        /// <summary>
+        /// A lab is set out (the duel lab, the aim and target tests, the dance), not a battle: a blow on its own goes
+        /// at <see cref="Pace"/> there and at <see cref="FightPace"/> in a battle. (21 November: Renier's 1.15 became
+        /// the labs' default; in the fight of six it took the crossings from 0.07% to 0.29% and the tremble from 4.8%
+        /// to 5.9%, inside both budgets but worse, so the battle keeps 1 until he says.)
+        /// </summary>
+        public static bool InALab;
+
+        /// <summary>How fast a blow on its own is thrown in a battle (1: as recorded).</summary>
+        public static float FightPace = 1f;
+
         public static AttackStyle Paced(in AttackStyle style, bool combo = false, bool big = false)
         {
-            float pace = combo ? (big ? BigPace : ComboPace) : Pace;
+            float pace = combo ? (big ? BigPace : ComboPace) : InALab ? Pace : FightPace;
             return Mathf.Abs(pace - 1f) < 1e-3f ? style : style.AtPace(pace);
         }
 

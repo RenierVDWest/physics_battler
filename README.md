@@ -8559,3 +8559,56 @@ Checks: 0 errors; the panel's look list 12 of 12; the fight of six (40 s, seed 5
   over both budgets (0.5%, 0.10 s).** The forehand combo: 0.00 s. So the spin, and less so the chop, pass his blade
   through his own shield, and did so before this step; I had not measured it at 13:57. Not mended. The six is not
   touched by it (no combos there).
+
+
+### 21 November, 16:15: after his look at step 4: the combo that stopped, his speeds as defaults, a middling dummy; step 5 begun
+
+**What he said (15:35):** "1) yes but it does still stop the combo many times, is this intentional? Might be good not
+sure 2) Middling 3) yes. Ok so looks good. proceed but tell me what is up next and what is the roadmap looking like".
+(1: the bounce reads as one flowing combo. 2: the lab's dummy is to be middling. 3: his speeds are to be the defaults.)
+
+**His logs** (`PlaytestLogs/2026-11-21_15-21-06`, `_15-26-54`, `_15-27-30`; frames looked at and removed): 46 combos.
+24 were thrown whole. 7 ended at a clean parry and 3 where the blade glanced off his sword: meant. **12 ended with
+"the first blow ended before its corner" and the big one "not thrown": a bug.** Every one of them: the shield stopped
+the *second* blow. And in 8 of them the first blow "met nothing" while the second was "out of the bounce": the combo
+after a broken one began wrong.
+
+**Two causes, both mended (`ClipFighter.StepFlow`, `FlowInto`, `EndFlow`):**
+1. A blow his shield stops is over about two steps of the clock after its freeze (`Locomotor.CutShort`: it rewinds
+   0.018 s). For a blocked first blow the bounce is taken in the step the freeze ends. For a blocked second blow the
+   combo first "rolled" (the second blow became the one the third flows out of) in that step and took the bounce a
+   step later: too late in Unity, every time; never too late headless. The roll now
+   comes before the join in the same step.
+2. `flowBounced` was left set when a combo broke off with a bounce not taken, and the next combo's second blow was
+   begun "out of the bounce" in its first step, before its first blow had landed. It is cleared as a pair is opened
+   and as a flow ends.
+**Not confirmed:** the Unity timing cannot be made headless. Headless after it: spin combos against the expert shield,
+5 of 5 thrown whole (4 of the spins out of a bounce), none "not thrown".
+
+**His speeds are the defaults.** New Combat Feel fields (a changed default needs a new name): "A Blow On Its Own Goes
+At" 1.15 (was "Attacks Are Thrown At", 1) and "A Combos Blows Go At" 1.88 (was "A Combos Blows Are Thrown At", 1).
+**But a blow on its own goes at 1.15 only in the labs and the dance.** `AttackMaker.Pace` was every blow in the game:
+at 1.15 the headless fight of six went from crossings 0.07% and tremble 4.8% to **0.29% and 5.9%** (one fight each;
+inside the budgets of 0.5% and 8%, but worse). His rule is that the six's checks are not made worse, so:
+`AttackMaker.InALab` (set by the sandbox while a lab is set out, and by the runner for the aim lineup) chooses between
+`Pace` (1.15) and `FightPace` (Combat Feel "In A Battle A Blow On Its Own Goes At", 1). The six at 1: 0.07% and 4.8%
+again. **His to say** whether battles go at 1.15 too.
+
+**The lab's dummy is middling:** `DuelLab.OtherGuardSkill` 0.5, and the headless duel's too (`FIGHT_DUMMYSKILL=1` for
+the expert every fighter in a battle still is).
+
+**Step 5 of the combos plan, begun (the dance fights with combos; Combat Feel "The Dance Fights With Combos"; lab
+"Combos (dance): on / off (old)"; `FIGHT_DANCECOMBOS=0`).** A first build, **not measured yet as the plan asks (four
+dances of 70 s, with and without): the dances are running.** In the dance a combo starts when a dancer's light blow
+lands on the other's body (he goes on out of it: `UnitController.GoOnIntoCombo`, `ClipFighter.FlowCombo(...,
+firstHasLanded)`), or when the other is opened as he strikes: guard knocked open, stumbling, or in his own heavy
+wind-up (`UnitController.ThrowCombo`, `Dance.OpenToCombo`). Each named dancer has his habit
+(`GesturePattern.ComboBlows`, `ComboLast`, `ComboTakes`): the Strutter three blows ending in the big forehand, taking
+0.9 of his chances; the Prowler three ending in the spin, 0.6; the Bull two, the second the big one, 0.5; a plain
+dancer three ending in the forehand, 0.7. A `DANCECOMBOS` line for each dancer in the report; "His combos" in the
+lab's readout for each dancer. One dance so far (Strutter and Prowler, 70 s, before two mistakes in it were mended: the
+combos did not grow headless, and a combo's later blows went for his pattern's spot, a shin): 3 combos begun (2 into the
+other's heavy wind-up, 1 out of a light blow that landed), all thrown whole, 5 blows on the body; the dance's crossings
+0.69% against 0.33% without (one dance each: not a measurement).
+
+Checks: 0 errors; the panel's look list 11 of 11; the fight of six (40 s, seed 5) at its baseline (0.07%, 4.8%).

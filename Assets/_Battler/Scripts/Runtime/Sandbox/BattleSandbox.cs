@@ -1189,8 +1189,8 @@ namespace PhysicsBattler.Sandbox
             BladePathRow(feel, Duel.Mover != null ? Duel.Mover.Clip : null);
             if (feel != null)
             {
-                feel.attacksAreThrownAt = Lever("Speed: single", feel.attacksAreThrownAt, 0.6f, 2f, "Attack speed of a blow on its own: a press on a part of the body map (Combat Feel \"Attacks Are Thrown At\"). 1: as it was. 1.25: a quarter faster throughout: wind-up, drive and the way back. The blade lands that much faster and harder too. Not the combos: those have the slider below.");
-                feel.aCombosBlowsAreThrownAt = Lever("Speed: combos", feel.aCombosBlowsAreThrownAt, 0.6f, 2f, "Attack speed of a combo's blows: both blows of \"Throw two\" (Combat Feel \"A Combos Blows Are Thrown At\"). 1: as recorded. 1.25: a quarter faster throughout. Apart from a single blow's speed, the slider above.");
+                feel.aBlowOnItsOwnGoesAt = Lever("Speed: single", feel.aBlowOnItsOwnGoesAt, 0.6f, 2f, "Attack speed of a blow on its own: a press on a part of the body map (Combat Feel \"A Blow On Its Own Goes At\"). 1.15: yours, the default now. 1: as recorded. 1.25: a quarter faster throughout: wind-up, drive and the way back. The blade lands that much faster and harder too. Not the combos: those have the slider below.");
+                feel.aCombosBlowsGoAt = Lever("Speed: combos", feel.aCombosBlowsGoAt, 0.6f, 2f, "Attack speed of a combo's blows: both blows of \"Throw two\" (Combat Feel \"A Combos Blows Go At\"). 1.88: yours, the default now. 1: as recorded. 1.25: a quarter faster throughout. Apart from a single blow's speed, the slider above.");
                 BeginRow();
                 Words(new GUIContent("The second blow:", "What he does when the first blow has driven his man out of the second's reach (Combat Feel \"For The Second Blow He Jumps In\"). He jumps in (new): he is carried toward him in a tenth of a second, as a fighting game's combo does, and the blow is made for where that puts him. He stays (old): the second blow often met nothing."));
                 if (Press(feel.forTheSecondBlowHeJumpsIn ? "[he jumps in]" : "he jumps in", "When his man has been driven out of reach.")) feel.forTheSecondBlowHeJumpsIn = true;
@@ -2283,6 +2283,11 @@ namespace PhysicsBattler.Sandbox
                 if (Press(!feel.aHardBashIsAnAttackInTheDance ? "[never (old)]" : "never (old)", "No hard bash in the dance.")) feel.aHardBashIsAnAttackInTheDance = false;
                 EndRow();
                 BeginRow();
+                Words(new GUIContent("Combos (dance):", "Whether the dance's fighters start combos by themselves (Combat Feel \"The Dance Fights With Combos\"; the combos plan's step 5). On (new): a combo starts when a light blow of his lands, or when the other is opened as he strikes: his guard knocked open, a stumble, or his own heavy wind-up. Each dancer has his own habit: the Strutter three blows ending in the big forehand, the Prowler three ending in the spin, the Bull two. Off (old): every blow is a blow on its own."));
+                if (Press(feel.theDanceFightsWithCombos ? "[on]" : "on", "They start combos by themselves.")) feel.theDanceFightsWithCombos = true;
+                if (Press(!feel.theDanceFightsWithCombos ? "[off (old)]" : "off (old)", "Every blow on its own.")) feel.theDanceFightsWithCombos = false;
+                EndRow();
+                BeginRow();
                 Words(new GUIContent("An opening (dance):", "What a dancer does when the other stumbles, has his guard knocked open or turns his back (Combat Feel \"The Dance Pounces On An Opening\"). He pounces (new): he runs in and strikes in one motion, by himself. He keeps to his pattern (old): as before."));
                 if (Press(feel.theDancePouncesOnAnOpening ? "[he pounces]" : "he pounces", "He runs in and strikes in one motion.")) feel.theDancePouncesOnAnOpening = true;
                 if (Press(!feel.theDancePouncesOnAnOpening ? "[he keeps to his pattern (old)]" : "he keeps to his pattern (old)", "As before.")) feel.theDancePouncesOnAnOpening = false;
@@ -2358,6 +2363,7 @@ namespace PhysicsBattler.Sandbox
                 Readout(Dancing.Gestures(d) > 0 ? Dancing.Tally(d) : "", 4);
                 Readout(new GUIContent(danceMeters[k].Seconds > 0.5f ? "His footwork " + FootworkText(danceMeters[k], 1 + k) + "." : "", "His footwork in this dance, by the footwork meter (under \"Move him\"): the band his hips' height moved over while he stood or walked, how often they rose or sank 10 cm or more within 0.3 s, his steps a spell of walking, how much of his walking was two recordings mixed, and his steps' tempo against the recordings'."), 5);
                 Readout(new GUIContent(Dancing.Gestures(d) > 0 ? "His blows: " + Dancing.Classes(d) + "." : "", "His blows by class: how many light and heavy, how long each took to land, how many landed and what those did; how often he struck into the other's wind-up; how often he dodged."), 3);
+                Readout(new GUIContent("His combos: " + Dancing.ComboMoves(d) + ". His last: " + (d.Unit != null && d.Unit.Clip != null ? d.Unit.Clip.ComboTold : "none") + ".", "The combos he began by himself in this dance (the combos plan's step 5): how many out of a light blow that landed, how many at a man who was opened, the chances he let go, how they came out, and his own habit. Then the account of his last one, blow by blow."), 6);
                 Readout(new GUIContent("By himself: " + Dancing.OwnMoves(d) + ". Last pounce: " + d.Run.Pounced + ". Last blow at a man down: " + d.Run.DownedStruck + ".", "What he did of his own accord in this dance: pounces on an opening, blows at the other while he was down, kicks."), 4);
                 Readout(new GUIContent(Dancing.Gestures(d) > 0 ? $"His fakes: {d.FakesThrown} thrown, {d.FakesLeftOut} left out by his ratio. His bashes: " + Dancing.Bashes(d) + "." : "", "His fake attacks, and those his pattern had that his ratio of fakes to real attacks left out. His bashes: those to get the other out of his space (small, medium; how many at one who had come in at him), his hard bashes thrown as an attack and what came of them, and his own counter-bashes against a hard bash."), 3);
             }
@@ -3048,6 +3054,9 @@ namespace PhysicsBattler.Sandbox
             {
                 return;
             }
+
+            // (A blow on its own goes at the labs' speed in a lab, at the battle's in a battle.)
+            PhysicsBattler.Locomotion.AttackMaker.InALab = targetTest;
 
             foreach (var (unit, main, off) in pendingEquip)
             {
@@ -4274,24 +4283,22 @@ namespace PhysicsBattler.Sandbox
         // Names are matched whole, without a chosen button's square brackets; capitals do not matter.
 
         /// <summary>Names this push's list. Change it with every push that needs his eye: his "highlights off" is kept by tag, so a new list is shown again.</summary>
-        private const string LookTag = "21 November, 15:07: combos against a shield and a parry (and, not yet looked at: the bigger last blow, the new spin)";
+        private const string LookTag = "21 November, 16:15: the combo no longer stops when his shield takes the second blow; your speeds are the defaults; the dummy is middling";
 
         /// <summary>What to do, in order, in plain words.</summary>
         private static readonly string[] LookSteps =
         {
-            "1. Go to \"Duel\", find \"Strike at\". In the row \"Dummy:\" press \"shield up\". Then press \"Throw combo\" a good many times. New: when his shield stops a blow, the sword bounces off it and that bounce is the wind-up of the next blow. Before, the combo simply stopped there.",
-            "2. The dummy is an expert with his shield, as every fighter in the game is today: he stops every blow. So you see three blows on the shield, and the last one throws his shield arm wide (row \"The big one on a shield:\").",
-            "3. Now pull \"Dummy's guard skill\" down to 0.5 and throw again. A middling shield cannot follow three blows: some now land on his body. Each blow goes for a spot that is open as it begins (row \"Each blow goes for:\").",
-            "4. In \"Dummy:\" press \"parries\" and throw again. When he parries a blow cleanly, the combo is over (row \"A parry:\").",
-            "5. To compare with before: \"A blocked blow: backs out (old)\".",
-            "6. Still waiting for your look from 13:57: \"Dummy: no guard\", then \"Last blow: forehand\" and \"spin\". The big one has its own speed (\"Speed: big one\") and a bigger swing; the spin is the new one from your recording.",
-            "7. What I would like to hear: does the bounce off the shield read as one flowing combo? Should the dummy in this lab stay an expert, or middling?",
+            "1. Go to \"Duel\", find \"Strike at\". \"Dummy:\" press \"shield up\", \"Last blow:\" press \"spin\". Press \"Throw combo\" a good many times. In your logs of 15:21 and 15:27, whenever his shield stopped the second blow the big one never came (12 of 46 combos), and the combo after it began wrong. That is mended. I could not make it happen without Unity, so please tell me if a combo still stops when nobody parried.",
+            "2. A combo is still meant to stop when he parries cleanly (\"Dummy: parries\"; row \"A parry:\"), and when the blade glances off his sword.",
+            "3. Your speeds are the defaults now: \"Speed: combos\" 1.88, \"Speed: single\" 1.15. \"Dummy's guard skill\" starts at 0.5 (middling).",
+            "4. Still waiting for your look from 13:57: \"Dummy: no guard\", then \"Last blow: forehand\" and \"spin\", and \"Speed: big one\".",
+            "5. Known and not mended: in the spin combo his own sword passes through his own shield.",
         };
 
         /// <summary>The names of what he is to press and watch.</summary>
         private static readonly string[] LookHere =
         {
-            "Duel", "Strike at", "Dummy:", "Dummy's guard skill", "Throw combo", "A blocked blow:", "Each blow goes for:", "The big one on a shield:", "A parry:", "Last blow:", "Speed: big one", "His last combo",
+            "Duel", "Strike at", "Dummy:", "Dummy's guard skill", "Throw combo", "Last blow:", "A parry:", "Speed: combos", "Speed: single", "Speed: big one", "His last combo",
         };
 
         /// <summary>For the panel check (headless): the names of <see cref="LookHere"/> that were really drawn, and every section taken as open while it looks.</summary>

@@ -859,7 +859,7 @@ internal static class FightReport
 
                 // (FIGHT_DUELPACE=2.6: the pace he is asked to go at, m/s; without it, his guard's own walk.)
                 // (FIGHT_DUELLEAP=0.8: how far a leap goes, metres; FIGHT_DUELLEAPTIME=0.3: how long it takes.)
-                duel = new PhysicsBattler.Sandbox.DuelLab { Pace = Env("FIGHT_DUELPACE", 0f), LeapFar = Env("FIGHT_DUELLEAP", 0.5f), LeapTime = Env("FIGHT_DUELLEAPTIME", 0.25f), OtherGuardSkill = Env("FIGHT_DUMMYSKILL", 1f) };
+                duel = new PhysicsBattler.Sandbox.DuelLab { Pace = Env("FIGHT_DUELPACE", 0f), LeapFar = Env("FIGHT_DUELLEAP", 0.5f), LeapTime = Env("FIGHT_DUELLEAPTIME", 0.25f), OtherGuardSkill = Env("FIGHT_DUMMYSKILL", 0.5f) };
                 // (FIGHT_DUELSTYLE=capoeira: he moves in the capoeira style, standing in the ginga. FIGHT_GINGASIZE=0.67,
                 // FIGHT_GINGAARMS=1, FIGHT_GINGATAKE=0..3: the ginga's size, its arms' swings and which take of it.)
                 if ((Environment.GetEnvironmentVariable("FIGHT_DUELSTYLE") ?? "").ToLowerInvariant().StartsWith("cap"))
@@ -1162,6 +1162,8 @@ internal static class FightReport
         {
             var own = (Environment.GetEnvironmentVariable("FIGHT_DANCEOWN") ?? "").Split(',');
             PhysicsBattler.Sandbox.Dance.Pounces = own[0].Trim() != "0";
+            // (FIGHT_DANCECOMBOS=0: the dance's fighters start no combos by themselves, as before step 5 of the combos plan.)
+            PhysicsBattler.Sandbox.Dance.Combos = Environment.GetEnvironmentVariable("FIGHT_DANCECOMBOS") != "0";
             PhysicsBattler.Sandbox.Dance.StrikesDowned = own.Length < 2 || own[1].Trim() != "0";
             PhysicsBattler.Sandbox.Dance.Kicks = own.Length < 3 || own[2].Trim() != "0";
             PhysicsBattler.Sandbox.Dance.KickShare = own.Length > 3 && float.TryParse(own[3], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float kickShare) ? kickShare : 0.35f;
@@ -1224,7 +1226,10 @@ internal static class FightReport
         PhysicsBattler.Locomotion.ClipFighter.BladePassesEverywhere = Environment.GetEnvironmentVariable("FIGHT_LINEUP") == "aim" || Environment.GetEnvironmentVariable("FIGHT_PASSESINFIGHTS") == "1";
         PhysicsBattler.Locomotion.ClipFighter.BlowsFlow = Environment.GetEnvironmentVariable("FIGHT_FLOWS") != "0";
         // (FIGHT_ATTACKPACE=1.25: every weapon's blow thrown a quarter faster.)
-        if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_ATTACKPACE"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float attackPace)) PhysicsBattler.Locomotion.AttackMaker.Pace = attackPace;
+        if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_ATTACKPACE"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float attackPace)) PhysicsBattler.Locomotion.AttackMaker.Pace = PhysicsBattler.Locomotion.AttackMaker.FightPace = attackPace;
+        // (The aim lineup is the labs': the aim test, the duel, the dance. A blow on its own goes at the labs' speed there
+        // (1.15), at the battle's (1) in every other lineup.)
+        PhysicsBattler.Locomotion.AttackMaker.InALab = gang == "aim";
         // (FIGHT_FLOWJUMPS=0: he does not jump in for the second blow. FIGHT_FLOWJUMP="0.2,1.4,0.8": from how far short
         // (m), at most how far (m), and the share of his man's going he is led by.)
         PhysicsBattler.Locomotion.ClipFighter.FlowJumpsIn = Environment.GetEnvironmentVariable("FIGHT_FLOWJUMPS") != "0";
@@ -1245,7 +1250,8 @@ internal static class FightReport
             var combo = (Environment.GetEnvironmentVariable("FIGHT_COMBO") ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
             PhysicsBattler.Locomotion.FlowCombos.Blows = combo.Length > 0 && int.TryParse(combo[0], out int comboCount) ? comboCount : 2;
             PhysicsBattler.Locomotion.FlowCombos.LastBlow = combo.Length > 1 ? Math.Max(0, Array.IndexOf(PhysicsBattler.Locomotion.FlowCombos.LastNames, combo[1].Trim())) : 0;
-            PhysicsBattler.Locomotion.FlowCombos.Grow = combo.Length > 0 && Environment.GetEnvironmentVariable("FIGHT_COMBOGROWS") != "0";
+            // (A dance's combos grow as in Unity, FIGHT_COMBO or not.)
+            PhysicsBattler.Locomotion.FlowCombos.Grow = (combo.Length > 0 || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("FIGHT_DANCE"))) && Environment.GetEnvironmentVariable("FIGHT_COMBOGROWS") != "0";
             // (FIGHT_BIGSWING=0: the big one swung as recorded, as at 11:43.)
             PhysicsBattler.Locomotion.FlowCombos.BigSwing = Environment.GetEnvironmentVariable("FIGHT_BIGSWING") != "0";
             // (FIGHT_BIGSTYLE="1.5,1.25,1.25,1.15,1.2,1.15,1.4,1.4,1.2,0.9,0.03,0.03": the big one's style: wind-up, arm
@@ -2957,6 +2963,7 @@ internal static class FightReport
                 foreach (var d in new[] { dance.A, dance.B })
                 {
                     Console.WriteLine($"DANCEOWN {(d == dance.A ? "A" : "B")}: {dance.OwnMoves(d)}. Last pounce: {d.Run.Pounced}. Last blow at a man down: {d.Run.DownedStruck}");
+                    Console.WriteLine($"DANCECOMBOS {(d == dance.A ? "A" : "B")} ({d.Pattern.Name}): {dance.ComboMoves(d)}. His last: {(d.Unit.Clip != null ? d.Unit.Clip.ComboTold : "none")}");
                 }
 
                 foreach (var d in new[] { dance.A, dance.B })

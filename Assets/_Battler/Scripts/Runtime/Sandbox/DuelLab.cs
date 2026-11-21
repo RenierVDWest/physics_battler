@@ -1123,9 +1123,10 @@ namespace PhysicsBattler.Sandbox
 
         /// <summary>
         /// How good the dummy is with his shield and at the parry, 0 to 1 (1: an expert, as every fighter is today, who
-        /// reads every blow; 0.5: middling, who misses about a quarter of single blows and half a combo's).
+        /// reads every blow; 0.5: middling, who misses about a quarter of single blows and half a combo's). Middling
+        /// from 21 November, 15:35: Renier's choice for this lab.
         /// </summary>
-        public float OtherGuardSkill = 1f;
+        public float OtherGuardSkill = 0.5f;
 
         public void Step(float dt)
         {
