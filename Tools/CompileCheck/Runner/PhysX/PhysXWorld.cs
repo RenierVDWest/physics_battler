@@ -1157,8 +1157,20 @@ namespace PhysicsBattler.Engine
                 j.Preprocess = cj.enablePreprocessing;
                 PxJoint_setConstraintFlag_mut((PxJoint*)px, PxConstraintFlag.CollisionEnabled, j.Collide);
                 PxJoint_setConstraintFlag_mut((PxJoint*)px, PxConstraintFlag.DisablePreprocessing, !j.Preprocess);
+                // (A joint's "maximum force" is a force, as Unity has it. The engine's own default reads it as an
+                // impulse a physics step: the same number then holds as many times harder as there are physics steps
+                // in a second. Found 21 November: the hold on the hips, "3 times the body's weight", never gave
+                // here, and a man carried off at 9 m/s kept his body within 10 cm; in Unity it was left 52 cm behind
+                // and he fell. With it his chest is left 48 cm behind here too. PHYSX_JOINTFORCES=0: as it was.)
+                if (JointLimitsAreForces)
+                {
+                    PxJoint_setConstraintFlag_mut((PxJoint*)px, PxConstraintFlag.DriveLimitsAreForces, true);
+                }
             }
         }
+
+        /// <summary>A joint's drive is limited by a force, as in Unity, not by an impulse a physics step (<c>PHYSX_JOINTFORCES=0</c>: as headless was until 21 November).</summary>
+        public static bool JointLimitsAreForces = Environment.GetEnvironmentVariable("PHYSX_JOINTFORCES") != "0";
 
         private static bool Same(JointDrive a, JointDrive b) =>
             a.positionSpring == b.positionSpring && a.positionDamper == b.positionDamper && a.maximumForce == b.maximumForce && a.useAcceleration == b.useAcceleration;

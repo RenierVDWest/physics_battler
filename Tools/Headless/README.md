@@ -84,7 +84,21 @@ The rest are one-off comparisons from particular days, kept for reference.
 - `FIGHT_FLOWJUMPS=0`: he does not jump in for the second blow (old). `FIGHT_FLOWJUMP="0.2,1.4,0.8"`: from how far
   short (m), at most (m), and the share of his man's going he is led by. Use `FIGHT_STUMBLEFROM=0.5` with it, or the
   headless target does not go back. `FLOWMADE` says "[he jumped in N cm; his man was going V m/s]".
-- `FIGHT_ATTACKPACE=1.3`: every weapon's blow thrown that much faster.
+- `FIGHT_ATTACKPACE=1.3`: a blow on its own thrown that much faster. `FIGHT_COMBOPACE=1.3`: both blows of a pair
+  (`FIGHT_THROWTWO`). `FLOWMADE` says when each blow lands as made and both paces.
+- `FIGHT_FLOWJUMPCARRIES=0`: in the jump in his body is dragged after his root (old). `FIGHT_FLOWSHOVE=0.54`: for
+  the tests, at the join his man is put that much further off, which makes a jump in of about 0.9 m.
+  `FIGHT_FLOWJUMPTRACE=1`: `JUMPTRACE` lines, step by step (root, chest from its pose, hips from the carrier). A
+  `FLOWJUMP` line after each pair: how far he jumped, how far his chest got from its pose, falls.
+- **A joint's "maximum force" is a force, as in Unity (since 21 November).** Until then the engine read it as an
+  impulse a physics step (PhysX's default), so the hold on the hips, 3 weights, never gave: a root carried off at
+  9 m/s kept the body within 10 cm, where Unity left it 52 cm behind. Now 48 cm here. `PHYSX_JOINTFORCES=0`: as it
+  was, to compare with numbers from before. The six with it: crossings 0.07%, tremble 4.8% (before: 0.00%, 6.6%).
+  Everything measured before that shoves a body by its hips was measured with the stiff hold.
+- The stand-in's `ArticulationBody.linearVelocity` can be read but setting it does not reach the engine. `AddForce`
+  with `VelocityChange` does.
+- Never start a run under a name that is still running: both write the same file. Wait with
+  `pgrep -f 'Tests.dll fight'` in a foreground command of its own (in a backgrounded command it finds itself).
 - `FIGHT_SPOTSTUMBLES=0`: a stumbling target keeps its old spot (old). `FIGHT_POUNCEFROM=0`: he pounces on any stumble (old).
 - `FIGHT_BLOWPRESS=0`: a weapon's blow does not press, fold or turn the body it lands on (old).
   `FIGHT_BLOWPRESSED="0.06,9,14"`: hips (m), fold and turn (degrees) for a hard blow. Read the `took` lines in the

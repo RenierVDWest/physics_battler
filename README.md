@@ -8189,3 +8189,98 @@ the stab at a downed man "can look pretty weird".
 Checks: 0 errors; the panel's look list; `flow.sh`; the fight of six (40 s, seed 5) within its budgets as before: 0.00% and 6.6%, no exception.
 
 **The morning's film** (21 November; 3b2b, made by Opus at medium effort; 5 scenes, about 2 minutes 45): https://claude.ai/artifact/XydAAxP3Xhn27PXaWvPYMh
+
+
+### 21 November, 09:49: two attack speeds; he no longer falls after a long jump in; the panel needs no scrolling sideways
+
+**What he said (08:44, with two pictures of the panel cut off at its right edge):** "Seems this attack speed is for
+all attacks? give me a slider for the combos attack speed and one for the normal attacks. Sometimes when he leaps in
+for the 2nd combo attack it causes him to fall. I want you to fix that but not in some aggressive way that disables
+his physics or something. I'm getting this thing where much of the debug UI needs to be scrolled horizontally. Can
+you make it so that it needs not scrolling horizontally."
+
+**His log** (`PlaytestLogs/2026-11-21_08-33-25`; frames looked at and removed; **seen in Unity**): 39 pairs thrown,
+the second blow landed in 31 (17 of 37 before the jump in). He jumped in 27 times. **The swordsman fell 3 times, each
+after a jump in of 87 to 94 cm**, each "borne down, its body pressed 28 to 50 cm from where it stood". Jumps of 23 to
+72 cm did not fell him. In the log's own record of his body, frame by frame: through the jump his root goes 14 cm a
+frame (8.4 m/s) and his physical chest does not come with it at all: it is 12, 26, 37, 43, 48, 52 cm behind its pose
+(59 and 49 or more in the other two), and still 31 cm behind a tenth of a second after the jump has ended. A chest
+28 cm from its pose for a tenth of a second is what the game takes for a man borne down (`BorneDownFrom`), and down
+he goes.
+
+**Why his body stayed behind.** His physical body hangs by its hips from a carrier that goes where his posed hips
+go, and that hold is by a spring no stronger than 3 times his weight (the plan "Grounded legs": so that a blow can
+shift him). 3 weights is 3 g: in a tenth of a second it brings a body to 3 m/s, and the jump goes at 9.
+
+**1. In the jump his body is carried with him** (`ClipFighter.FlowJumpCarriesBody`, `StepJumpIn`, `EndJumpIn`;
+`UpperBodyArticulation.SendAll`; Combat Feel "In The Jump His Body Is Carried With Him", on; lab row "In the jump, his
+body: carried / dragged (old)"; `FIGHT_FLOWJUMPCARRIES=0`). Nothing of his physics is put out, no rule is loosened,
+and the borne-down rule is as it was. Two things: the jump now begins and ends gently (3u^2 - 2u^3 of its time; no
+faster at its middle than half again its mean), and each step every part of his physical body is given the change
+of speed his root has just had (`AddForce(.., VelocityChange)` on each link: the body goes on as one and no joint of
+it is turned by it), all of it taken off again as the jump ends or is broken off. What presses on him in the jump
+still presses. "His last two blows" (and the log's `flow` note) now says how far his chest got from its pose in the
+jump.
+
+**Headless could not show his fall: the cause is found.** As headless stood, a jump of 91 cm dragged the old way
+left his chest 10 cm behind, not 52: the hold carried him. The headless engine read a joint's "maximum force" as an
+impulse a physics step (PhysX's own default) and not as a force, as Unity does: the hold on the hips, "3 times his
+weight", was in truth many times that and never gave. `PHYSX_JOINTFORCES` (`PhysXWorld.JointLimitsAreForces`) sets
+the joint's flag as Unity has it. With it, and nothing else changed, the same jump leaves his chest 14, 24, 32, 39,
+44, 48 cm behind, step by step: his log's 12, 26, 37, 43, 48, 52. (A first try at this seemed to show the flag made
+no difference and that the hold had to be weakened to 0.5 weights as well. That was a muddle of mine: two runs
+under one name, and I read the older one's file. Never start a run under a name that is still running.) **This
+touches everything headless that shifts a body by its hips, back to 14 November when the hips were first held:**
+blows that should move a man, stumbles, shoves. **From now on headless reads it as Unity does by
+default** (`PHYSX_JOINTFORCES=0`: as it was). The fight of six with it is within both budgets (below). Headless
+numbers of shoved bodies from before today were measured with the stiff hold and have not been measured again.
+
+**Measured (headless,** `FIGHT_FLOWSHOVE=0.54 FIGHT_FLOWJUMPTRACE=1`; `FIGHT_FLOWSHOVE` puts his man further off at
+the join, as a blow that drove him far would have**)**:
+
+| the hold on the hips | the jump | his body | chest from its pose, at most | fell |
+|---|---|---|---|---|
+| as Unity has it (now the default), 3 weights | 91 cm | dragged (old) | 48 cm | no (over 28 cm for 0.08 s; the rule asks 0.10) |
+| the same, 1.5 weights | 91 cm | dragged (old) | 58 cm | yes |
+| the same, 0.5 weights | 88 cm | dragged (old) | 61 cm | yes |
+| the same, 0.5 weights | 88 cm, twice | carried (new) | 13 cm | no |
+| as Unity has it, 3 weights | 91 and 92 cm | carried (new) | 7 and 11 cm | no |
+| as headless was (the limit an impulse) | 91 and 64 cm | dragged (old) | 10 and 7 cm | no |
+| as headless was | 91 and 81 cm | carried (new) | 7 and 6 cm | no |
+
+The second blow landed as before in every one (15 to 16 m/s). **Not seen in Unity.** A first build that set the
+hips' own speed (`links[0].linearVelocity`) did nothing headless: the stand-in keeps that number and never hands it
+to the engine. A change of speed on every link reaches it, and is the same thing for a body that goes as one.
+
+**2. Two attack speeds** (`AttackMaker.ComboPace` beside `AttackMaker.Pace`; `AttackMaker.Paced(style, combo)`;
+`ClipFighter.ThrowsACombo`, set about each of a pair's two blows by the lab's `ThrowTwo`/`StepTwo` and by
+`StepFlow`; Combat Feel "A Combos Blows Are Thrown At", 1, beside "Attacks Are Thrown At", which is now a blow's on
+its own; lab levers "Speed: single" and "Speed: combos"; `FIGHT_COMBOPACE`, `FIGHT_ATTACKPACE`). Headless, a pair at
+the chest:
+
+| | the first lands | the second lands | their clips |
+|---|---|---|---|
+| both at 1 (and with single at 1.3) | 0.60 s in | 0.23 s in | 1.50 and 1.08 s |
+| combos at 1.3 | 0.47 s in | 0.18 s in | 1.17 and 0.83 s |
+
+Raising the single speed left the pair as it was to the hundredth. (Hit to hit, as measured from blade on body,
+moved less than that, 0.57 to 0.55 and 0.48 s in two pairs: where along its way the first blade meets the chest
+varies from throw to throw.)
+
+**3. The panel needs no scrolling sideways** (`BattleSandbox`: both scroll views have no bar across and are held at
+x = 0; what is in them is laid out in a column as wide as the window less its edges and bar, `ViewEdges` 48; a row
+is now a column of lines, `BeginRow`/`EndRow`, and `RowTakes` starts a new line when the next button or name would
+not fit, by what its words need). Before, one row wider than the window made the whole view that wide, and every
+line of text was then laid out to that width and cut off at the window's edge. **Built blind: the panel test checks
+that every name is drawn and that the layout's begins and ends match, not how it looks.** What may still stick out:
+a row of fixed-width buttons wider than the window (the body map's) is not wrapped, only kept from widening the rest.
+The stand-in Unity got `GUIStyle.none`, `GUIStyle.CalcSize`, `GUISkin.verticalScrollbar` and the styled
+`BeginScrollView`.
+
+**Also:** `FLOWJUMP` and `JUMPTRACE` lines in the headless report (`FIGHT_FLOWJUMPTRACE=1`); `FLOWMADE` says when each
+blow of a pair lands as made and at what pace.
+
+Checks: 0 errors; the panel's look list 8 of 8; the panel test with search words (rows open and close evenly while searching);
+`flow.sh` untouched. The fight of six (40 s, seed 5), today's code with headless as it was: 0.00% and 6.6%, as
+before. **With the hold read as Unity has it (the new headless default): crossings 0.07% (budget 0.5%), the longest
+0.05 s (budget 0.10 s); tremble 4.8% (budget 8%). That is the new baseline.** No exception in any run.

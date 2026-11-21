@@ -1189,7 +1189,8 @@ namespace PhysicsBattler.Sandbox
             BladePathRow(feel, Duel.Mover != null ? Duel.Mover.Clip : null);
             if (feel != null)
             {
-                feel.attacksAreThrownAt = Lever("Attack speed", feel.attacksAreThrownAt, 0.6f, 2f, "How fast every weapon's blow is thrown (Combat Feel \"Attacks Are Thrown At\"). 1: as it was. 1.25: a quarter faster throughout: wind-up, drive and the way back. The blade lands that much faster and harder too.");
+                feel.attacksAreThrownAt = Lever("Speed: single", feel.attacksAreThrownAt, 0.6f, 2f, "Attack speed of a blow on its own: a press on a part of the body map (Combat Feel \"Attacks Are Thrown At\"). 1: as it was. 1.25: a quarter faster throughout: wind-up, drive and the way back. The blade lands that much faster and harder too. Not the combos: those have the slider below.");
+                feel.aCombosBlowsAreThrownAt = Lever("Speed: combos", feel.aCombosBlowsAreThrownAt, 0.6f, 2f, "Attack speed of a combo's blows: both blows of \"Throw two\" (Combat Feel \"A Combos Blows Are Thrown At\"). 1: as recorded. 1.25: a quarter faster throughout. Apart from a single blow's speed, the slider above.");
                 BeginRow();
                 Words(new GUIContent("The second blow:", "What he does when the first blow has driven his man out of the second's reach (Combat Feel \"For The Second Blow He Jumps In\"). He jumps in (new): he is carried toward him in a tenth of a second, as a fighting game's combo does, and the blow is made for where that puts him. He stays (old): the second blow often met nothing."));
                 if (Press(feel.forTheSecondBlowHeJumpsIn ? "[he jumps in]" : "he jumps in", "When his man has been driven out of reach.")) feel.forTheSecondBlowHeJumpsIn = true;
@@ -1198,6 +1199,11 @@ namespace PhysicsBattler.Sandbox
                 feel.heJumpsInFrom = Lever("Jumps in from", feel.heJumpsInFrom, 0f, 1f, "He jumps in when the second blow would fall at least this far short (metres).");
                 feel.heJumpsInAtMost = Lever("Jumps in at most", feel.heJumpsInAtMost, 0.2f, 3f, "By at most this far (metres).");
                 feel.theJumpInTakes = Lever("The jump in takes", feel.theJumpInTakes, 0.02f, 0.4f, "How long the jump in takes (seconds). 0.1 is almost a teleport; longer is a slide.");
+                BeginRow();
+                Words(new GUIContent("In the jump, his body:", "What his physical body does in the jump in (Combat Feel \"In The Jump His Body Is Carried With Him\"). Carried (new): the jump begins and ends gently and his whole body is given the speed he is carried at; nothing of his physics is put out. Dragged (old): he was carried off at once and his body dragged after him by its hips; after a jump of about 90 cm his chest was left half a metre behind and he fell."));
+                if (Press(feel.inTheJumpHisBodyIsCarriedWithHim ? "[carried]" : "carried", "His body goes with him.")) feel.inTheJumpHisBodyIsCarriedWithHim = true;
+                if (Press(!feel.inTheJumpHisBodyIsCarriedWithHim ? "[dragged (old)]" : "dragged (old)", "As before: he could fall after a long jump.")) feel.inTheJumpHisBodyIsCarriedWithHim = false;
+                EndRow();
                 BeginRow();
                 Words(new GUIContent("Two blows:", "Step 2 of the combos plan: a forehand down and a rising backhand back up the same line, at the chest (Combat Feel \"A Second Blow Flows Out Of The First\"). Flowing (new): one swing. The first blow's own carry-through is played as far as the corner where the blade turns, and there the second is begun in the middle of its own wind-up: the blade never goes back to the guard between the hits. One after the other (old): a whole attack, and when he is free again the other."));
                 if (Press(feel.aSecondBlowFlowsOutOfTheFirst ? "[flowing]" : "flowing", "One swing with two hits.")) feel.aSecondBlowFlowsOutOfTheFirst = true;
@@ -2482,8 +2488,9 @@ namespace PhysicsBattler.Sandbox
             Readout($"Order: {Duel.Now}. {Duel.Gap:0.00} m apart, going {Duel.Speed:0.00} m/s.", 1);
             float room = Screen.height / Mathf.Max(0.1f, uiScale) - actionsRect.y - actionsChrome - 8f;
             actionsView = actionsContent < 0f ? Mathf.Max(160f, room) : Mathf.Clamp(actionsContent + 4f, 60f, Mathf.Max(160f, room));
-            actionsScroll = GUILayout.BeginScrollView(actionsScroll, false, true, GUILayout.Height(actionsView));
-            GUILayout.BeginVertical();
+            actionsScroll = GUILayout.BeginScrollView(new Vector2(0f, actionsScroll.y), false, true, GUIStyle.none, GUI.skin.verticalScrollbar, GUILayout.Height(actionsView));
+            rowRoom = ActionsWidth - ViewEdges;
+            GUILayout.BeginVertical(GUILayout.Width(rowRoom));
             BeginFiltered();
             if (filtering)
             {
@@ -4186,22 +4193,22 @@ namespace PhysicsBattler.Sandbox
         // Names are matched whole, without a chosen button's square brackets; capitals do not matter.
 
         /// <summary>Names this push's list. Change it with every push that needs his eye: his "highlights off" is kept by tag, so a new list is shown again.</summary>
-        private const string LookTag = "21 November, morning: he jumps in for the second blow; an attack speed slider; the dummy stays where it stumbles to; fewer pounces";
+        private const string LookTag = "21 November, 09:49: two attack speed sliders; he no longer falls after a long jump in; the panel needs no scrolling sideways";
 
         /// <summary>What to do, in order, in plain words.</summary>
         private static readonly string[] LookSteps =
         {
-            "1. Go to \"Duel\", find \"Strike at\", and in the row \"Two blows:\" press \"Throw two\" a good few times. New: when the first blow drives the dummy back, he now jumps in (a quick slide, a tenth of a second) so the second blow lands. \"His last two blows\" says how far he jumped. To compare: \"The second blow: he stays (old)\".",
-            "2. The jump has three levers under it: \"Jumps in from\" (how far out of reach before he jumps), \"Jumps in at most\", and \"The jump in takes\" (0.1 s is almost a teleport; try 0.05 and 0.2).",
-            "3. New slider \"Attack speed\" at the top of the same block: 1 is as it was. Try 1.2 and 1.4 with \"Chest\" and with \"Throw two\", and tell me the number that feels right.",
-            "4. New: when the dummy stumbles it now stays where the stumble ends and the swordsman steps up to his distance; it should no longer walk back into you. And he pounces less: only once a stumble has driven the dummy 0.6 m (lever \"Pounce on a stumble of\", under \"An opening:\").",
-            "5. What I would like to hear: does the jump in look right, or too much like a teleport? Which attack speed? Does the dummy still walk into you? Is the pounce now too rare or still too keen?",
+            "1. First look at this panel itself: nothing should be cut off at its right edge and there should be no scroll bar along the bottom. Rows of buttons too long for the panel now go on on a second line. I could not see this panel from here, so tell me what still sticks out, or looks odd.",
+            "2. Go to \"Duel\", find \"Strike at\". The one attack speed slider is now two: \"Speed: single\" is for one blow (press \"Chest\"), \"Speed: combos\" is for both blows of \"Throw two\". Move one and check the other kind of attack did not change. Tell me the two numbers that feel right.",
+            "3. Press \"Throw two\" a good many times, most of all when the first blow drives the dummy far back and he makes a long jump in. He should no longer fall after it. \"His last two blows\" now also says how far his chest got from its pose in the jump: in your last log that was 52 cm before he fell.",
+            "4. To compare, the row \"In the jump, his body:\" has \"dragged (old)\": with that he may fall again after a long jump. Put it back on \"carried\".",
+            "5. What I would like to hear: does anything still need scrolling sideways? Does he still fall after a jump in? Which two speeds?",
         };
 
         /// <summary>The names of what he is to press and watch.</summary>
         private static readonly string[] LookHere =
         {
-            "Duel", "Strike at", "Attack speed", "The second blow:", "Jumps in from", "The jump in takes", "Two blows:", "Throw two", "His last two blows", "Pounce on a stumble of", "Their distance",
+            "Duel", "Strike at", "Speed: single", "Speed: combos", "In the jump, his body:", "Two blows:", "Throw two", "His last two blows",
         };
 
         /// <summary>For the panel check (headless): the names of <see cref="LookHere"/> that were really drawn, and every section taken as open while it looks.</summary>
@@ -4471,10 +4478,19 @@ namespace PhysicsBattler.Sandbox
 
             while (rowsBegun < rowDepth)
             {
+                // (As BeginRow opens one: a column of lines.)
+                GUILayout.BeginVertical();
                 GUILayout.BeginHorizontal();
                 rowsBegun++;
+                rowTaken = 0f;
             }
         }
+
+        /// <summary>What a window's edges and its scroll bar take of its width (the window's own padding on both sides, the bar and its margins).</summary>
+        public const float ViewEdges = 48f;
+
+        /// <summary>How wide what is in the view being drawn may be, and how much of the row being drawn is taken.</summary>
+        private float rowRoom = PanelWidth - ViewEdges, rowTaken;
 
         /// <summary>A row of the panel begins: a name and its choices, or buttons side by side. One setting, to the search.</summary>
         private void BeginRow()
@@ -4482,9 +4498,39 @@ namespace PhysicsBattler.Sandbox
             rowDepth++;
             if (!filtering)
             {
+                // (In a column of its own: a row too long for the window goes on on a line below.)
+                GUILayout.BeginVertical();
                 GUILayout.BeginHorizontal();
                 rowsBegun++;
+                rowTaken = 0f;
             }
+        }
+
+        /// <summary>
+        /// A thing is about to be drawn in a row: where the row has no room left for it, the row goes on on a new line
+        /// first. By what the thing's own words need; a name is never counted for more than 0.45 of the row.
+        /// </summary>
+        private void RowTakes(GUIContent content, GUIStyle style, bool name)
+        {
+            if (rowDepth != 1 || rowsBegun < 1 || content == null || Event.current == null)
+            {
+                return;
+            }
+
+            float needs = (style ?? GUI.skin.label).CalcSize(content).x + 6f;
+            if (name)
+            {
+                needs = Mathf.Min(needs, 0.45f * rowRoom);
+            }
+
+            if (rowTaken > 0f && rowTaken + needs > rowRoom - 8f)
+            {
+                GUILayout.EndHorizontal();
+                GUILayout.BeginHorizontal();
+                rowTaken = 0f;
+            }
+
+            rowTaken += needs;
         }
 
         private void EndRow()
@@ -4497,6 +4543,7 @@ namespace PhysicsBattler.Sandbox
             if (rowsBegun >= rowDepth)
             {
                 GUILayout.EndHorizontal();
+                GUILayout.EndVertical();
                 rowsBegun--;
             }
 
@@ -4526,6 +4573,7 @@ namespace PhysicsBattler.Sandbox
         {
             if (rowDepth > 0 ? Shown(content.text) : !filtering)
             {
+                RowTakes(content, style, true);
                 GUILayout.Label(content, style, options);
                 LookedWords(content.text);
             }
@@ -4535,6 +4583,7 @@ namespace PhysicsBattler.Sandbox
         {
             if (rowDepth > 0 ? Shown(content.text) : !filtering)
             {
+                RowTakes(content, null, true);
                 GUILayout.Label(content, options);
                 LookedWords(content.text);
             }
@@ -4725,6 +4774,7 @@ namespace PhysicsBattler.Sandbox
                 return false;
             }
 
+            RowTakes(new GUIContent(text), Styles().Button, false);
             bool pressed = ZoneButton(new GUIContent(text, tip), null, options);
             if (Looked(text))
             {
@@ -4741,6 +4791,7 @@ namespace PhysicsBattler.Sandbox
                 return value;
             }
 
+            RowTakes(new GUIContent(text), Styles().Toggle, false);
             value = GUILayout.Toggle(value, new GUIContent(text, tip), Styles().Toggle);
             if (Looked(text))
             {
@@ -4850,8 +4901,14 @@ namespace PhysicsBattler.Sandbox
             // ---- The sections, in a view that scrolls when they are taller than the screen ----
             float room = Screen.height / Mathf.Max(0.1f, uiScale) - panelRect.y - panelChrome - 8f;
             panelView = panelContent < 0f ? Mathf.Max(160f, room) : Mathf.Clamp(panelContent + 4f, 60f, Mathf.Max(160f, room));
-            panelScroll = GUILayout.BeginScrollView(panelScroll, false, true, GUILayout.Height(panelView));
-            GUILayout.BeginVertical();
+            // (No scrolling sideways, ever: Renier, 21 November, "much of the debug UI needs to be scrolled horizontally.
+            // Can you make it so that it needs no scrolling horizontally." One row wider than the window made the
+            // whole view that wide, and every line of text was then laid out to that width and cut off at the window's
+            // edge. The view has no bar across, what is in it is held to the window's own width, and a row of buttons
+            // too long for it goes on on a line below (BeginRow, RowTakes).)
+            panelScroll = GUILayout.BeginScrollView(new Vector2(0f, panelScroll.y), false, true, GUIStyle.none, GUI.skin.verticalScrollbar, GUILayout.Height(panelView));
+            rowRoom = PanelWidth - ViewEdges;
+            GUILayout.BeginVertical(GUILayout.Width(rowRoom));
             DrawLookHere();
             BeginFiltered();
             DrawScenes();

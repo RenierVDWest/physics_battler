@@ -5264,14 +5264,51 @@ namespace PhysicsBattler.Locomotion
         /// </summary>
         public static bool FlowJumpsIn = true;
 
+        /// <summary>
+        /// The blow he is about to be asked for is one of a combo's (set about the asking by who throws a pair, the
+        /// lab's "Throw two" and <see cref="StepFlow"/>): it is thrown at <see cref="AttackMaker.ComboPace"/>, a blow
+        /// on its own at <see cref="AttackMaker.Pace"/>.
+        /// </summary>
+        public bool ThrowsACombo;
+
         /// <summary>He jumps in when the blow would fall this far short (metres at a Medium's size), by at most this far, and his man is led by this share of how he is going.</summary>
         public static float FlowJumpsFrom = 0.2f, FlowJumpsAtMost = 1.4f, FlowLeads = 0.8f;
 
         /// <summary>The jump in takes this long (seconds): "almost teleport".</summary>
         public static float FlowJumpsOver = 0.1f;
 
-        private Vector3 flowDash;
-        private float flowDashLeft;
+        /// <summary>
+        /// In the jump in his body is carried with him (Combat Feel "In The Jump His Body Is Carried With Him";
+        /// <c>FIGHT_FLOWJUMPCARRIES=0</c> for the old way). Renier, 21 November: "Sometimes when he leaps in for the 2nd
+        /// combo attack it causes him to fall. I want you to fix that but not in some aggressive way that disables his
+        /// physics or something." In his log of 08:33 he fell 3 times in 39 pairs, each after a jump in of 87 to 94 cm,
+        /// each "borne down, its body pressed 28 to 50 cm from where it stood": his root was carried off at 9 m/s from
+        /// one step to the next, his physical body hung from it by its hips and was dragged after, and a chest held
+        /// 28 cm behind its pose for a tenth of a second is what the game takes for a man borne down
+        /// (<see cref="BorneDownFrom"/>). Nothing of his physics is put out: the jump now begins and ends gently (no
+        /// faster at its middle than half again its mean), and his whole physical body is given the speed his root is
+        /// carried at, step by step, and has it taken off again as the jump ends. What presses on him in the jump still
+        /// presses, and a man driven through in it is still borne down.
+        /// </summary>
+        public static bool FlowJumpCarriesBody = true;
+
+        /// <summary>For the tests only: the jump in is told step by step (<c>FIGHT_FLOWJUMPTRACE=1</c>).</summary>
+        public static bool FlowJumpTraced;
+
+        /// <summary>For the tests only: at the join his man is put this much further off (metres), as a blow that drove him far back would have put him.</summary>
+        public static float FlowTestShoves;
+
+        /// <summary>How far his chest got from its pose in the last jump in and the fifth of a second after it (metres), and whether he fell in that time (for the reports).</summary>
+        public float FlowJumpLagged { get; private set; }
+
+        /// <summary>Second blows he jumped in for and fell within a second of the jump (for the reports).</summary>
+        public int FlowJumpFalls { get; private set; }
+
+        private Vector3 flowDash, flowDashGoing;
+        private float flowDashLeft, flowDashOver, flowDashWatched = -1f;
+
+        /// <summary>How far he jumped in for the last second blow (metres; 0: he did not).</summary>
+        public float FlowJumped => flowJumped;
 
         /// <summary>How many second blows he jumped in for.</summary>
         public int FlowJumps { get; private set; }
@@ -5311,7 +5348,7 @@ namespace PhysicsBattler.Locomotion
             flowLeave = join.Leave;
             flowEnter = join.Enter;
             // (When that moment of the recording comes in the made clip: after its landing the clip goes at the drive's pace.)
-            float driveTime = Mathf.Clamp(AttackMaker.Paced(style).DriveTime, 0.4f, 3f);
+            float driveTime = Mathf.Clamp(AttackMaker.Paced(style, true).DriveTime, 0.4f, 3f);
             // (Left at the corner itself, where the blade is slowest: begun half the bend sooner, with the blade still at
             // 17 m/s, the posed point was thrown 38 cm off its course in a step; at the corner, 13 cm or less.)
             flowLeaveAt = Made.ContactAt + Mathf.Max(0.05f, join.Leave / Made.Score.Rate - Made.ScoreTime) * driveTime;
@@ -5336,6 +5373,76 @@ namespace PhysicsBattler.Locomotion
             return true;
         }
 
+        /// <summary>The jump in for a second blow, a step of it: his root carried toward his man and, with <see cref="FlowJumpCarriesBody"/>, his physical body with it.</summary>
+        private void StepJumpIn(float dt)
+        {
+            if (flowDashWatched >= 0f)
+            {
+                // (How far his chest was left behind, for the reports: through the jump and a fifth of a second after.)
+                flowDashWatched += dt;
+                if (FlowJumpTraced && flowDashWatched < flowDashOver + 0.25f && Upper != null)
+                {
+                    Debug.Log(string.Format(System.Globalization.CultureInfo.InvariantCulture, "JUMPTRACE {0:0.000}: root {1:0.00},{2:0.00}; chest {3:0} cm from its pose, hips {4:0} cm from the carrier; put on its pose {5} times", flowDashWatched, Loco.Position.x, Loco.Position.z, 100f * pressedOff, 100f * Upper.HipsOff, Upper.Jumps));
+                }
+
+                if (flowDashWatched < flowDashOver + 0.2f)
+                {
+                    FlowJumpLagged = Mathf.Max(FlowJumpLagged, pressedOff);
+                }
+
+                if (flowDashWatched > 1f)
+                {
+                    flowDashWatched = -1f;
+                }
+            }
+
+            if (flowDashLeft <= 0f || dt <= 1e-5f)
+            {
+                return;
+            }
+
+            float over = Mathf.Max(0.01f, flowDashOver), part = Mathf.Min(dt, flowDashLeft);
+            Vector3 moved;
+            if (FlowJumpCarriesBody)
+            {
+                // (Begun and ended gently: how far along he is goes as 3u^2 - 2u^3 of the time gone.)
+                float was = 1f - flowDashLeft / over, now = 1f - (flowDashLeft - part) / over;
+                moved = flowDash * (now * now * (3f - 2f * now) - was * was * (3f - 2f * was));
+            }
+            else
+            {
+                moved = flowDash * (part / over);
+            }
+
+            Loco.Position += moved;
+            flowDashLeft -= part;
+            if (FlowJumpCarriesBody && Upper != null)
+            {
+                // (His whole body given the speed his root goes at in this step, and none of it as the jump ends.)
+                Vector3 going = flowDashLeft > 1e-5f ? moved / dt : Vector3.zero;
+                Upper.SendAll(going - flowDashGoing);
+                flowDashGoing = going;
+            }
+        }
+
+        /// <summary>A jump in broken off (he fell, stumbled, the blow ended): the speed his body was given for it is taken off.</summary>
+        private void EndJumpIn()
+        {
+            if (flowDashGoing.sqrMagnitude > 1e-8f && Upper != null && !Fallen)
+            {
+                Upper.SendAll(-flowDashGoing);
+            }
+
+            if (flowDashWatched >= 0f && Fallen)
+            {
+                FlowJumpFalls++;
+            }
+
+            flowDashWatched = -1f;
+            flowDashGoing = Vector3.zero;
+            flowDashLeft = 0f;
+        }
+
         private void StepFlow(float dt)
         {
             if (flowFirst == null && flowSecond == null)
@@ -5348,17 +5455,12 @@ namespace PhysicsBattler.Locomotion
             bool playing = Loco.Current == Locomotor.Mode.OneShot && Loco.Shot == now.Clip;
             if (!playing || Strikes == null || Fallen || Stumbling)
             {
+                EndJumpIn();
                 EndFlow(flowSecond == null ? "the first blow ended before its corner (blocked, parried or broken off): nothing followed" : null);
                 return;
             }
 
-            if (flowDashLeft > 0f && dt > 1e-5f)
-            {
-                // (The jump in: his root carried toward his man, evenly, over FlowJumpsOver.)
-                float part = Mathf.Min(dt, flowDashLeft);
-                Loco.Position += flowDash * (part / Mathf.Max(0.01f, FlowJumpsOver));
-                flowDashLeft -= part;
-            }
+            StepJumpIn(dt);
 
             // What its blade has met since the last step.
             if (flowTarget != null && flowTarget.Loco != null)
@@ -5451,7 +5553,22 @@ namespace PhysicsBattler.Locomotion
                 bool firstWalked = Loco.ShotOverWalk;
                 var joined = nextScore != null ? nextScore.EnteredFrom(first.Score, flowLeave, flowEnter, bendFrames, firstWalked) : null;
                 // He jumps in for the second blow where the first has driven his man out of its reach.
+                if (FlowTestShoves > 0f && flowTarget != null && flowTarget.Loco != null)
+                {
+                    Vector3 off = flowTarget.Loco.Position - Loco.Position;
+                    off.y = 0f;
+                    flowTarget.Loco.Position += off.normalized * FlowTestShoves;
+                }
+
                 Vector3 aimAt = flowPoint();
+                if (FlowTestShoves > 0f && flowTarget != null && flowTarget.Loco != null)
+                {
+                    // (The spot is read off his body, which is put where he now stands only in its next step.)
+                    Vector3 off = flowTarget.Loco.Position - Loco.Position;
+                    off.y = 0f;
+                    aimAt += off.normalized * FlowTestShoves;
+                }
+
                 flowJumped = 0f;
                 if (joined != null && FlowJumpsIn && !firstWalked)
                 {
@@ -5473,7 +5590,10 @@ namespace PhysicsBattler.Locomotion
                         Vector3 toMan = aimAt - Loco.Position;
                         toMan.y = 0f;
                         flowDash = toMan.normalized * far;
-                        flowDashLeft = FlowJumpsOver;
+                        flowDashLeft = flowDashOver = Mathf.Max(0.02f, FlowJumpsOver);
+                        flowDashGoing = Vector3.zero;
+                        flowDashWatched = 0f;
+                        FlowJumpLagged = 0f;
                         aimAt -= flowDash;
                         flowJumped = far;
                         FlowJumps++;
@@ -5491,7 +5611,9 @@ namespace PhysicsBattler.Locomotion
                         Strikes.Power = 1f;
                     }
 
+                    ThrowsACombo = true;
                     walked = StrikeOnTheMove(flowTarget, flowPoint(), flowStyle, null, nextScore.EnteredFrom(first.Score, flowLeave, flowEnter, bendFrames, true));
+                    ThrowsACombo = false;
                     flowWalkNote = walked != null ? "thrown over his walk" : string.Format(System.Globalization.CultureInfo.InvariantCulture, "not thrown over his walk: {0}", MovedPlanted ? string.Format(System.Globalization.CultureInfo.InvariantCulture, "it would fall {0:0} cm short", 100f * MovedShort) : "no plan for it");
                     if (walked != null)
                     {
@@ -5510,7 +5632,9 @@ namespace PhysicsBattler.Locomotion
                 flowBearing = Mathf.Atan2(lies.x, lies.z) * Mathf.Rad2Deg;
                 flowFar = new Vector2(lies.x, lies.z).magnitude;
                 flowUp = lies.y;
+                ThrowsACombo = true;
                 var second = walked ?? (joined != null ? StrikeMade(flowTarget, aimAt, flowStyle, 0f, null, null, null, joined) : null);
+                ThrowsACombo = false;
                 flowPlanted = false;
                 if (second == null)
                 {
@@ -5523,6 +5647,7 @@ namespace PhysicsBattler.Locomotion
                 flowMade = string.Format(System.Globalization.CultureInfo.InvariantCulture, " [the second as made: its score {0} frames at {1:0} a second, drive at {2}, lands at {3}; turned {4:0} degrees, lunge x{5:0.00}, hips dropped {6:0} cm, leaned {7:0} degrees, hand moved {8:0} cm, wrist steered {9:0} degrees; lands {10:0.00} s in, at {16:0.00} s of its score. The first: turned {11:0}, lunge x{12:0.00}, dropped {13:0} cm, leaned {14:0}, hand moved {15:0} cm]",
                     joined.Frames.Length, joined.Rate, joined.Drive, joined.Contact, second.Turn, second.Lunge, 100f * second.Drop * Loco.Leg, second.Lean, 100f * second.HandMoved * Loco.Leg, second.Steer, second.ContactAt,
                     first.Turn, first.Lunge, 100f * first.Drop * Loco.Leg, first.Lean, 100f * first.HandMoved * Loco.Leg, second.ScoreTime)
+                    + string.Format(System.Globalization.CultureInfo.InvariantCulture, " [the first landed {0:0.00} s in as made, its clip {1:0.00} s long; the second lands {2:0.00} s in, its clip {3:0.00} s long; a combo's blows at x{4:0.00}, a single blow at x{5:0.00}]", first.ContactAt, first.Clip != null ? first.Clip.Duration : 0f, second.ContactAt, second.Clip != null ? second.Clip.Duration : 0f, AttackMaker.ComboPace, AttackMaker.Pace)
                     + (second.OnTheMove && Loco.ShotOverWalk ? " [thrown over his walk]" : " [made standing: " + flowWalkNote + "]")
                     + (flowJumped > 0f ? string.Format(System.Globalization.CultureInfo.InvariantCulture, " [he jumped in {0:0} cm; his man was going {1:0.0} m/s]", 100f * flowJumped, flowTargetGoing.magnitude) : string.Format(System.Globalization.CultureInfo.InvariantCulture, " [no jump in; his man was going {0:0.0} m/s]", flowTargetGoing.magnitude))
                     + string.Format(System.Globalization.CultureInfo.InvariantCulture, " [at the join his root had turned {0:0} degrees since the first blow began; the spot lay {1:0} degrees to his right, {2:0.00} m off and {3:0.00} m up]",
@@ -5553,7 +5678,7 @@ namespace PhysicsBattler.Locomotion
                 FlowTold = flowPlan + ". The first " + (flowFirstMet.Length > 0 ? flowFirstMet : "met nothing") + "; the second " + (flowSecondHit >= 0f
                     ? flowSecondMet + string.Format(inv, ", {0:0.00} s after the first, {1:0} cm from the spot asked for", FlowHitToHit, 100f * Mathf.Max(0f, FlowSecondMiss))
                     : "met nothing")
-                    + (flowJumped > 0f ? string.Format(inv, " (he jumped in {0:0} cm for it)", 100f * flowJumped) : " (no jump in)")
+                    + (flowJumped > 0f ? string.Format(inv, " (he jumped in {0:0} cm for it, his body {1}: his chest got {2:0} cm from its pose in it)", 100f * flowJumped, FlowJumpCarriesBody ? "carried with him" : "dragged (old)", 100f * FlowJumpLagged) : " (no jump in)")
                     + (flowFirstHit >= 0f && flowSecondHit >= 0f ? string.Format(inv, ". Between the two the point travelled {0:0.00} m and was never slower than {1:0.0} m/s (the freeze of {2:0.00} s apart); at the join the posed point was thrown {3:0} cm off its course", FlowTravel, FlowSlowest < 1e6f ? FlowSlowest : 0f, flowFrozen, 100f * FlowJump) : "");
             }
 
@@ -5584,8 +5709,8 @@ namespace PhysicsBattler.Locomotion
         /// <param name="counts">Which parts of the target count as the one the blade is for (null: not looked at): an attack whose blade would meet another part first is passed over for one whose way is open.</param>
         public MadeAttack StrikeMade(ClipFighter target, Vector3 point, in AttackStyle styleAsked, float landIn = 0f, string named = null, System.Func<PartId, bool> counts = null, string legs = null, AttackScore given = null, float mostTurn = 0f)
         {
-            // (Every weapon's blow at the pace the game is set to: AttackMaker.Pace.)
-            AttackStyle style = AttackMaker.Paced(styleAsked);
+            // (Every weapon's blow at the pace the game is set to: AttackMaker.Pace, a combo's blows AttackMaker.ComboPace.)
+            AttackStyle style = AttackMaker.Paced(styleAsked, ThrowsACombo);
             if (Strikes != null)
             {
                 // (As heavy as any: a blow of a class sets its own after it is made, AttackClasses.)
@@ -6343,7 +6468,7 @@ namespace PhysicsBattler.Locomotion
         /// <param name="given">A score put together for the occasion (a blow entered out of the one before it, the combos' join): that one, and it may be thrown while the blow before is still going over his walk.</param>
         private MadeAttack StrikeOnTheMove(ClipFighter enemy, Vector3 point, in AttackStyle styleAsked, string named, AttackScore given = null)
         {
-            AttackStyle style = AttackMaker.Paced(styleAsked);
+            AttackStyle style = AttackMaker.Paced(styleAsked, ThrowsACombo);
             MovedShort = 0f;
             MovedPlanted = false;
             float pace = new Vector2(Loco.Velocity.x, Loco.Velocity.z).magnitude;

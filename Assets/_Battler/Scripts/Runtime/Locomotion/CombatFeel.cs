@@ -1120,8 +1120,14 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("On: the duel lab's \"Throw two\" throws two blows as one swing (the combos plan's step 2). The first blow is not played to its end: its own carry-through is played as far as the corner where the blade turns, and there the second is begun in the middle of its own wind-up. Off (old): one whole attack, and when he is free again the other, about 1.7 s from hit to hit.")]
         public bool aSecondBlowFlowsOutOfTheFirst = true;
 
-        [Tooltip("How fast every weapon's blow is thrown. 1: as it was. 1.25: a quarter faster throughout (the wind-up, the drive and the way back to the guard), and the blade lands that much faster and harder. Under 1: slower. The slider in the lab's \"Strike at\" sets this.")]
+        [Tooltip("How fast a blow on its own is thrown (not a combo's: those have \"A Combos Blows Are Thrown At\"). 1: as it was. 1.25: a quarter faster throughout (the wind-up, the drive and the way back to the guard), and the blade lands that much faster and harder. Under 1: slower. The slider \"Attack speed: single\" in the lab's \"Strike at\" sets this.")]
         [Range(0.6f, 2f)] public float attacksAreThrownAt = 1f;
+
+        [Tooltip("How fast a combo's blows are thrown: both blows of \"Throw two\". 1: as recorded. 1.25: a quarter faster throughout, and the blades land that much faster and harder. Apart from a single blow's speed, \"Attacks Are Thrown At\". The slider \"Attack speed: combos\" in the lab's \"Strike at\" sets this.")]
+        [Range(0.6f, 2f)] public float aCombosBlowsAreThrownAt = 1f;
+
+        [Tooltip("On: in the jump in for a second blow his physical body is carried with him: the jump begins and ends gently, and his whole body is given the speed he is carried at and has it taken off again as the jump ends. Nothing of his physics is put out. Off (as it was): he was carried off at once and his body dragged after him by its hips; in Renier's log of 21 November 08:33 his chest was left 52 cm behind in a jump of 87 cm, which the game took for a man borne down, and he fell (3 times in 39 pairs).")]
+        public bool inTheJumpHisBodyIsCarriedWithHim = true;
 
         [Tooltip("On: for the second blow of two he jumps in when the first has driven his man out of its reach: he is carried toward him in a tenth of a second (a fighting game's combo slide), and the blow is made for where that puts him. Off (as it was): he stays, and the second blow met nothing in 20 of 37 pairs in Renier's log of 21 November.")]
         public bool forTheSecondBlowHeJumpsIn = true;
@@ -2059,6 +2065,8 @@ namespace PhysicsBattler.Locomotion
             ClipFighter.FlowBendOver = Mathf.Clamp(theJoinBendsOver, 0.04f, 0.3f);
             ClipFighter.FlowBend = Mathf.Clamp(theJoinMakesUpAtMost, 0.05f, 0.4f);
             AttackMaker.Pace = Mathf.Clamp(attacksAreThrownAt, 0.6f, 2f);
+            AttackMaker.ComboPace = Mathf.Clamp(aCombosBlowsAreThrownAt, 0.6f, 2f);
+            ClipFighter.FlowJumpCarriesBody = inTheJumpHisBodyIsCarriedWithHim;
             ClipFighter.FlowJumpsIn = forTheSecondBlowHeJumpsIn;
             ClipFighter.FlowJumpsFrom = Mathf.Clamp(heJumpsInFrom, 0f, 1f);
             ClipFighter.FlowJumpsAtMost = Mathf.Clamp(heJumpsInAtMost, 0.2f, 3f);

@@ -559,7 +559,10 @@ namespace PhysicsBattler.Sandbox
 
             string was = aim.Attack;
             aim.Attack = TwoFirst;
+            // (Both blows of a pair at the combos' pace.)
+            Mover.Clip.ThrowsACombo = true;
             bool begun = Strike(aim, spot, now);
+            Mover.Clip.ThrowsACombo = false;
             aim.Attack = was;
             if (!begun)
             {
@@ -626,7 +629,9 @@ namespace PhysicsBattler.Sandbox
                 {
                     string was = twoAim.Attack;
                     twoAim.Attack = TwoNext;
+                    Mover.Clip.ThrowsACombo = true;
                     bool begun = Strike(twoAim, twoSpot, Time.time);
+                    Mover.Clip.ThrowsACombo = false;
                     twoAim.Attack = was;
                     if (begun)
                     {

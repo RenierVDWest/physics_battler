@@ -1177,6 +1177,25 @@ namespace PhysicsBattler.Authority
             }
         }
 
+        /// <summary>
+        /// The whole body sent on by a change of speed (m/s): what carries it along with a root that is itself carried
+        /// off at once (the jump in for a second blow). Its hips hang from the carrier by a joint; without this the
+        /// carrier is gone ahead and the body is dragged after it, folded back over its hips.
+        /// </summary>
+        public void SendAll(Vector3 speed)
+        {
+            if (Falling)
+            {
+                return;
+            }
+
+            // (Each part given the same change: the body goes on as one, no joint of it turned by it.)
+            for (int i = 0; i < links.Length; i++)
+            {
+                links[i].AddForce(speed, ForceMode.VelocityChange);
+            }
+        }
+
         /// <summary>The engine has thrown a falling body out of the world: a part of it nowhere, or further than <paramref name="most"/> from <paramref name="from"/>.</summary>
         public bool Gone(Vector3 from, float most)
         {

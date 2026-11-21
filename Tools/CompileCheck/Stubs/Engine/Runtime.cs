@@ -270,6 +270,9 @@ namespace UnityEngine
     {
         public GUIStyle() { }
         public GUIStyle(GUIStyle other) { }
+        public static GUIStyle none { get; } = new GUIStyle();
+        /// <summary>A stand-in: seven units a letter, so that what wraps by its width has something to go by.</summary>
+        public Vector2 CalcSize(GUIContent content) => new Vector2(12f + 7f * (content != null && content.text != null ? content.text.Length : 0), 20f);
         public TextAnchor alignment { get; set; }
         public FontStyle fontStyle { get; set; }
         public bool wordWrap { get; set; }
@@ -310,6 +313,7 @@ namespace UnityEngine
         public GUIStyle toggle { get; } = new GUIStyle();
         public GUIStyle box { get; } = new GUIStyle();
         public GUIStyle textField { get; } = new GUIStyle();
+        public GUIStyle verticalScrollbar { get; } = new GUIStyle();
     }
 
     public struct Matrix4x4
@@ -399,6 +403,7 @@ namespace UnityEngine
         public static void BeginVertical(GUIStyle style, params GUILayoutOption[] options) => GuiTrace.Add("{v");
         public static Vector2 BeginScrollView(Vector2 scrollPosition, params GUILayoutOption[] options) { GuiTrace.Add("{scroll"); return scrollPosition; }
         public static Vector2 BeginScrollView(Vector2 scrollPosition, bool alwaysShowHorizontal, bool alwaysShowVertical, params GUILayoutOption[] options) { GuiTrace.Add("{scroll"); return scrollPosition; }
+        public static Vector2 BeginScrollView(Vector2 scrollPosition, bool alwaysShowHorizontal, bool alwaysShowVertical, GUIStyle horizontalScrollbar, GUIStyle verticalScrollbar, params GUILayoutOption[] options) { GuiTrace.Add("{scroll"); return scrollPosition; }
         public static void EndScrollView() => GuiTrace.Add("scroll}");
         public static string TextField(string text, int maxLength, GUIStyle style, params GUILayoutOption[] options) { GuiTrace.Add("field"); return text; }
     }

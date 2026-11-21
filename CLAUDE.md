@@ -4,7 +4,7 @@ This is the briefing a new chat reads first. It is kept short on purpose. The fu
 (over 6,000 lines: search it, never read it whole). Update this file at the end of every milestone or step:
 the "Where things stand" and "Roadmap" sections must always be true.
 
-Last updated: 21 November 2026, 07:57 (his morning look answered: the jump in for the second blow, an attack speed slider, the dummy's spot, the pounce). Before that: 20 November 2026, 22:08 (step 2 of the combos plan is built and pushed, waiting for his eye; he said "Yes it sounds good. Go." to the combos plan at 18:42, every
+Last updated: 21 November 2026, 09:49 (two attack speeds; the fall after a long jump in; the panel held to its width). Before that: 21 November 2026, 07:57 (his morning look answered: the jump in for the second blow, an attack speed slider, the dummy's spot, the pounce). Before that: 20 November 2026, 22:08 (step 2 of the combos plan is built and pushed, waiting for his eye; he said "Yes it sounds good. Go." to the combos plan at 18:42, every
 default taken. **Step 1 of the combos plan is built and pushed, waiting for his eye:** every recording's blade is
 measured by a report, and the duel lab can draw a made attack's planned blade path and the path the sword really
 took. A view only: nobody fights differently. Next: step 2, two blows as one swing. Corrected at 20:15: what
@@ -555,6 +555,22 @@ follows it** and the swordsman steps in to his distance; **a pounce only on a st
 "Pounce on a stumble of"). **His reminder for after the combo work: kick a man who is down, with the kick pack he
 supplied; the stab at a downed man "can look pretty weird".** Next for combos, after his look: step 3.
 Its film: https://claude.ai/artifact/XydAAxP3Xhn27PXaWvPYMh
+
+**His second look that morning (21 November, 08:44) and what was built for it (09:49; README):** in his log he
+jumped in 27 times and the second blow landed in 31 of 39 pairs, but **he fell 3 times, each after a jump in of 87 to
+94 cm**: his physical body hangs by its hips from a spring of 3 weights and was left 52 cm behind, which the game
+took for a man borne down. Built: **in the jump his body is carried with him** (`ClipFighter.FlowJumpCarriesBody`,
+`UpperBodyArticulation.SendAll`: an eased jump, and every part given the speed his root is carried at; no rule
+loosened; lab row "In the jump, his body:"); **two attack speeds** (`AttackMaker.Pace` for a blow on its own,
+`AttackMaker.ComboPace` for a pair's two; `ClipFighter.ThrowsACombo`; lab levers "Speed: single", "Speed: combos");
+**the panel needs no scrolling sideways** (`BattleSandbox.BeginRow`/`RowTakes`: rows wrap, the views are held to the
+window's width; **built blind**). **A gap between headless and Unity found and closed: the headless engine read a
+joint's "maximum force" as an impulse a physics step, not a force, so the hold on the hips (3 weights) never gave
+and a body carried or shoved by its hips moved far less than in Unity.** `PhysXWorld.JointLimitsAreForces` now sets
+it as Unity has it by default (`PHYSX_JOINTFORCES=0`: as headless was). With it the old jump leaves his chest 14 to
+48 cm behind, step by step, as his log's 12 to 52; carried, 7 and 11 cm, no fall. **The six's baseline with it:
+crossings 0.07%, tremble 4.8% (before: 0.00% and 6.6%).** Headless numbers of shoved bodies from before 21 November
+were measured with the stiff hold. **The jump and the panel are not seen in Unity.**
 
 **The night of 20 to 21 November: his order (22:40 and 22:44, going to bed).** "Continue with the combos next steps
 until you are blocked by me, then continue with other tasks." "You will need me to look at things between the

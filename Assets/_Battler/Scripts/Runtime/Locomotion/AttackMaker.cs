@@ -977,7 +977,19 @@ namespace PhysicsBattler.Locomotion
         /// </summary>
         public static float Pace = 1f;
 
-        public static AttackStyle Paced(in AttackStyle style) => Mathf.Abs(Pace - 1f) < 1e-3f ? style : style.AtPace(Pace);
+        /// <summary>
+        /// How fast a combo's blows are thrown (Combat Feel "A Combos Blows Are Thrown At", 1 = as recorded;
+        /// <c>FIGHT_COMBOPACE</c>), apart from <see cref="Pace"/>, which is now a blow's on its own. Renier, 21
+        /// November: "Seems this attack speed is for all attacks? give me a slider for the combos attack speed and
+        /// one for the normal attacks."
+        /// </summary>
+        public static float ComboPace = 1f;
+
+        public static AttackStyle Paced(in AttackStyle style, bool combo = false)
+        {
+            float pace = combo ? ComboPace : Pace;
+            return Mathf.Abs(pace - 1f) < 1e-3f ? style : style.AtPace(pace);
+        }
 
         public static MadeAttack Make(AttackScore score, in AttackStyle style, in AttackAim aim, in SwordHold hold, bool build = true)
         {

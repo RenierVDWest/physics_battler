@@ -1234,6 +1234,13 @@ internal static class FightReport
             if (fj.Length > 1 && float.TryParse(fj[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float fj1)) PhysicsBattler.Locomotion.ClipFighter.FlowJumpsAtMost = fj1;
             if (fj.Length > 2 && float.TryParse(fj[2], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float fj2)) PhysicsBattler.Locomotion.ClipFighter.FlowLeads = fj2;
         }
+        // (FIGHT_FLOWJUMPCARRIES=0: in the jump in his body is dragged after his root, as before. FIGHT_FLOWSHOVE=0.9:
+        // for the tests, at the join his man is put that much further off, as a blow that drove him far would have.
+        // FIGHT_COMBOPACE=1.3: a combo's blows thrown that much faster; FIGHT_ATTACKPACE is then a blow's on its own.)
+        PhysicsBattler.Locomotion.ClipFighter.FlowJumpTraced = Environment.GetEnvironmentVariable("FIGHT_FLOWJUMPTRACE") == "1";
+        PhysicsBattler.Locomotion.ClipFighter.FlowJumpCarriesBody = Environment.GetEnvironmentVariable("FIGHT_FLOWJUMPCARRIES") != "0";
+        if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_FLOWSHOVE"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float flowShove)) PhysicsBattler.Locomotion.ClipFighter.FlowTestShoves = flowShove;
+        if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_COMBOPACE"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float comboPace)) PhysicsBattler.Locomotion.AttackMaker.ComboPace = comboPace;
         PhysicsBattler.Locomotion.ClipFighter.FlowsOverHisWalk = Environment.GetEnvironmentVariable("FIGHT_FLOWWALKS") == "1";
         // (FIGHT_BLOWPRESS=0: a weapon's blow does not press, fold or turn the body it lands on, as before.
         // FIGHT_BLOWPRESSED="0.06,9,14": how far the hips drop (m), the trunk folds and the chest turns (degrees) for a hard blow.)
@@ -2449,6 +2456,8 @@ internal static class FightReport
                         Console.WriteLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "FLOW {0:0.00}: {1}", paceAt, duel.TwoTold));
                         Console.WriteLine("FLOWMADE" + duel.Mover.Clip.FlowMade);
                         Console.WriteLine("FLOWJOIN " + PhysicsBattler.Locomotion.AttackScore.JoinNote);
+                        Console.WriteLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "FLOWJUMP {0:0.00}: jumped in {1:0} cm, his body {2}; his chest got {3:0} cm from its pose in it; falls after a jump so far {4}; borne down so far {5}; fallen now {6}",
+                            paceAt, 100f * duel.Mover.Clip.FlowJumped, PhysicsBattler.Locomotion.ClipFighter.FlowJumpCarriesBody ? "carried" : "dragged", 100f * duel.Mover.Clip.FlowJumpLagged, duel.Mover.Clip.FlowJumpFalls, duel.Mover.Clip.BorneDown, duel.Mover.Clip.Fallen));
                     }
 
                     if (startWatched && duel.BlowStart.Length > 0)
