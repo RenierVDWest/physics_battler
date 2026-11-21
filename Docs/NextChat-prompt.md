@@ -6,9 +6,10 @@ have my permission to push to that branch.
 1. Attach the repository with push access and clone it. (On 19 November the first ask for push access was refused
    and went through when asked again after I said "you may push" in the chat. If it is refused, tell me at once and
    carry on reading.) Read `CLAUDE.md` at its top first and follow it: it is the briefing, and it is up to date as
-   of 21 November 2026, 13:57 (newer than the rest of this prompt: where the two disagree, CLAUDE.md and the
-   README's last entries are right; steps 1, 2 and 3 of the combos plan are built; I have looked at 1 and 2 and
-   not yet at 3; step 4 waits for my word). `README.md` is the build log (over 7,800 lines: search it, never read it whole). The
+   of 21 November 2026, 15:07 (newer than the rest of this prompt: where the two disagree, CLAUDE.md and the
+   README's last entries are right; steps 1 to 4 of the combos plan are built; I have looked at 1, 2 and 3, and
+   not yet at the fixes of 13:57 or at step 4). `README.md` is the build log (over 8,400 lines: search it, never read it
+   whole, and add entries at its end, never write over it). The
    last entries, from "### 19 November, 22:10" on, are the night of 19 to 20 November; "### 20 November, 08:30" is
    the second pass after my look, the entry after it is what came of my "this all looks good", "### 20 November,
    17:05" is my decision on a man who is down and the combos research and plan, and "### 20 November, 20:00" is the

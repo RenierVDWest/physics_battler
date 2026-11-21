@@ -1160,6 +1160,21 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("On: a combo's blows before its last leave their man in reach: they drive him back, but never so hard that he is thrown back stumbling or off his feet. Off (as it was at 11:43): they throw him as any blow does; in Renier's logs of 21 November at combo speed 1.88 the light first blow threw him back at 2 m/s or floored him outright, and the blows after it met him slowly or not at all.")]
         public bool aCombosEarlierBlowsLeaveHimInReach = true;
 
+        [Tooltip("On: a blow of a combo that his shield stops is not backed out of: the next blow is begun out of its bounce off the shield, which is its wind-up (the combos plan's step 4). Off (as it was): a blocked blow backs out and the combo is over.")]
+        public bool aBlockedBlowFlowsOn = true;
+
+        [Tooltip("On: against a man with a shield, each blow of a combo after the first is aimed at the first spot of its own that is open as it is begun (the rising backhand low on his sword side, the forehand and the chop over the shield, the spin low). Off: every blow at the spot asked for, whatever covers it.")]
+        public bool eachBlowOfAComboIsAimedAtWhatIsOpen = true;
+
+        [Tooltip("A combo's big one that lands on a shield knocks the guard open for this long (seconds): the shield arm is thrown wide and the shield meets nothing till it is back (the combos plan's step 4). 0 (as it was): only as any blow does, when it is heavy enough.")]
+        [Range(0f, 1.5f)] public float theBigOneKnocksAShieldOpenFor = 0.8f;
+
+        [Tooltip("On: a clean parry ends a combo: his blade is beaten aside and nothing follows (the combos plan's step 4). Off (as it was): the next blow is begun at its corner all the same.")]
+        public bool aParryEndsACombo = true;
+
+        [Tooltip("On: a combo ends where his man is further off than a jump in and half a metre more (the combos plan's step 4). Off (as it was): the next blow is thrown at the air.")]
+        public bool aComboEndsWhenHisManIsOutOfReach = true;
+
         [Tooltip("How much there may be to make up where the last blow is joined to the one before it, as time (seconds): the soonest join within it is taken. 0.2: after a rising backhand the forehand lands 0.67 s later (headless), the blade's course kinking 25 cm at the join. 0: the smoothest join whatever it costs in time: 0.85 s later, 18 cm.")]
         [Range(0f, 0.4f)] public float theLastBlowsJoinMakesUpAtMost = 0.2f;
 
@@ -2119,6 +2134,11 @@ namespace PhysicsBattler.Locomotion
             AttackMaker.BigPace = Mathf.Clamp(aCombosBigBlowIsThrownAt, 0.6f, 2f);
             FlowCombos.BigSwing = theBigOneSwingsBig;
             ClipFighter.FlowLinksKeepHim = aCombosEarlierBlowsLeaveHimInReach;
+            ClipFighter.FlowsOffABlock = aBlockedBlowFlowsOn;
+            ClipFighter.FlowAimsAtOpen = eachBlowOfAComboIsAimedAtWhatIsOpen;
+            ClipFighter.FlowLastOpensGuardFor = theBigOneKnocksAShieldOpenFor;
+            ClipFighter.FlowEndsOnAParry = aParryEndsACombo;
+            ClipFighter.FlowEndsOutOfReach = aComboEndsWhenHisManIsOutOfReach;
             ClipFighter.FlowJumpCarriesBody = inTheJumpHisBodyIsCarriedWithHim;
             ClipFighter.FlowJumpsIn = forTheSecondBlowHeJumpsIn;
             ClipFighter.FlowJumpsFrom = Mathf.Clamp(heJumpsInFrom, 0f, 1f);

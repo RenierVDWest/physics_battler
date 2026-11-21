@@ -89,8 +89,19 @@ namespace PhysicsBattler.Locomotion
         /// <summary>The blow playing is a flowing combo's, before its last: it drives the man back no harder than <see cref="LinkKeeps"/> of what would throw him back stumbling.</summary>
         public System.Func<bool> Linking;
 
+        /// <summary>The blow now playing knocks a shield's guard open for this long whatever its weight (seconds; 0 or unset: by its weight only).</summary>
+        public System.Func<float> OpensGuardFor;
+
         /// <summary>A linking blow's push, as a share of what throws a man back stumbling (<see cref="CombatFeel.StumbleFrom"/>).</summary>
         public static float LinkKeeps = 0.8f;
+
+        /// <summary>
+        /// The blow about to begin is not live for this long into its clip (seconds; taken as it begins): one begun out
+        /// of a bounce off a shield starts with its blade against the board, and coming away from it is not a blow.
+        /// </summary>
+        public float NotLiveFor;
+
+        private float notLiveBefore;
 
         /// <summary>The pace a showstopper keeps as it drives on through the body it landed on (0 or null: <see cref="CombatFeel.SwingKept"/>).</summary>
         public System.Func<float> FinisherCarry;
@@ -852,6 +863,8 @@ namespace PhysicsBattler.Locomotion
                 pausedThisBlow = false;
                 swingHeard = false;
                 shieldMeasured.Clear();
+                notLiveBefore = NotLiveFor;
+                NotLiveFor = 0f;
             }
 
             if (striking && !swingHeard && PlayTime >= contactAt - SwingHeardBefore)
@@ -884,7 +897,7 @@ namespace PhysicsBattler.Locomotion
             float speed = Mathf.Min(Vector3.Distance(strike, lastS) / dt, MostSpeed);
             float contact = contactAt, t = PlayTime;
             // (A built blow's blade is live from the start of its cut to the end of its carry-through.)
-            bool live = striking && !stopped && (built ? Built.Live : t >= contact - LiveBefore && t <= contact + LiveAfter) && PlaySpeed > 0f
+            bool live = striking && !stopped && (built ? Built.Live : t >= contact - LiveBefore && t <= contact + LiveAfter) && PlaySpeed > 0f && t >= notLiveBefore
                         && speed >= (Weapon != null ? Weapon.minHitSpeed : 2f);
             Vector3 direction = strike - lastS;
             float radius = Mathf.Max(0.01f, (Weapon != null ? Weapon.sweepRadius : 0.035f) * Scale);
@@ -1297,7 +1310,8 @@ namespace PhysicsBattler.Locomotion
             }
 
             struck.TakeHit(part, shield && !parried, (glanced ? r.Impulse * GlanceLeft : r.Impulse) * (knock * onBlade * felt), r.PartShare, r.PoiseDamage * knock * onBlade, r.Reaction, point, parried,
-                bound: parried && !glanced && !PlayAirborne, drive: drive, heavier: scripted);
+                bound: parried && !glanced && !PlayAirborne, drive: drive, heavier: scripted,
+                opensGuardFor: shield && !parried && OpensGuardFor != null ? OpensGuardFor() : 0f);
             Struck?.Invoke(new StruckBy
             {
                 Struck = struck, Part = part, Result = r, Shield = shield && !parried, Parried = parried, Point = point, Speed = speed,

@@ -501,6 +501,29 @@ namespace PhysicsBattler.Locomotion
             return any ? soonest : best;
         }
 
+        /// <summary>
+        /// The join out of a cut that has been stopped where it is (blocked by a shield: the combos plan's step 4):
+        /// left at that frame, the next entered where there is least to make up, no later than
+        /// <paramref name="leastBefore"/> seconds before it lands (thrown back off the shield, the blade has a
+        /// wind-up's way to go).
+        /// </summary>
+        public static BladeJoin JoinFrom(BladeFlow first, BladeFlow next, int leave, float leastBefore)
+        {
+            leave = Mathf.Clamp(leave, 0, first.Count - 1);
+            int jHi = Mathf.Clamp(Mathf.Min(next.Enter, next.Hit - Mathf.RoundToInt(leastBefore * next.Rate)), 0, next.Count - 1);
+            BladeJoin best = At(first, next, leave, jHi);
+            for (int j = 0; j <= jHi; j++)
+            {
+                var join = At(first, next, leave, j);
+                if (join.Cost < best.Cost)
+                {
+                    best = join;
+                }
+            }
+
+            return best;
+        }
+
         /// <summary>The join of two cuts with the first left at one frame and the next entered at another.</summary>
         public static BladeJoin At(BladeFlow first, BladeFlow next, int leave, int enter)
         {

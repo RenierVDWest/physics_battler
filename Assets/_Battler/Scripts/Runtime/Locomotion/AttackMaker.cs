@@ -223,6 +223,32 @@ namespace PhysicsBattler.Locomotion
         /// </summary>
         public static AttackStyle LastBig = new AttackStyle { WindUp = 1.25f, ArmSwing = 1.15f, HipDrive = 1.15f, Twist = 1.1f, Lean = 1.1f, Lunge = 1.15f, Drop = 1.2f, FollowThrough = 1.4f, WindUpTime = 1f, DriveTime = 1f, RecoveryTime = 1.3f };
 
+        /// <summary>
+        /// What each blow of a combo may go for against a man who covers himself (the plan's step 4: "each next blow
+        /// is aimed at what the last one opened"; "a cut high draws his shield up, so the next goes low"), the spot
+        /// asked for first. The rising backhand comes up from the striker's left: his man's sword side, away from the
+        /// shield, and low. The forehand and the chop come down from high: over the shield. The spin goes low.
+        /// </summary>
+        public static readonly AimSpot[] RisingGoesFor = { AimSpot.Belly, AimSpot.Hips, AimSpot.ThighR, AimSpot.UpperArmR, AimSpot.ForearmR, AimSpot.ShoulderR, AimSpot.ThighL },
+            ForehandGoesFor = { AimSpot.Head, AimSpot.Neck, AimSpot.ShoulderR, AimSpot.UpperArmR, AimSpot.ShoulderL, AimSpot.Belly, AimSpot.Hips },
+            ChopGoesFor = { AimSpot.Head, AimSpot.ShoulderR, AimSpot.ShoulderL, AimSpot.Neck },
+            SpinGoesFor = { AimSpot.Hips, AimSpot.ThighR, AimSpot.Belly, AimSpot.ThighL, AimSpot.UpperArmR };
+
+        /// <summary>The spots a blow may go for: the one asked for, then its own.</summary>
+        public static AimSpot[] GoesFor(AimSpot asked, AimSpot[] own)
+        {
+            var all = new System.Collections.Generic.List<AimSpot> { asked };
+            foreach (var spot in own)
+            {
+                if (!all.Contains(spot))
+                {
+                    all.Add(spot);
+                }
+            }
+
+            return all.ToArray();
+        }
+
         /// <summary>The spin as recorded: its turn is the recording's own, not driven further round.</summary>
         public static AttackStyle Spin = new AttackStyle { WindUp = 1f, ArmSwing = 1f, HipDrive = 1f, Twist = 1f, Lean = 1f, Lunge = 1f, Drop = 1f, FollowThrough = 1f, WindUpTime = 1f, DriveTime = 1f, RecoveryTime = 1f };
 

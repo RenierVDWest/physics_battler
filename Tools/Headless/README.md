@@ -95,6 +95,16 @@ The rest are one-off comparisons from particular days, kept for reference.
   recorded. `FIGHT_BIGSTYLE="1.25,1.15,1.15,1.1,1.1,1.15,1.2,1.4,1.15,0.9,0.02,0.02"`: its style, to try others.
   `FIGHT_COMBOKEEPS=0`: a combo's earlier blows throw him as any blow does. **Renier plays at
   `FIGHT_COMBOPACE=1.88 FIGHT_ATTACKPACE=1.15`: measure combos there as well as at 1.**
+- **Combos against a man who defends (step 4).** `st.sh` is the shield dummy; add `FIGHT_AIMKIT=sword` for one who
+  parries, `FIGHT_AIMKIT=open` for no guard. `FIGHT_DUMMYSKILL=0.5`: how good he is with shield and parry (1: an
+  expert, as every fighter is today, who blocks every blow of a combo and every single blow: measure at 0.5 too).
+  `FIGHT_COMBOBOUNCE=0`: a blocked blow backs out and the combo is over (old). `FIGHT_COMBOAIMS=0`: every blow at the
+  spot asked for. `FIGHT_COMBOOPENS=0`: the big one on a shield only knocks it back. `FIGHT_COMBOPARRY=0`: a parry does
+  not end a combo. `FIGHT_COMBOREACH=0`: a combo does not end where his man is out of reach.
+  `FIGHT_COMBOBOUNCED="-0.5,0.3,0.15"`: the pace the blocked blow is played back at, the least the blow out of the
+  bounce winds up (s), how long its blade is not live (s). `COMBOS so far` counts combos with a blow on his body,
+  blows begun out of a bounce, combos a parry ended and guards knocked open. Single blows to compare with:
+  `FIGHT_DUELBLOW="3:Chest,9:Head,15:Hips,21:Chest,27:Head"` and read the `AIM` lines and "its hits".
 - A new recording: put the FBX in a folder of its own, `python3 Tools/Mocap/Combat/combat_sample.py <folder>`, add a
   line to `STRIKES` in `combat_bake.py` (sample, cut from, cut to, landing, kind, about), run it, and read the new
   cut's line in `flow.sh all`. Check with a diff of the clips that nothing else moved.

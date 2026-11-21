@@ -942,7 +942,8 @@ namespace PhysicsBattler.Locomotion
 
         /// <param name="overWalk">For a blow laid over his walk: the joined score is in the frame the blow before began in, not where its root is as it is left. Over a walk the root is the walk's (he faces his man as he goes), and a blow is laid on it by how it differs from the guard the first blow began in.</param>
         /// <param name="jump">He jumps in by this over the bend (in the joined score's own frame, leg lengths, flat): his whole body is carried that far toward his man, a little off the ground, his feet free meanwhile. For a man the first blow drove back out of the second's reach.</param>
-        public AttackScore EnteredFrom(AttackScore before, int leave, int enter, int bend, bool overWalk = false, Vector3 jump = default)
+        /// <param name="beforePace">How the blow before goes on through the bend: 1, played on at its own pace (its carry-through); under 0, played back the way it came (a blow thrown back off a shield: its bounce is this blow's wind-up; the combos plan's step 4).</param>
+        public AttackScore EnteredFrom(AttackScore before, int leave, int enter, int bend, bool overWalk = false, Vector3 jump = default, float beforePace = 1f)
         {
             if (before == null || Frames.Length < 6 || before.Frames.Length < 3)
             {
@@ -950,7 +951,8 @@ namespace PhysicsBattler.Locomotion
             }
 
             // (The blow before may itself be one entered out of another, a combo's second: its own key says how.)
-            string key = Name + "|from|" + (before.JoinKey ?? before.Name) + "|" + leave + "|" + enter + "|" + bend + (JoinTurnsRoot ? "|t" : "") + (JoinWindsOverBend ? "|w" : "") + (overWalk ? "|walk" : "");
+            string key = Name + "|from|" + (before.JoinKey ?? before.Name) + "|" + leave + "|" + enter + "|" + bend + (JoinTurnsRoot ? "|t" : "") + (JoinWindsOverBend ? "|w" : "") + (overWalk ? "|walk" : "")
+                + (Mathf.Abs(beforePace - 1f) > 1e-3f ? "|pace" + beforePace.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) : "");
             // (To the nearest twentieth of a leg, so that the same jump is the same score.)
             jump = new Vector3(Mathf.Round(jump.x * 20f) / 20f, 0f, Mathf.Round(jump.z * 20f) / 20f);
             if (jump.sqrMagnitude > 1e-6f)
@@ -960,7 +962,7 @@ namespace PhysicsBattler.Locomotion
 
             if (!scores.TryGetValue(key, out var score))
             {
-                scores[key] = score = new AttackScore(before, this, leave, enter, bend, overWalk, jump);
+                scores[key] = score = new AttackScore(before, this, leave, enter, bend, overWalk, jump, beforePace);
                 score.JoinKey = key;
             }
 
@@ -982,7 +984,7 @@ namespace PhysicsBattler.Locomotion
         /// <summary>How high he is off the ground at the middle of a jump in (leg lengths).</summary>
         public const float JumpHops = 0.06f;
 
-        private AttackScore(AttackScore before, AttackScore next, int leave, int enter, int bend, bool overWalk, Vector3 jump)
+        private AttackScore(AttackScore before, AttackScore next, int leave, int enter, int bend, bool overWalk, Vector3 jump, float beforePace = 1f)
         {
             Clip = next.Clip;
             Name = next.Name + "_out_of_" + before.Name.Replace("sns_", "");
@@ -1005,7 +1007,7 @@ namespace PhysicsBattler.Locomotion
             Strike = new Vector3[n];
             StrikeSpeed = new float[n];
             // (The blow before, played on at its own pace: its frames a second against this one's.)
-            float pace = before.Rate / Mathf.Max(1f, next.Rate);
+            float pace = beforePace * before.Rate / Mathf.Max(1f, next.Rate);
             // A score's tracks are in the frame the fighter faced as its clip began, his travel and his turn since then
             // in them. This score's own frame is where the blow before has him as it is left: its root at that
             // frame. The first build (20 November, 22:08) took each recording's tracks as they were, as if they were

@@ -859,7 +859,7 @@ internal static class FightReport
 
                 // (FIGHT_DUELPACE=2.6: the pace he is asked to go at, m/s; without it, his guard's own walk.)
                 // (FIGHT_DUELLEAP=0.8: how far a leap goes, metres; FIGHT_DUELLEAPTIME=0.3: how long it takes.)
-                duel = new PhysicsBattler.Sandbox.DuelLab { Pace = Env("FIGHT_DUELPACE", 0f), LeapFar = Env("FIGHT_DUELLEAP", 0.5f), LeapTime = Env("FIGHT_DUELLEAPTIME", 0.25f) };
+                duel = new PhysicsBattler.Sandbox.DuelLab { Pace = Env("FIGHT_DUELPACE", 0f), LeapFar = Env("FIGHT_DUELLEAP", 0.5f), LeapTime = Env("FIGHT_DUELLEAPTIME", 0.25f), OtherGuardSkill = Env("FIGHT_DUMMYSKILL", 1f) };
                 // (FIGHT_DUELSTYLE=capoeira: he moves in the capoeira style, standing in the ginga. FIGHT_GINGASIZE=0.67,
                 // FIGHT_GINGAARMS=1, FIGHT_GINGATAKE=0..3: the ginga's size, its arms' swings and which take of it.)
                 if ((Environment.GetEnvironmentVariable("FIGHT_DUELSTYLE") ?? "").ToLowerInvariant().StartsWith("cap"))
@@ -1261,6 +1261,25 @@ internal static class FightReport
                     big.HipLead = B(10, big.HipLead); big.ArmLag = B(11, big.ArmLag);
                     PhysicsBattler.Locomotion.FlowCombos.Last = big;
                 }
+            }
+            // (FIGHT_COMBOBOUNCE=0: a blocked blow backs out and the combo is over, as before step 4. FIGHT_COMBOAIMS=0:
+            // every blow at the spot asked for, whatever covers it.)
+            PhysicsBattler.Locomotion.ClipFighter.FlowsOffABlock = Environment.GetEnvironmentVariable("FIGHT_COMBOBOUNCE") != "0";
+            PhysicsBattler.Locomotion.ClipFighter.FlowAimsAtOpen = Environment.GetEnvironmentVariable("FIGHT_COMBOAIMS") != "0";
+            // (FIGHT_COMBOOPENS=0: the big one on a shield only knocks it back, as any blow. FIGHT_COMBOPARRY=0: a parry
+            // does not end a combo. FIGHT_COMBOREACH=0: a combo does not end where his man is out of reach.
+            // FIGHT_COMBOBOUNCED="back,windsUp,dead": the pace the blocked blow is played back at (negative), the least the
+            // blow out of the bounce winds up (s), and how long its blade is not live (s).)
+            if (Environment.GetEnvironmentVariable("FIGHT_COMBOOPENS") == "0") PhysicsBattler.Locomotion.ClipFighter.FlowLastOpensGuardFor = 0f;
+            PhysicsBattler.Locomotion.ClipFighter.FlowEndsOnAParry = Environment.GetEnvironmentVariable("FIGHT_COMBOPARRY") != "0";
+            PhysicsBattler.Locomotion.ClipFighter.FlowEndsOutOfReach = Environment.GetEnvironmentVariable("FIGHT_COMBOREACH") != "0";
+            if (Environment.GetEnvironmentVariable("FIGHT_COMBOBOUNCED") is string bounceSet)
+            {
+                var bounceParts = bounceSet.Split(',');
+                var plain = System.Globalization.CultureInfo.InvariantCulture;
+                if (bounceParts.Length > 0) PhysicsBattler.Locomotion.ClipFighter.FlowBouncesBack = float.Parse(bounceParts[0], plain);
+                if (bounceParts.Length > 1) PhysicsBattler.Locomotion.ClipFighter.FlowBounceWindsUp = float.Parse(bounceParts[1], plain);
+                if (bounceParts.Length > 2) PhysicsBattler.Locomotion.ClipFighter.FlowBounceDead = float.Parse(bounceParts[2], plain);
             }
             // (FIGHT_COMBOKEEPS=0: a combo's earlier blows throw him as any blow does, as before 21 November, 13:00.)
             PhysicsBattler.Locomotion.ClipFighter.FlowLinksKeepHim = Environment.GetEnvironmentVariable("FIGHT_COMBOKEEPS") != "0";
@@ -2485,6 +2504,7 @@ internal static class FightReport
                     {
                         if (float.TryParse(at, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float twoAt) && paceAt >= twoAt && paceAt - dt < twoAt)
                         {
+                            // (FIGHT_DUMMYSKILL=0.5: how good the duel's dummy is with his shield and at the parry; 1 as every fighter is.)
                             bool thrown = duel.ThrowCombo(aim, PhysicsBattler.Locomotion.AimSpot.Chest, Time.time);
                             comboTold = duel.ComboTold;
                             twoTold = duel.TwoTold;
@@ -2496,6 +2516,10 @@ internal static class FightReport
                     {
                         comboTold = duel.ComboTold;
                         Console.WriteLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "COMBO {0:0.00}: {1}", paceAt, duel.ComboTold));
+                        var cf = duel.Mover.Clip;
+                        Console.WriteLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "COMBOS so far: {0} begun, {1} with a blow on his body ({2} blows on it in all), {3} floored him; {4} blows begun out of a bounce off his shield, {6} ended by a parry, his man's guard knocked open {7} times; his own crossings: {5}",
+                            cf.CombosBegun, cf.CombosOnBody, cf.ComboBlowsOnBody, cf.CombosFloored, cf.FlowBounces, PhysicsBattler.Locomotion.SelfCrossings.Budget(), cf.FlowParried,
+                            duel.Other != null && duel.Other.Clip != null ? duel.Other.Clip.GuardsOpened : 0));
                     }
 
                     // (Each pair of a flowing combo as it is closed, the fighter's own account; the old way, the lab's.)

@@ -3,10 +3,10 @@
 This is the briefing a new chat reads first. It is kept short on purpose. The full build log is `README.md`
 (over 8,000 lines: search it, never read it whole). **New entries are added at its end, never written over it: after
 writing one, `wc -l README.md` must say more than before.** (On 21 November, 11:44, a commit left only the newest entry
-in it, and two more commits did the same; found and put back whole at 14:40, nothing lost.) Update this file at the end of every milestone or step:
+in it, and two more commits did the same; found and put back whole at 14:20, nothing lost.) Update this file at the end of every milestone or step:
 the "Where things stand" and "Roadmap" sections must always be true.
 
-Last updated: 21 November 2026, 13:57 (after his look at step 3: the big one made big and given its own speed, a new spin from his recording, the first blows keep him in reach; he said "Ok that looks good ... Do this and proceed" at 12:45, so step 4 is next without waiting). Before that: 21 November 2026, 11:43 (combos, step 3: three blows and the big one, built and pushed, waiting for his eye; he said "Ok this all looks good to me. you can proceed" at 10:41 to the two speeds, the carried jump and the panel). Before that: 21 November 2026, 09:49 (two attack speeds; the fall after a long jump in; the panel held to its width). Before that: 21 November 2026, 07:57 (his morning look answered: the jump in for the second blow, an attack speed slider, the dummy's spot, the pounce). Before that: 20 November 2026, 22:08 (step 2 of the combos plan is built and pushed, waiting for his eye; he said "Yes it sounds good. Go." to the combos plan at 18:42, every
+Last updated: 21 November 2026, 15:07 (combos, step 4: against a man who defends, built and pushed, headless only, waiting for his eye; he has not yet looked at the 13:57 fixes either). Before that: 21 November 2026, 13:57 (after his look at step 3: the big one made big and given its own speed, a new spin from his recording, the first blows keep him in reach; he said "Ok that looks good ... Do this and proceed" at 12:45, so step 4 is next without waiting). Before that: 21 November 2026, 11:43 (combos, step 3: three blows and the big one, built and pushed, waiting for his eye; he said "Ok this all looks good to me. you can proceed" at 10:41 to the two speeds, the carried jump and the panel). Before that: 21 November 2026, 09:49 (two attack speeds; the fall after a long jump in; the panel held to its width). Before that: 21 November 2026, 07:57 (his morning look answered: the jump in for the second blow, an attack speed slider, the dummy's spot, the pounce). Before that: 20 November 2026, 22:08 (step 2 of the combos plan is built and pushed, waiting for his eye; he said "Yes it sounds good. Go." to the combos plan at 18:42, every
 default taken. **Step 1 of the combos plan is built and pushed, waiting for his eye:** every recording's blade is
 measured by a report, and the duel lab can draw a made attack's planned blade path and the path the sword really
 took. A view only: nobody fights differently. Next: step 2, two blows as one swing. Corrected at 20:15: what
@@ -592,7 +592,7 @@ jump in leads his man for 0.13 s at most (`FlowLeadsAtMost`): led for a big blow
 chest with him. **New tool: `Tools/Headless/strip.py`
 draws a run's fighters as stick figures from its log: look at what a blow does before sending it to him.** Not
 right yet: at his own combo speed of 1.44 the spin misses; the 2nd and 3rd blows are planted even when he walks; the chop's leap (hips +0.76 m) and the forehand's
-throw (10 m/s) may be too much; the spin is wild. Next: step 4 (against a man who defends), after his look.
+throw (10 m/s) may be too much; the spin is wild. Step 4 (against a man who defends) is built: see below.
 Its film: https://claude.ai/artifact/3cZJau7b6BLWyTdwq7sJZ1
 
 **He looked at step 3 (21 November, 12:45): "Ok that looks good. The spin does not look good, does not spin all the
@@ -616,6 +616,26 @@ lot more impactful, feels weak atm. Do this and proceed".** He plays the combos 
 - **One throw is not a measurement.** The same combo's blade speed runs from 9 to 16 m/s from throw to throw. Compare
   ways with five throws each (`FIGHT_THROWTWO=3,9,15,21,27`, `SECS=33`), at his speeds.
 - Its film: https://claude.ai/artifact/LzVt4cUC7KmwicvM9Vo1N9
+
+**Combos, step 4: against a man who defends (21 November, 15:07; README; headless only; waiting for his eye).**
+- **A blocked blow flows on** (`ClipFighter.FlowsOffABlock`; lab "A blocked blow:"): the blocked blow is played back
+  from where it stopped (`BladeFlow.JoinFrom`, `EnteredFrom(..., beforePace: FlowBouncesBack)`), and that is the next
+  blow's wind-up (`FlowBounceWindsUp` 0.3 s). The blow out of a bounce is not live for 0.15 s
+  (`StrikeHits.NotLiveFor`), or it meets the board again at once.
+- **Each blow goes for what is open** (`FlowAimsAtOpen`, `FlowBlow.Spots`, `Openings.LookAt`; lab "Each blow goes
+  for:"). **The big one on a shield knocks the guard open for 0.8 s** (`FlowLastOpensGuardFor`,
+  `StrikeHits.OpensGuardFor`; the arm thrown wide, not across his body). **A parry ends the combo**
+  (`FlowEndsOnAParry`). **Out of reach ends it** (`FlowEndsOutOfReach`).
+- **Every fighter in the game is an expert with his shield** (`ShieldSkill` 1): he blocks every blow. The duel lab's
+  dummy has "Dummy: no guard / shield up / parries" and "Dummy's guard skill" (`DuelLab.OtherGuardSkill`;
+  `FIGHT_DUMMYSKILL`). Measure against 1 and 0.5.
+- **Measured at his speeds, five each:** single blows 0 of 5 on the body (expert and middling). Combos the old way
+  0 of 5 (each ends at the first block). Combos now: 1 of 5 against the expert (his guard knocked open 4 times),
+  4 of 5 against the middling shield. Against the parrying dummy 5 of 5 combos ended at the parry.
+- **Not right:** the dummy's own blade passes through his own shield a little as he takes three blows (0.09% to
+  0.29%, the longest 0.08 s; within the budget, but the old way was 0.00). The rising backhand aimed low often lands
+  on the head. Chop, spin and 2-blow combos against a shield were not measured five times.
+- **The build log was cut short by three of my commits today and put back whole** (see the top of this file).
 
 **The night of 20 to 21 November: his order (22:40 and 22:44, going to bed).** "Continue with the combos next steps
 until you are blocked by me, then continue with other tasks." "You will need me to look at things between the

@@ -1249,6 +1249,41 @@ namespace PhysicsBattler.Sandbox
                 if (Press(feel.afterTwoLandedTheLastBlowFloorsHim ? "[floors him]" : "floors him", "He goes down.")) feel.afterTwoLandedTheLastBlowFloorsHim = true;
                 if (Press(!feel.afterTwoLandedTheLastBlowFloorsHim ? "[only if thrown]" : "only if thrown", "By the blow's own throw.")) feel.afterTwoLandedTheLastBlowFloorsHim = false;
                 EndRow();
+                BeginRow();
+                Words(new GUIContent("Dummy:", "What the dummy stands with (the combos plan's step 4). No guard: he blocks nothing. Shield up: sword and shield, he blocks. Parries: a sword, he parries. Pressing one sets the two out again."));
+                for (int kit = 0; kit < 3; kit++)
+                {
+                    string kitName = kit == 0 ? "no guard" : kit == 1 ? "shield up" : "parries";
+                    if (Press(aimTargetKit == kit ? "[" + kitName + "]" : kitName, "The dummy stands with " + AimKits[kit] + "."))
+                    {
+                        aimTargetKit = kit;
+                        SetOutDuelLab();
+                        message = "Duel lab: set out again, the dummy with " + AimKits[kit] + ".";
+                    }
+                }
+
+                EndRow();
+                Duel.OtherGuardSkill = Mathf.Round(4f * Slide("Dummy's guard skill", $"{Duel.OtherGuardSkill:0.00}", "How good the dummy is with his shield and at the parry (in quarters). 1: an expert, as every fighter in the game is today: he reads every blow. 0.5: middling: he misreads about a quarter of single blows and half of a combo's later ones. 0: a novice.", Duel.OtherGuardSkill, 0f, 1f)) / 4f;
+                BeginRow();
+                Words(new GUIContent("A blocked blow:", "What a combo does when his shield stops one of its blows (Combat Feel \"A Blocked Blow Flows On\"). Flows on (new): the next blow is begun out of the bounce off the shield. Backs out (old): the blow backs out and the combo is over."));
+                if (Press(feel.aBlockedBlowFlowsOn ? "[flows on]" : "flows on", "The bounce is the next blow's wind-up.")) feel.aBlockedBlowFlowsOn = true;
+                if (Press(!feel.aBlockedBlowFlowsOn ? "[backs out (old)]" : "backs out (old)", "The combo is over.")) feel.aBlockedBlowFlowsOn = false;
+                EndRow();
+                BeginRow();
+                Words(new GUIContent("Each blow goes for:", "Where a combo's blows are aimed against a man with a shield (Combat Feel \"Each Blow Of A Combo Is Aimed At What Is Open\"). What is open (new): the first spot of its own that his shield and arms do not cover as it is begun; the rising backhand low on his sword side, the forehand and the chop over the shield. The spot asked (old): the chest, whatever covers it."));
+                if (Press(feel.eachBlowOfAComboIsAimedAtWhatIsOpen ? "[what is open]" : "what is open", "The first open spot of its own.")) feel.eachBlowOfAComboIsAimedAtWhatIsOpen = true;
+                if (Press(!feel.eachBlowOfAComboIsAimedAtWhatIsOpen ? "[the spot asked (old)]" : "the spot asked (old)", "The chest.")) feel.eachBlowOfAComboIsAimedAtWhatIsOpen = false;
+                EndRow();
+                BeginRow();
+                Words(new GUIContent("The big one on a shield:", "What a combo's last blow does to a shield that stops it (Combat Feel \"The Big One Knocks A Shield Open For\"). Knocks it open (new): the shield arm is thrown wide for 0.8 s and the shield meets nothing till it is back. As any blow (old): the shield is knocked back; the guard opens only under a blow heavy enough."));
+                if (Press(feel.theBigOneKnocksAShieldOpenFor > 0f ? "[knocks it open]" : "knocks it open", "The shield arm thrown wide for 0.8 s.")) feel.theBigOneKnocksAShieldOpenFor = 0.8f;
+                if (Press(feel.theBigOneKnocksAShieldOpenFor <= 0f ? "[as any blow (old)]" : "as any blow (old)", "The shield knocked back.")) feel.theBigOneKnocksAShieldOpenFor = 0f;
+                EndRow();
+                BeginRow();
+                Words(new GUIContent("A parry:", "What a clean parry does to a combo (Combat Feel \"A Parry Ends A Combo\"). Ends the combo (new): his blade is beaten aside and nothing follows. Does not (old): the next blow is begun at its corner all the same."));
+                if (Press(feel.aParryEndsACombo ? "[ends the combo]" : "ends the combo", "Nothing follows a parried blow.")) feel.aParryEndsACombo = true;
+                if (Press(!feel.aParryEndsACombo ? "[does not (old)]" : "does not (old)", "The next blow is begun all the same.")) feel.aParryEndsACombo = false;
+                EndRow();
                 Readout(new GUIContent("His last combo: " + Duel.ComboTold + ".", "Each blow of the last combo: how hard it was set to land (x a plain blow), when it landed after the first, what it met and how fast, how heavy it was on him, how long both froze, and what it did to him. Then the time from the first hit to the last, how much heavier the last landed than the first, and where his man was 1.5 s after the last hit."), 7);
                 BeginRow();
                 Words(new GUIContent("Two blows:", "Step 2 of the combos plan: a forehand down and a rising backhand back up the same line, at the chest (Combat Feel \"A Second Blow Flows Out Of The First\"). Flowing (new): one swing. The first blow's own carry-through is played as far as the corner where the blade turns, and there the second is begun in the middle of its own wind-up: the blade never goes back to the guard between the hits. One after the other (old): a whole attack, and when he is free again the other."));
@@ -4239,22 +4274,24 @@ namespace PhysicsBattler.Sandbox
         // Names are matched whole, without a chosen button's square brackets; capitals do not matter.
 
         /// <summary>Names this push's list. Change it with every push that needs his eye: his "highlights off" is kept by tag, so a new list is shown again.</summary>
-        private const string LookTag = "21 November, 13:57: the big one hits harder; a new spin from your recording; the first blows keep him in reach";
+        private const string LookTag = "21 November, 15:07: combos against a shield and a parry (and, not yet looked at: the bigger last blow, the new spin)";
 
         /// <summary>What to do, in order, in plain words.</summary>
         private static readonly string[] LookSteps =
         {
-            "1. Go to \"Duel\", find \"Strike at\", and press \"Throw combo\" a good many times (\"Last blow: forehand\"). New: the big one has its own speed, \"Speed: big one\" (1). However fast \"Speed: combos\" is, the last blow takes its own time: a wait, then the cut. It is also swung bigger and goes right through him.",
-            "2. Press \"spin\" in \"Last blow:\" and throw again. It is a new spin, made from the recording you sent: he turns right round on the spot, the sword over his head, and cuts across low. Tell me if he turns far enough now and if the cut hits hard enough. He ends very close to the dummy.",
-            "3. New: the first two blows no longer knock the dummy away or down (row \"Before the big one, a blow:\"). They push him back a little, so the big one finds him where it expects him. To compare: \"throws him (old)\".",
-            "4. To compare the big swing with before: \"The big one's swing: as recorded (old)\". And try \"Speed: big one\" at 1.3 or 1.5 if the wait before it is too long.",
-            "5. What I would like to hear: does the big forehand look strong now? Is the wait before it right? Is the spin right? Then I go on with step 4 (the combo against a shield).",
+            "1. Go to \"Duel\", find \"Strike at\". In the row \"Dummy:\" press \"shield up\". Then press \"Throw combo\" a good many times. New: when his shield stops a blow, the sword bounces off it and that bounce is the wind-up of the next blow. Before, the combo simply stopped there.",
+            "2. The dummy is an expert with his shield, as every fighter in the game is today: he stops every blow. So you see three blows on the shield, and the last one throws his shield arm wide (row \"The big one on a shield:\").",
+            "3. Now pull \"Dummy's guard skill\" down to 0.5 and throw again. A middling shield cannot follow three blows: some now land on his body. Each blow goes for a spot that is open as it begins (row \"Each blow goes for:\").",
+            "4. In \"Dummy:\" press \"parries\" and throw again. When he parries a blow cleanly, the combo is over (row \"A parry:\").",
+            "5. To compare with before: \"A blocked blow: backs out (old)\".",
+            "6. Still waiting for your look from 13:57: \"Dummy: no guard\", then \"Last blow: forehand\" and \"spin\". The big one has its own speed (\"Speed: big one\") and a bigger swing; the spin is the new one from your recording.",
+            "7. What I would like to hear: does the bounce off the shield read as one flowing combo? Should the dummy in this lab stay an expert, or middling?",
         };
 
         /// <summary>The names of what he is to press and watch.</summary>
         private static readonly string[] LookHere =
         {
-            "Duel", "Strike at", "Throw combo", "Last blow:", "Speed: combos", "Speed: big one", "The big one's swing:", "Before the big one, a blow:", "His last combo",
+            "Duel", "Strike at", "Dummy:", "Dummy's guard skill", "Throw combo", "A blocked blow:", "Each blow goes for:", "The big one on a shield:", "A parry:", "Last blow:", "Speed: big one", "His last combo",
         };
 
         /// <summary>For the panel check (headless): the names of <see cref="LookHere"/> that were really drawn, and every section taken as open while it looks.</summary>

@@ -606,6 +606,7 @@ namespace PhysicsBattler.Sandbox
                     Power = !grow ? 1f : blows == 2 ? PhysicsBattler.Locomotion.FlowCombos.LastPower : PhysicsBattler.Locomotion.FlowCombos.LinkPower,
                     Last = grow && blows == 2,
                     Point = () => PhysicsBattler.Locomotion.AimSpots.Point(other.Clip, second),
+                    Spots = PhysicsBattler.Locomotion.FlowCombos.GoesFor(second, PhysicsBattler.Locomotion.FlowCombos.RisingGoesFor),
                 },
             };
             if (blows >= 3)
@@ -620,6 +621,8 @@ namespace PhysicsBattler.Sandbox
                     WindsUp = which == 2 ? PhysicsBattler.Locomotion.FlowCombos.SpinWindsUp : 0f,
                     MostTurn = which == 2 ? PhysicsBattler.Locomotion.FlowCombos.SpinTurnsAtMost : 0f,
                     AsRecorded = which == 2,
+                    Spots = which == 2 ? PhysicsBattler.Locomotion.FlowCombos.SpinGoesFor
+                        : PhysicsBattler.Locomotion.FlowCombos.GoesFor(spot, which == 1 ? PhysicsBattler.Locomotion.FlowCombos.ChopGoesFor : PhysicsBattler.Locomotion.FlowCombos.ForehandGoesFor),
                     Point = which == 2 && PhysicsBattler.Locomotion.FlowCombos.SpinGoesLow
                         ? () => PhysicsBattler.Locomotion.AimSpots.Point(other.Clip, PhysicsBattler.Locomotion.AimSpot.Hips)
                         : () => PhysicsBattler.Locomotion.AimSpots.Point(other.Clip, spot),
@@ -1118,10 +1121,21 @@ namespace PhysicsBattler.Sandbox
             }
         }
 
+        /// <summary>
+        /// How good the dummy is with his shield and at the parry, 0 to 1 (1: an expert, as every fighter is today, who
+        /// reads every blow; 0.5: middling, who misses about a quarter of single blows and half a combo's).
+        /// </summary>
+        public float OtherGuardSkill = 1f;
+
         public void Step(float dt)
         {
             if (Running)
             {
+                if (Other.Clip != null)
+                {
+                    Other.Clip.ShieldSkill = Other.Clip.ParrySkill = Mathf.Clamp01(OtherGuardSkill);
+                }
+
                 StepOpenings(dt);
             }
 

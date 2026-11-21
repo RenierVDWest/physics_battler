@@ -8479,3 +8479,71 @@ is a short one (its own reach 0.91 m) and he jumps in 51 cm for it.
 Checks: 0 errors; the panel's look list 9 of 9; `flow.sh` OK with the new cut in the map; the fight of six (40 s, seed 5) at its baseline: crossings 0.07% (budget 0.5%), tremble 4.8% (budget 8%), after the mend above; no exception in any run. The chop at combos 1.88: 2 of 2, on the head at 16 m/s, floored; the forehand at combos 1: 2 of 2, down, 1.25 s first hit to last.
 
 **Its film:** https://claude.ai/artifact/LzVt4cUC7KmwicvM9Vo1N9
+
+### 21 November, 15:07: combos, step 4: against a man who defends
+
+**What he said (12:45):** "Do this and proceed": the fixes of 13:57, then on with the plan. This is the plan's step 4.
+**Headless only: nothing here has been seen in Unity.**
+
+**What was there:** a combo's blow stopped by a shield backed out and the combo was over; every blow went for the
+spot asked for; a parried blow did not end a combo by any rule of its own; the dummy in the duel lab was always an
+expert.
+
+**Built** (Combat Feel switch, lab row in "Duel" > "Strike at", headless switch):
+
+| What | Combat Feel | Lab | Headless (old way) |
+|---|---|---|---|
+| A blow his shield stops is not backed out of: the blocked blow is played back from where it stopped, and that bounce is the next blow's wind-up | A Blocked Blow Flows On | "A blocked blow: flows on / backs out (old)" | `FIGHT_COMBOBOUNCE=0` |
+| Each blow after the first goes for the first spot of its own that his shield and arms do not cover as it begins | Each Blow Of A Combo Is Aimed At What Is Open | "Each blow goes for: what is open / the spot asked (old)" | `FIGHT_COMBOAIMS=0` |
+| The big one on a shield knocks the guard open for 0.8 s: the shield arm is thrown wide (out and back, not across his body) | The Big One Knocks A Shield Open For | "The big one on a shield: knocks it open / as any blow (old)" | `FIGHT_COMBOOPENS=0` |
+| A clean parry ends the combo | A Parry Ends A Combo | "A parry: ends the combo / does not (old)" | `FIGHT_COMBOPARRY=0` |
+| Further off than a jump in and half a metre more, the combo ends (he does not swing at the air) | A Combo Ends When His Man Is Out Of Reach | none | `FIGHT_COMBOREACH=0` |
+| The dummy: no guard, shield up, or parries; and how good he is at it | none (a lab setting) | "Dummy:", "Dummy's guard skill" | `FIGHT_AIMKIT=open\|shield\|sword`, `FIGHT_DUMMYSKILL=0.5` |
+
+How: `ClipFighter.StepFlow` (`flowBounced`; `BladeFlow.JoinFrom` from the frame the blade stopped at;
+`AttackScore.EnteredFrom(..., beforePace: FlowBouncesBack)` plays the blocked blow backward at half pace into the
+next one; `FlowBounceWindsUp` 0.3 s). `FlowBlow.Spots` is each blow's own list of spots (the rising backhand low on his
+sword side, the forehand and the chop over the shield, the spin low), looked at with `Openings.LookAt` from the
+striker's sword shoulder. `StrikeHits.NotLiveFor`: a blow begun out of a bounce is not live for 0.15 s, or it met the
+board again at once as it came away (in the first runs the "second blow" landed 0.07 s after the first, on the shield).
+`StrikeHits.OpensGuardFor` and `TakeHit(..., opensGuardFor)`. `DuelLab.OtherGuardSkill`.
+A hit that staggers him or makes him flinch already ends a combo (its reaction replaces the blow): not measured here,
+there is no dummy that strikes back.
+
+**Every fighter in the game is an expert with his shield** (`ShieldSkill` 1 everywhere but the walking lab). An expert
+reads every blow, single or in a combo. So the step is measured against an expert and against a middling shield (0.5).
+
+**Measured** (headless, the shield dummy, five combos or five single blows each, at his speeds: combos 1.88, single 1.15):
+
+| | Combos with a blow on his body | Blows on his body | His guard knocked open | Floored |
+|---|---|---|---|---|
+| Single blows, expert shield | 0 of 5 | 0 | 0 | 0 |
+| Single blows, middling shield | 0 of 5 | 0 | 0 | 0 |
+| Combos the old way, expert shield | 0 of 5 (each ended at the first blocked blow) | 0 | 0 | 0 |
+| Combos the old way, middling shield | 0 of 5 (the same) | 0 | 0 | 0 |
+| **Combos now, expert shield** | **1 of 5** | 2 | 4 | 0 |
+| **Combos now, middling shield** | **4 of 5** | 5 | 3 | 1 |
+| Combos now, middling shield, all speeds at 1 | 2 of 4 | 4 | 3 | 1 |
+
+(In the last two rows one of the five was thrown while the dummy still lay metres away from the combo before: it ended
+at once, "his man is out of reach". At speed 1 it is left out of the count.)
+Against the expert the three blows land on the shield in rhythm (first hit to last 0.9 to 1.1 s) and the last throws
+his shield arm wide. Against the dummy who parries (an expert): 5 of 5 combos ended at the parried blow (4 by the new
+rule; in 1 the blade glanced off his sword and the blow broke off by itself).
+
+**The plan's three pass marks:**
+- More combos get a blow onto the body than single attacks: **yes against a middling shield (4 of 5 against 0 of 5),
+  barely against an expert (1 of 5 against 0 of 5).**
+- A parried combo always ends: **yes, 5 of 5.**
+- No more of the sword through his own shield than today: **not quite.** The striker's own sword through his own
+  shield: none. But the dummy, struck three times instead of once, had his own blade through his own shield for
+  0.05 to 0.17 s in a minute (0.09% to 0.29%; the longest 0.08 s; the budget is 0.5% and 0.10 s). The old way: 0.00 s.
+  Before the shield arm was thrown wide instead of across his body it was 0.20 s at a time, over the budget.
+
+**Not right, or not known:**
+- The rising backhand aimed at a thigh or the hips often lands on the head: it is a rising cut and goes on up.
+- Whether the bounce reads as one flowing swing can only be judged in Unity. In the stick figures it does.
+- Only the forehand as the big one was measured five times; the chop and the spin against a shield were not.
+- 2-blow combos against a shield were not measured.
+
+Checks: 0 errors; the panel's look list 12 of 12; the fight of six (40 s, seed 5) at its baseline: crossings 0.07%, tremble 4.8%.
