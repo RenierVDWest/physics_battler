@@ -1349,6 +1349,15 @@ namespace PhysicsBattler.Locomotion
             }
 
             pausedThisBlow = true;
+            // (The shock wave (21 November): the struck man's waits out the freeze if it is not to run through it; the
+            // attacker's own sword arm shudders when his blow is stopped by a shield or a blade.)
+            struck.Wave.HoldLast(HitStop);
+            if ((shield || parried) && Owner != null && ShockWave.AttackerShudders)
+            {
+                Owner.Wave.Hit(PartId.HandR, -handedOn, ShockWave.AttackerShare, HitStop);
+                ShockWave.Shudders++;
+            }
+
             string what;
             if (glanced)
             {

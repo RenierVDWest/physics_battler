@@ -209,12 +209,32 @@ namespace PhysicsBattler.Units
             }
         }
 
+        /// <summary>His clothes (the cloth plan, 21 November).</summary>
+        public PhysicsBattler.Locomotion.Clothes Clothes { get; private set; }
+
         private BladeStreak streak;
         private StreakSettings streakLook;
 
         private void StepClips(float dt)
         {
             StepStreak();
+            // (The shock wave through his body on a hit: stepped on, and put on his drawn body.)
+            if (Clip != null)
+            {
+                Clip.Wave.Step(dt);
+                Clip.Wave.Draw(Rig, dt);
+                // (His clothes (21 November): in the labs and the dance only, until Renier says.)
+                if (Clothes == null && Rig != null)
+                {
+                    Clothes = new PhysicsBattler.Locomotion.Clothes(Rig, Clip.Wave, Clip.Size, Team, transform);
+                }
+
+                if (Clothes != null)
+                {
+                    Clothes.FollowHide();
+                    Clothes.Step(dt, PhysicsBattler.Locomotion.AttackMaker.InALab);
+                }
+            }
             UpdateSeveredCollisions(dt);
             UpdateBleeding(dt);
             if (!IsAlive)

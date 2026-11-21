@@ -8789,3 +8789,67 @@ solver or bought; the skirt kind first; sleeves tied back first; who wears them;
 **Its film** (3b2b, made by Opus at medium effort; 8 scenes, 34 beats, about 5 minutes; added 21:22): https://claude.ai/artifact/TtEraxUG6Bk2VKuR9n6uiu
 Checked by its maker: every beat looked at in light and dark, every number against the plan. Not tried: the voice,
 the question box, saving notes.
+
+### 21 November, 23:00: the shock wave through the body on a hit (built blind; his answers of 21:33)
+
+**His answers (21:33), all taken:** the wave is seen in the freeze, and runs on every hit and impact; the legs as I
+suggested (it fades through the thighs and stops at the shins, the feet stay planted); the attacker's own arm shudders
+when his blow is stopped; the bend stays under it; "lets say 3 times" read as: the first values as planned, about three
+times what a real body does (the dial "How over the top" is 1 for that, and goes up to 3 for wilder). Tonight's order:
+shock waves, then clothes, then the combos plan's last step.
+
+**What is built** (`Locomotion/ShockWave.cs`, one per fighter, `ClipFighter.Wave`):
+- **Drawn only.** The wave moves the body's meshes (the "Mesh" objects under each part, and the sword's and shield's
+  meshes under the hand slots) and nothing else. No collider, hit, check or physics sees it. A reading taken: the plan
+  said to put it on the pose and measure how much of it the physical body shows, and to move it to the drawn body if too
+  little showed; I put it straight on the drawn body, because then the checks read the body under the wave by
+  construction (the plan's step 5) and the motors cannot smooth it.
+- **The model as planned:** u_p(t) = A · k^j · m · exp(−(t − t_p)·ln2/h) · sin(2πf(t − t_p)), t_p = d_p / c, from the
+  struck part out along the body (the distances from the rig). A heavy blow (60 N·s) moves the struck part 9 cm; a
+  lighter one less; never more than 15 cm a part (all its waves together; times the dial when it is over 1).
+- **Drawn as a skeleton from the hips out,** so the body stays joined: each part starts where the part before it has its
+  joint and is turned (the least-squares turn over all the joints it carries: the chest carries the neck and both
+  shoulders) so its far joints go where the wave puts them. The head and the hands are turned by the tilt, and take the
+  sword and shield with them: the whip.
+- **Every hit and impact** starts one (`TakeHit`: a blow on the body, on his shield (from the shield hand), a parry (from
+  the sword hand), and a man lying down; `TakeImpact`: bashes, kicks and thrown bodies, from the shield hand or the part
+  nearest the point). **The attacker's shudder:** a third as hard, at his sword hand, when a shield or a blade stops his
+  blow (`StrikeHits`). **In the freeze:** the wave runs on its own clock, so it is seen while both are frozen; off, it
+  waits for the freeze to end.
+- **Labs and dance only** (`AttackMaker.InALab`): the fight of six has none until he says. The six's checks at seed 5:
+  crossings 0.07%, tremble 4.8%, as the baseline; no wave begun.
+- **Combat Feel:** "A Hit Sends A Shock Wave Through The Body", the eight sliders (frequency 7, dies away in 0.15 s,
+  strength 9 cm, wave speed 5 m/s, each joint passes on 0.75, loose ends 1.3, tilt 1.5 degrees a cm, how over the top
+  1), and three switches (in the freeze, the attacker's arm, the legs).
+- **The lab** (duel lab, its own heading "The shock wave"): "Ring him:" chest, head, arm, shield, hips, shin (a heavy
+  blow's wave with no blow); "The wave:" on / off (old); the sliders; "The wave also:" the three ticks; readouts "His
+  last wave" (part by part) and "Waves so far".
+- **Headless:** `FIGHT_RING="chest@2,head@4"` rings the duel's other and prints a `WAVE` line; `FIGHT_WAVE=0` turns it
+  off; every report ends with a `SHOCKWAVES` line. Headless bodies have no meshes, so stand-ins are hung on each part
+  for the ring to move.
+
+**Measured headless (a ring of the chest, the default values):**
+
+| Part | First moved | First swing | Swings | Still again |
+|---|---|---|---|---|
+| Chest | 0.02 s | 7.7 cm | 6 | 0.82 s |
+| Head, upper arm | 0.07 s | 5.7 cm | 6 | 0.80 s |
+| Forearm | 0.12 s | 4.3 cm | 5 | 0.78 s |
+| Hands | 0.18 s | 3.2 cm | 5 | 0.78 s |
+| Hips | 0.07 s | 4.2 cm | 5 | 0.73 s |
+| Thigh | 0.10 s | 2.8 cm | 4 | 0.63 s |
+| Shin | 0.18 s | 1.2 cm | 3 | 0.57 s |
+| Foot | still | | | |
+
+The sword's point swung 25 cm and the shield's rim 10 cm. Rung from the sword arm the point swung 33 cm; from the
+shield, the rim 17 cm. **The drawn body is joined, but rigid parts cannot follow the wave exactly:** its joints are
+within 2.7 to 5.1 cm of where the formula puts them (the head the furthest; worst before the least-squares turn, 7.7 cm,
+at the shoulders and hips). In one dance of 70 s: 57 waves, 17 attackers' shudders;
+the struck part swung 5.9 cm on average, 23 under 2 cm, 16 at the 15 cm cap. That dance's checks: crossings 1.01%,
+tremble 15.9%, both over budget, as dances were before (0.47% to 0.57% on average for crossings at 17:51; they differ a
+lot from dance to dance); the wave cannot move them (it touches no collider).
+
+**Not seen in Unity. Not known:** whether the meshes are where I think (the "Mesh" objects under the rig's parts and
+under the weapons' models: read from the prefab and `UnitBuilder`), how it looks, whether 7 swings a second reads as a
+shudder or as jelly. The blade's streak follows the sword's slot, not its drawn mesh, so on a whip the streak does not
+whip. Look list on the panel: "21 November, night: the shock wave".

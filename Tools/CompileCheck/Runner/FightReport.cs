@@ -17,6 +17,31 @@ using UnityEngine;
 
 internal static class FightReport
 {
+
+    // (The shock wave headless: Unity's bodies have meshes, the headless ones none, so stand-ins are hung on each part
+    // as the meshes are (a renderer, no collider), for the wave to move.)
+    private static void DrawnStandIns(UnitController unit)
+    {
+        if (unit == null || unit.Rig == null)
+        {
+            return;
+        }
+
+        foreach (var id in PartInfo.All)
+        {
+            var part = unit.Rig.Part(id);
+            if (part == null || part.GetComponentsInChildren<Renderer>(true).Length > 0)
+            {
+                continue;
+            }
+
+            var stand = new GameObject("Mesh");
+            stand.transform.SetParent(part.transform, false);
+            stand.transform.localPosition = new Vector3(0f, 0.1f, 0f);
+            stand.AddComponent<MeshRenderer>();
+        }
+    }
+
     private static string[] paceTrace = new string[0];
     private static string[] blowUp = new string[0];
     private static PhysicsBattler.Sandbox.TubeTest tubes;
@@ -835,6 +860,7 @@ internal static class FightReport
         bool openTold = false;
         bool startWatched = false;
         string twoTold = "none thrown yet", comboTold = "none thrown yet", pairTold = "none thrown yet";
+        float ringTold = -1f;
         int aimRounds = 0;
         if (aimLineup)
         {
@@ -1164,6 +1190,10 @@ internal static class FightReport
             PhysicsBattler.Sandbox.Dance.Pounces = own[0].Trim() != "0";
             // (FIGHT_DANCECOMBOS=0: the dance's fighters start no combos by themselves, as before step 5 of the combos plan.)
             PhysicsBattler.Sandbox.Dance.Combos = Environment.GetEnvironmentVariable("FIGHT_DANCECOMBOS") != "0";
+        // (FIGHT_CLOTHES=0, 1 or 2: what the labs' and the dance's fighters wear; 2, skirt and sleeves, as the game has it.
+        // FIGHT_WAVE=0: no shock wave on a hit.)
+        if (int.TryParse(Environment.GetEnvironmentVariable("FIGHT_CLOTHES"), out int clothesEnv)) PhysicsBattler.Locomotion.Clothes.Wear = clothesEnv;
+        PhysicsBattler.Locomotion.ShockWave.On = Environment.GetEnvironmentVariable("FIGHT_WAVE") != "0";
             // (FIGHT_SHOW=0: none of the show's cues, as before step 6 of the combos plan. FIGHT_SHOW="1,1,1,1,1,1":
             // streaks, the rising swish, the deep hit, the camera kick, the slow beat, sparks. A combo's COMBOS line counts them.)
             {
@@ -2530,6 +2560,99 @@ internal static class FightReport
                         }
                     }
 
+                    // (FIGHT_RING="chest@2,shield@4": the duel's other is rung from that part at that second, with no blow;
+                    // a WAVE line when it has settled: what each part did, and how far apart the drawn joints went.)
+                    foreach (string ring in (Environment.GetEnvironmentVariable("FIGHT_RING") ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        var bits = ring.Split('@');
+                        if (bits.Length == 2 && float.TryParse(bits[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float ringAt) && paceAt >= ringAt && paceAt - dt < ringAt && duel.Other != null)
+                        {
+                            var partRung = bits[0] == "head" ? PartId.Head : bits[0] == "arm" ? PartId.UpperArmR : bits[0] == "shield" ? PartId.HandL
+                                : bits[0] == "hips" ? PartId.Pelvis : bits[0] == "shin" ? PartId.ShinR : PartId.Chest;
+                            DrawnStandIns(duel.Other);
+                            Vector3 wayRung = duel.Other.Clip.Loco.Position - duel.Mover.Clip.Loco.Position;
+                            wayRung.y = 0f;
+                            duel.Other.Clip.Wave.Ring(partRung, wayRung.normalized);
+                            ringTold = paceAt;
+                            Console.WriteLine(FormattableString.Invariant($"RING {paceAt:0.00}: from his {bits[0]}"));
+                        }
+                    }
+
+                    // (FIGHT_SHAKE=3: the lab's "Shake him" from that second: a walk round, a leap in, a blow, a leap out, a
+                    // combo, a medium bash on the other, a hard kick that floors him; a CLOTHES line at each move.)
+                    if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_SHAKE"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float shakeAt))
+                    {
+                        float[] shakeMoves = { 0f, 2f, 2.8f, 4.2f, 5f, 8f, 8.6f, 11.4f, 12f, 18f };
+                        for (int m = 0; m < shakeMoves.Length; m++)
+                        {
+                            float when = shakeAt + shakeMoves[m];
+                            if (paceAt >= when && paceAt - dt < when)
+                            {
+                                string did = m switch
+                                {
+                                    0 => "walks round",
+                                    1 => "leaps in",
+                                    2 => "strikes",
+                                    3 => "leaps out",
+                                    4 => "throws a combo",
+                                    5 => "puts the other before him",
+                                    6 => "bashes him (medium)",
+                                    7 => "puts the other before him",
+                                    8 => "kicks him down (hard)",
+                                    _ => "done",
+                                };
+                                if (m == 0) duel.Give(PhysicsBattler.Sandbox.DuelLab.Order.CircleLeft);
+                                if (m == 1) duel.Give(PhysicsBattler.Sandbox.DuelLab.Order.LeapIn);
+                                if (m == 2) duel.Strike(aim, PhysicsBattler.Locomotion.AimSpot.Chest, Time.time);
+                                if (m == 3) duel.Give(PhysicsBattler.Sandbox.DuelLab.Order.LeapOut);
+                                if (m == 4) { duel.Give(PhysicsBattler.Sandbox.DuelLab.Order.Stand); duel.ThrowCombo(aim, PhysicsBattler.Locomotion.AimSpot.Chest, Time.time); }
+                                if (m == 5) duel.PutOtherAt(1.2f);
+                                if (m == 6) duel.Mover.Clip.Bash(duel.Other.Clip, true, 1, false, false);
+                                if (m == 7) duel.PutOtherAt(1.0f);
+                                if (m == 8) duel.Mover.Clip.KickAt(duel.Other.Clip, true, 2, 0f);
+                                Console.WriteLine(FormattableString.Invariant($"SHAKE {paceAt:0.00}: he {did}; the cloth so far: {PhysicsBattler.Locomotion.Clothes.Counted()}"));
+                            }
+                        }
+                    }
+
+                    // (FIGHT_CLOTHDUMP="4,9.5": every point of both men's clothes at those seconds, CLOTHPTS lines, for a picture.)
+                    foreach (string dumpAt in (Environment.GetEnvironmentVariable("FIGHT_CLOTHDUMP") ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        if (float.TryParse(dumpAt, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float dumpWhen) && paceAt >= dumpWhen && paceAt - dt < dumpWhen)
+                        {
+                            foreach (var who in new[] { duel.Mover, duel.Other })
+                            {
+                                if (who.Clothes == null)
+                                {
+                                    continue;
+                                }
+
+                                var sbPts = new System.Text.StringBuilder();
+                                foreach (var (garment, at) in who.Clothes.AllPoints())
+                                {
+                                    sbPts.Append(FormattableString.Invariant($"{garment[0]}:{at.x:0.000}:{at.y:0.000}:{at.z:0.000} "));
+                                }
+
+                                Console.WriteLine(FormattableString.Invariant($"CLOTHPTS {paceAt:0.00} {(who == duel.Mover ? "mover" : "other")} {sbPts}"));
+                                var sbBody = new System.Text.StringBuilder();
+                                foreach (var id in PartInfo.All)
+                                {
+                                    var bp = who.Rig.Part(id).transform.position;
+                                    sbBody.Append(FormattableString.Invariant($"{id}:{bp.x:0.000}:{bp.y:0.000}:{bp.z:0.000} "));
+                                }
+
+                                Console.WriteLine(FormattableString.Invariant($"BODYPTS {paceAt:0.00} {(who == duel.Mover ? "mover" : "other")} {sbBody}"));
+                                Console.WriteLine(FormattableString.Invariant($"CLOTHNET {paceAt:0.00} {(who == duel.Mover ? "mover" : "other")}: {who.Clothes.Told()}"));
+                            }
+                        }
+                    }
+
+                    if (ringTold >= 0f && paceAt > ringTold + 1.2f)
+                    {
+                        Console.WriteLine(FormattableString.Invariant($"WAVE {paceAt:0.00}: {duel.Other.Clip.Wave.Told()}; {duel.Other.Clip.Wave.Taken} waves taken"));
+                        ringTold = -1f;
+                    }
+
                     if (duel.ComboTold != comboTold && duel.ComboTold != "under way")
                     {
                         comboTold = duel.ComboTold;
@@ -3130,6 +3253,8 @@ internal static class FightReport
             // (The budget, the shield plan's step 5: one line each, read by Tools/Headless/checks.sh.)
             sb.AppendLine(PhysicsBattler.Locomotion.SelfCrossings.Budget());
             sb.AppendLine(PhysicsBattler.Locomotion.HeldShake.Budget());
+            sb.AppendLine("SHOCKWAVES " + PhysicsBattler.Locomotion.ShockWave.Counted());
+            sb.AppendLine("CLOTHES " + PhysicsBattler.Locomotion.Clothes.Counted());
             sb.AppendLine($"    what he holds follows its pose smoothly: {(PhysicsBattler.Locomotion.ClipFighter.HeldSettles ? $"on ({PhysicsBattler.Locomotion.ClipFighter.HeldSettleRate:0} and {PhysicsBattler.Locomotion.ClipFighter.HeldSettleQuick:0} a second)" : "off")}; the furthest a hand was behind its pose for it (cm, shield hand / sword hand): " + string.Join(", ", units.Where(u => u.Clip != null && u.Clip.HeldBehindMost[0] + u.Clip.HeldBehindMost[1] > 0f).Select(u => $"{u.name} {100f * u.Clip.HeldBehindMost[0]:0} / {100f * u.Clip.HeldBehindMost[1]:0}")));
             sb.AppendLine($"    what he holds met softly by his own body: {(PhysicsBattler.Authority.UpperBodyArticulation.HeldMetSoftly ? "on" : "off")}; steps it was against his body (shield arm / sword arm): " + string.Join(", ", units.Where(u => u.Clip != null && u.Clip.Upper != null).Select(u => $"{u.name} {u.Clip.Upper.HeldTouched[0]} / {u.Clip.Upper.HeldTouched[1]}")));
             sb.AppendLine($"    the shield gives way to his own sword: {(PhysicsBattler.Locomotion.ClipFighter.ShieldGivesWayToSword ? "on" : "off")}; steps it was asked aside / the furthest (cm): " + string.Join(", ", units.Where(u => u.Clip != null && u.Clip.GaveWayToSword > 0).Select(u => $"{u.name} {u.Clip.GaveWayToSword} / {100f * u.Clip.GaveWayToSwordMost:0}")));

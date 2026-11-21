@@ -1331,6 +1331,9 @@ namespace PhysicsBattler.Sandbox
                 StrikeSettings(feel);
             }
 
+            ShockWaveRows(feel);
+            ClothesRows(feel);
+
             Heading("Shield test", "The target holds a shield and takes it off one part of itself for a moment; the swordsman must hit that part while it is open. A blow takes time to land, so seeing the part open is too late: a swordsman who reads the uncovering starts as it begins (he goes by its tell, the dip of its blade, and by when it opened the last time he saw it) and lands while it is open; one who only reacts starts once he sees it open, and meets the shield coming back. Under the buttons: the window as it was measured, when his blow started and when it landed.");
             ShieldTestButtons();
             if (ActionSettings(inWindow, "ShieldTest", "Shield test: settings"))
@@ -1615,6 +1618,57 @@ namespace PhysicsBattler.Sandbox
             {
                 message = name + ": not now (the lab is not set out).";
             }
+        }
+
+        // ---- "Shake him" (the cloth plan, 21 November): a fixed run of moves so the clothes can be judged on demand ----
+
+        private float shakeFrom = -1f;
+        private int shakeNext;
+
+        /// <summary>What "Shake him" does, in order: seconds after the press, and what.</summary>
+        private static readonly (float at, string what)[] ShakeMoves =
+        {
+            (0f, "he walks round the other"), (2f, "he leaps in"), (2.8f, "he strikes at the chest"), (4.2f, "he leaps out"),
+            (5f, "he throws a combo"), (8.5f, "he bashes the other (medium): the other stumbles"), (12f, "he kicks the other down and goes for him; the other gets up"),
+        };
+
+        private void StepShake()
+        {
+            if (shakeFrom < 0f || !Duel.Running)
+            {
+                return;
+            }
+
+            float t = Time.time - shakeFrom;
+            if (shakeNext >= ShakeMoves.Length)
+            {
+                if (t > 20f)
+                {
+                    shakeFrom = -1f;
+                    message = "Shake him: done.";
+                }
+
+                return;
+            }
+
+            if (t < ShakeMoves[shakeNext].at)
+            {
+                return;
+            }
+
+            switch (shakeNext)
+            {
+                case 0: Duel.Give(DuelLab.Order.CircleLeft); break;
+                case 1: Duel.Give(DuelLab.Order.LeapIn); break;
+                case 2: Duel.Strike(Aim, PhysicsBattler.Locomotion.AimSpot.Chest, Time.time); break;
+                case 3: Duel.Give(DuelLab.Order.LeapOut); break;
+                case 4: Duel.Give(DuelLab.Order.Stand); Duel.ThrowCombo(Aim, PhysicsBattler.Locomotion.AimSpot.Chest, Time.time); break;
+                case 5: AskStumble(1, "Shake him"); break;
+                case 6: AskStumble(KickHim + 2, "Shake him"); break;
+            }
+
+            message = "Shake him: " + ShakeMoves[shakeNext].what + ".";
+            shakeNext++;
         }
 
         /// <summary>A bash asked for by "Stumble him" is thrown once the other has stood a moment where he was put.</summary>
@@ -3095,6 +3149,7 @@ namespace PhysicsBattler.Sandbox
                 if (aimTest && duelLab)
                 {
                     StepStumbleBash();
+                    StepShake();
                     Duel.Step(Time.fixedDeltaTime);
                 }
 
@@ -4318,23 +4373,21 @@ namespace PhysicsBattler.Sandbox
         // Names are matched whole, without a chosen button's square brackets; capitals do not matter.
 
         /// <summary>Names this push's list. Change it with every push that needs his eye: his "highlights off" is kept by tag, so a new list is shown again.</summary>
-        private const string LookTag = "21 November, 19:09: the show of a combo: streaks, a rising swish, a camera kick, a slow beat, sparks (built blind)";
+        private const string LookTag = "21 November, night: the shock wave through the body on a hit (built blind)";
 
-        /// <summary>What to do, in order, in plain words.</summary>
+        /// <summary>What he is asked to do, in order.</summary>
         private static readonly string[] LookSteps =
         {
-            "1. Go to \"Duel\", find \"Strike at\". \"Dummy:\" press \"no guard\". Press \"Throw combo\" a good many times. New: a streak behind his blade, short and pale on the first blow, longer on the second, the longest and brightest on the big one. Each swish is a little higher than the one before.",
-            "2. As the big one lands, the camera is knocked the way the blow went and comes back. When the combo floors him, the game goes slow for a third of a second.",
-            "3. \"Dummy:\" press \"shield up\" and throw again. When his shield stops a blow, a spark flies from where it met, and it rings.",
-            "4. Each cue has its own tick in the row \"The show:\". \"The show, all:\" turns them all on or off to compare with before. \"The show so far\" counts every cue given.",
-            "5. All of it was built blind: I could not see or hear any of it. Please tell me what is too much, too little or plain wrong: the streak's length and brightness, how far the swish rises, the camera's kick, how long the slow beat is, the spark. The ring is the parry's clang played higher: there is no sound of its own for it yet.",
-            "6. The same cues play in the dance (\"Dance\").",
+            "1. Go to \"Duel\", find the heading \"The shock wave\". In the row \"Ring him:\" press \"chest\": a heavy blow's wave with no blow. Watch the chest go back first, then the upper arms, forearms and hands one after the other, the head, the hips; each part shudders and settles in under a second. The sword's point and the shield's rim whip at the end.",
+            "2. Press the other buttons of \"Ring him:\" (head, arm, shield, hips, shin): the wave starts there and runs both ways. \"His last wave\" says when each part moved and how far.",
+            "3. Play with \"How over the top\" (1 is the start, 3 is wild), \"Frequency\", \"Dies away in\", \"Strength\", \"Wave speed\". \"The wave:\" on / off (old) to compare. \"The wave also:\" ticks for the freeze, the attacker's own arm and the legs.",
+            "4. Then hit him for real: \"Strike at\", \"Throw combo\", and \"Dance\": every hit and block sends a wave. The fight of six has none yet.",
         };
 
         /// <summary>The names of what he is to press and watch.</summary>
         private static readonly string[] LookHere =
         {
-            "Duel", "Strike at", "Dummy:", "Throw combo", "The show:", "The show, all:", "The show so far", "Dance",
+            "Duel", "The shock wave", "Ring him:", "His last wave", "How over the top", "Frequency", "Dies away in", "Strength", "Wave speed", "The wave:", "The wave also:", "Throw combo", "Dance",
         };
 
         /// <summary>For the panel check (headless): the names of <see cref="LookHere"/> that were really drawn, and every section taken as open while it looks.</summary>
@@ -5368,6 +5421,98 @@ namespace PhysicsBattler.Sandbox
                 feel.attackArmLag = Lever("Arm lags", feel.attackArmLag, -0.08f, 0.08f, "How much later the sword arm goes in the drive (seconds).");
                 AttackMaker.Style = feel.AttackStyleNow;
             }
+        }
+
+        /// <summary>The duel lab's clothes (21 November): what they wear, "Shake him", the sliders, what the cloth measured.</summary>
+        private void ClothesRows(CombatFeel feel)
+        {
+            Heading("Clothes", "Real moving cloth (the plan \"Cloth that moves: samurai clothes\"): a hakama, one pleated skirt from a sash at the waist, and sleeves tied back on the upper arms. The cloth is a net of points simulated against his body's own shapes; the parts it covers are hidden. In the labs and the dance; not in the fight of six yet.");
+            if (feel == null)
+            {
+                return;
+            }
+
+            BeginRow();
+            Words(new GUIContent("Clothes:", "What both men wear (Combat Feel \"The Fighters Wear\"). None (old): as before. Skirt: the hakama. Skirt and sleeves: and two sleeves tied back on his upper arms."));
+            string[] names = { "none (old)", "skirt", "skirt and sleeves" };
+            for (int k = 0; k < 3; k++)
+            {
+                if (Press(feel.theFightersWear == k ? "[" + names[k] + "]" : names[k], "Both men wear this.")) feel.theFightersWear = k;
+            }
+
+            EndRow();
+            BeginRow();
+            Words(new GUIContent("Shake him:", "A fixed run of moves, about 18 seconds, so the cloth can be judged on demand: he walks round the other, leaps in, strikes, leaps out, throws a combo, bashes the other so he stumbles, then kicks him down and goes for him, and the other gets up. Watch both men's clothes."));
+            if (Press("Shake him", "The run of moves, now.") && Duel.Running)
+            {
+                shakeFrom = Time.time;
+                shakeNext = 0;
+                message = "Shake him: begun.";
+            }
+
+            EndRow();
+            BeginRow();
+            Words(new GUIContent("Covered parts:", "Combat Feel \"Covered Parts Are Hidden\". Hidden (new): his hips and thighs under the skirt and his upper arms under the sleeves are not drawn, so a slip of cloth into them cannot be seen. Drawn: as before, under the cloth."));
+            if (Press(feel.coveredPartsAreHidden ? "[hidden]" : "hidden", "Not drawn under the cloth.")) feel.coveredPartsAreHidden = true;
+            if (Press(!feel.coveredPartsAreHidden ? "[drawn]" : "drawn", "Drawn under the cloth.")) feel.coveredPartsAreHidden = false;
+            EndRow();
+            feel.clothWeight = Lever("Cloth weight", feel.clothWeight, 0.2f, 3f, "1: like cotton. Heavier hangs straighter and swings slower; lighter flutters.");
+            feel.clothStiffness = Lever("Cloth stiffness", feel.clothStiffness, 0f, 1f, "0: soft as silk, folds everywhere. 1: stiff as canvas.");
+            feel.clothAir = Lever("Cloth air", feel.clothAir, 0f, 6f, "How fast a swing dies away (a second): more is calmer.");
+            feel.clothFeelsHisMovement = Lever("Feels his movement", feel.clothFeelsHisMovement, 0f, 1f, "1: thrown about by everything he does. Lower: calmer, more of it simply carried with him.");
+            feel.clothWind = Lever("Wind", feel.clothWind, 0f, 3f, "A light breeze.");
+            feel.clothGap = Lever("Gap", feel.clothGap, 0f, 0.05f, "How far off his body the cloth is held (metres).");
+            feel.clothLeash = Lever("Leash", feel.clothLeash, 0.05f, 0.6f, "How far a sleeve's point may stray from its place (metres); the skirt's hem twice as far.");
+            feel.clothSmallSteps = Mathf.RoundToInt(Slide("Small steps", feel.clothSmallSteps.ToString(), "Small steps a picture for the cloth: more is safer and costs more.", feel.clothSmallSteps, 1f, 24f));
+            var one = Duel.Other != null ? Duel.Other.Clothes : null;
+            Readout(new GUIContent("The cloth so far: " + PhysicsBattler.Locomotion.Clothes.Counted() + (one != null ? $"; the other wears {one.Points} points" : "") + ".", "Every picture of every fighter's clothes since the scene began: how often a point of cloth was inside his body (deeper than nothing: the gap is outside it), the deepest, the most a thread was stretched, how often a garment went wrong and was put back to hanging, and what it costs a fighter a picture."), 3);
+        }
+
+        /// <summary>The duel lab's shock wave (21 November): ring the other from a part with no blow, the switches and the sliders, what the last wave did.</summary>
+        private void ShockWaveRows(CombatFeel feel)
+        {
+            Heading("The shock wave", "A hit sends a wave through the body from where it landed (the plan \"Shock waves through the body\"). The struck part moves first, the wave travels out along the body joint by joint, and each part shudders as it passes, then settles. Drawn only: no hit, collider, check or physics sees it. The buttons ring the other with a heavy blow's wave and no blow, so it can be watched alone.");
+            var other = Duel.Other != null ? Duel.Other.Clip : null;
+            BeginRow();
+            Words(new GUIContent("Ring him:", "A heavy blow's wave from that part, with no blow, the way the swordsman faces him. Chest: down both arms to the hands, up to the head, down through the hips. Head: down the neck into the chest and on. Arm: his sword arm's upper arm, out to the hand and back into the chest. Shield: from his shield hand up that arm. Hips: up the spine and down the legs. Shin: up the leg."));
+            foreach (var (label, part) in new[] { ("chest", PartId.Chest), ("head", PartId.Head), ("arm", PartId.UpperArmR), ("shield", PartId.HandL), ("hips", PartId.Pelvis), ("shin", PartId.ShinR) })
+            {
+                if (Press(label, "A heavy blow's wave from his " + label + ", with no blow.") && other != null)
+                {
+                    Vector3 way = Duel.Mover != null ? Duel.Other.Clip.Loco.Position - Duel.Mover.Clip.Loco.Position : Vector3.forward;
+                    way.y = 0f;
+                    other.Wave.Ring(part, way.sqrMagnitude > 1e-6f ? way.normalized : Vector3.forward);
+                    message = "Duel lab: the other rung from his " + label + ".";
+                }
+            }
+
+            EndRow();
+            if (feel == null)
+            {
+                return;
+            }
+
+            BeginRow();
+            Words(new GUIContent("The wave:", "Combat Feel \"A Hit Sends A Shock Wave Through The Body\". On (new): on every hit and impact, here, in the dance and everywhere. Off (old): no wave; the bend and the lean a hit had before are still there."));
+            if (Press(feel.aHitSendsAShockWaveThroughTheBody ? "[on]" : "on", "Every hit and impact sends a wave.")) feel.aHitSendsAShockWaveThroughTheBody = true;
+            if (Press(!feel.aHitSendsAShockWaveThroughTheBody ? "[off (old)]" : "off (old)", "No wave.")) feel.aHitSendsAShockWaveThroughTheBody = false;
+            EndRow();
+            feel.shockWaveHowOverTheTop = Lever("How over the top", feel.shockWaveHowOverTheTop, 0f, 3f, "One dial on the wave's strength and how long it rings. 1: the first values, about three times what a real body does. 2 and 3: wilder. 0: off.");
+            feel.shockWaveSwingsASecond = Lever("Frequency", feel.shockWaveSwingsASecond, 3f, 20f, "Swings a second as the wave passes a part. A real body's flesh rings at about 15.");
+            feel.shockWaveDiesAwayIn = Lever("Dies away in", feel.shockWaveDiesAwayIn, 0.03f, 0.6f, "The time for a part's swing to halve (seconds).");
+            feel.shockWaveMovesTheStruckPartBy = Lever("Strength", feel.shockWaveMovesTheStruckPartBy, 0f, 0.15f, "How far a heavy blow moves the struck part (metres); lighter blows less. Never more than 15 cm.");
+            feel.shockWaveTravelsAt = Lever("Wave speed", feel.shockWaveTravelsAt, 1f, 20f, "How fast the wave travels along the body (m/s): at 5, chest to hand in about 0.16 s.");
+            feel.shockWaveEachJointPassesOn = Lever("Each joint passes on", feel.shockWaveEachJointPassesOn, 0.3f, 1f, "The share of the wave that gets through each joint.");
+            feel.shockWaveLooseEndsSwingFurther = Lever("Loose ends", feel.shockWaveLooseEndsSwingFurther, 1f, 2f, "How much further the head and the hands, with the sword and shield, swing.");
+            feel.shockWaveTiltsPerCm = Lever("Tilt", feel.shockWaveTiltsPerCm, 0f, 3f, "How much the head and hands turn as the wave runs through them (degrees for each cm of their swing): the sword's point and the shield's rim whip.");
+            BeginRow();
+            Words(new GUIContent("The wave also:", "Three switches. In the freeze: the wave runs while both men are frozen on a hit (off: it waits for the freeze to end). The attacker: his own sword arm shudders when a shield or a blade stops his blow. The legs: the wave runs on into the legs, fading through the thighs; the feet stay planted (off: it stops at the hips)."));
+            feel.theShockWaveRunsThroughTheFreeze = Tick(feel.theShockWaveRunsThroughTheFreeze, "in the freeze", "The wave runs while both are frozen on a hit.");
+            feel.theAttackersArmShuddersWhenHisBlowIsStopped = Tick(feel.theAttackersArmShuddersWhenHisBlowIsStopped, "the attacker", "His sword arm shudders when his blow is stopped.");
+            feel.theShockWaveTakesTheLegs = Tick(feel.theShockWaveTakesTheLegs, "the legs", "The wave runs on into the legs.");
+            EndRow();
+            Readout(new GUIContent("His last wave: " + (other != null ? other.Wave.Told() : "no one to ring") + ".", "The last wave the other took, part by part: when each part first moved after the wave began, its first swing, how many swings it made (over 2 mm), and when it was still again. And how close the drawn joints kept to where the wave puts them (the body is drawn as a skeleton, so it stays joined)."), 5);
+            Readout(new GUIContent($"Waves so far: {PhysicsBattler.Locomotion.ShockWave.Started} begun, {PhysicsBattler.Locomotion.ShockWave.Rung} rung from here, {PhysicsBattler.Locomotion.ShockWave.Shudders} attackers' shudders.", "Every wave begun since the scene began, everywhere."), 1);
         }
 
         private float Lever(string name, float now, float least, float most, string tip) => Mathf.Round(100f * Slide(name, $"{now:0.00}", tip, now, least, most)) / 100f;

@@ -183,3 +183,14 @@ Easy Procedural Hit Reactions, Unreal Engine forums
 Apprentice, 2019 (https://animationapprentice.blogspot.com/2019/04/what-is-successive-breaking-of-joints.html).
 Not opened (its numbers are from the search summary): Chernak, DeWall, Lee and Thelen, 2013
 (https://pmc.ncbi.nlm.nih.gov/articles/PMC3709597).
+
+## Progress
+
+**21 November, 23:00: steps 1 to 6 built in one go, headless only, not seen in Unity.** His answers (21:33): seen in the
+freeze and on every hit and impact; legs as suggested; the attacker's arm yes; keep the bend; "3 times" read as the
+first values (about three times a real body), the dial going to 3 for wilder. A reading taken: the wave is put on the
+drawn body (the meshes), not the pose, so no physics, hit or check sees it and step 5 holds by construction. Drawn as a
+skeleton from the hips out, so the body stays joined (its joints within 3 to 5 cm of the formula). Lab: "The shock
+wave" in the duel lab, "Ring him:" six buttons, the eight sliders, three switches. Labs and dance only. Measured: a ring
+of the chest reaches the hands at 0.18 s (3.2 cm) and is still at 0.8 s; the sword's point swings 25 cm. One dance: 57
+waves, 17 attackers' shudders. The build log's entry of 23:00 has the tables.

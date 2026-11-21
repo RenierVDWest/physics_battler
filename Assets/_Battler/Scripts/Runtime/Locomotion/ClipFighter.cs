@@ -525,6 +525,7 @@ namespace PhysicsBattler.Locomotion
 
             float leg = Anim.RestLocalPosition(PartId.ShinL).magnitude + Anim.RestLocalPosition(PartId.FootL).magnitude;
             Size = leg / 0.845f;
+            Wave.Size = Size;
             Loco = new Locomotor(leg);
             Poser = new LocoBody(Anim, Loco) { GroundY = groundY };
             Poser.SoleFrom(rig);
@@ -8708,6 +8709,9 @@ namespace PhysicsBattler.Locomotion
                 Poise = Mathf.Max(0f, Poise - poise);
             }
 
+            // (The shock wave (21 November): an impact sends one too, from his shield's hand or the part nearest it.)
+            Wave.Hit(onShield ? PartId.HandL : NearestPart(point), impulse);
+
             if (Upper != null && CombatFeel.HitForce > 0f && force > 0f)
             {
                 HitForceGiven += Upper.Strike(onShield ? PartId.ForearmL : PartId.Chest, impulse * (force * CombatFeel.HitForce * (onShield ? HeldJolt : 1f)), point);
@@ -10740,6 +10744,9 @@ namespace PhysicsBattler.Locomotion
             }
 
             lastHit = clock;
+            // (The shock wave (21 November): every hit sends one from where it landed: the part, his shield's hand, his
+            // parrying sword's hand. Drawn only.)
+            Wave.Hit(shield ? PartId.HandL : parried ? PartId.HandR : part, impulse);
             if (Fallen)
             {
                 // (Down or getting up: no standing reaction. Its clip and its softened holds would pin the ragdoll to a
@@ -11563,6 +11570,27 @@ namespace PhysicsBattler.Locomotion
         }
 
         private readonly List<Impact> impacts = new List<Impact>(4);
+
+        /// <summary>The shock wave through his body on a hit (drawn only; <see cref="ShockWave"/>).</summary>
+        public readonly ShockWave Wave = new ShockWave();
+
+        /// <summary>The part of his posed body nearest a point (for an impact's shock wave).</summary>
+        public PartId NearestPart(Vector3 point)
+        {
+            PartId best = PartId.Chest;
+            float d = float.MaxValue;
+            foreach (var id in PartInfo.All)
+            {
+                float x = (Anim.Part(id).position - point).sqrMagnitude;
+                if (x < d)
+                {
+                    d = x;
+                    best = id;
+                }
+            }
+
+            return best;
+        }
 
         /// <summary>How far the last blow's bend went at its peak (metres), for the logs.</summary>
         public float LastBend { get; private set; }
