@@ -554,6 +554,7 @@ levers); **an attack speed slider** (`AttackMaker.Pace`; lab lever "Attack speed
 follows it** and the swordsman steps in to his distance; **a pounce only on a stumble of 0.6 m or more** (lever
 "Pounce on a stumble of"). **His reminder for after the combo work: kick a man who is down, with the kick pack he
 supplied; the stab at a downed man "can look pretty weird".** Next for combos, after his look: step 3.
+Its film: https://claude.ai/artifact/XydAAxP3Xhn27PXaWvPYMh
 
 **The night of 20 to 21 November: his order (22:40 and 22:44, going to bed).** "Continue with the combos next steps
 until you are blocked by me, then continue with other tasks." "You will need me to look at things between the

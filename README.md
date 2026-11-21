@@ -8188,3 +8188,4 @@ the stab at a downed man "can look pretty weird".
 
 Checks: 0 errors; the panel's look list; `flow.sh`; the fight of six (40 s, seed 5) within its budgets as before: 0.00% and 6.6%, no exception.
 
+**The morning's film** (21 November; 3b2b, made by Opus at medium effort; 5 scenes, about 2 minutes 45): https://claude.ai/artifact/XydAAxP3Xhn27PXaWvPYMh
