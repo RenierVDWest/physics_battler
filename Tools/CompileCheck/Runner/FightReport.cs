@@ -1246,6 +1246,24 @@ internal static class FightReport
             PhysicsBattler.Locomotion.FlowCombos.Blows = combo.Length > 0 && int.TryParse(combo[0], out int comboCount) ? comboCount : 2;
             PhysicsBattler.Locomotion.FlowCombos.LastBlow = combo.Length > 1 ? Math.Max(0, Array.IndexOf(PhysicsBattler.Locomotion.FlowCombos.LastNames, combo[1].Trim())) : 0;
             PhysicsBattler.Locomotion.FlowCombos.Grow = combo.Length > 0 && Environment.GetEnvironmentVariable("FIGHT_COMBOGROWS") != "0";
+            // (FIGHT_BIGSWING=0: the big one swung as recorded, as at 11:43.)
+            PhysicsBattler.Locomotion.FlowCombos.BigSwing = Environment.GetEnvironmentVariable("FIGHT_BIGSWING") != "0";
+            // (FIGHT_BIGSTYLE="1.5,1.25,1.25,1.15,1.2,1.15,1.4,1.4,1.2,0.9,0.03,0.03": the big one's style: wind-up, arm
+            // swing, hip drive, twist, lean, lunge, drop, follow-through, wind-up time, drive time, hip lead, arm lag.)
+            {
+                var bs = (Environment.GetEnvironmentVariable("FIGHT_BIGSTYLE") ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                float B(int i, float otherwise) => bs.Length > i && float.TryParse(bs[i], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float v) ? v : otherwise;
+                if (bs.Length > 0)
+                {
+                    var big = PhysicsBattler.Locomotion.FlowCombos.Last;
+                    big.WindUp = B(0, big.WindUp); big.ArmSwing = B(1, big.ArmSwing); big.HipDrive = B(2, big.HipDrive); big.Twist = B(3, big.Twist); big.Lean = B(4, big.Lean);
+                    big.Lunge = B(5, big.Lunge); big.Drop = B(6, big.Drop); big.FollowThrough = B(7, big.FollowThrough); big.WindUpTime = B(8, big.WindUpTime); big.DriveTime = B(9, big.DriveTime);
+                    big.HipLead = B(10, big.HipLead); big.ArmLag = B(11, big.ArmLag);
+                    PhysicsBattler.Locomotion.FlowCombos.Last = big;
+                }
+            }
+            // (FIGHT_COMBOKEEPS=0: a combo's earlier blows throw him as any blow does, as before 21 November, 13:00.)
+            PhysicsBattler.Locomotion.ClipFighter.FlowLinksKeepHim = Environment.GetEnvironmentVariable("FIGHT_COMBOKEEPS") != "0";
             PhysicsBattler.Locomotion.ClipFighter.FlowLastFloors = Environment.GetEnvironmentVariable("FIGHT_COMBOFLOORS") != "0";
             // (FIGHT_COMBOSPIN=sns_backhand_lunge: the recording the "spin" is.)
             if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("FIGHT_COMBOSPIN"))) PhysicsBattler.Locomotion.FlowCombos.Lasts[2] = Environment.GetEnvironmentVariable("FIGHT_COMBOSPIN");
@@ -1261,6 +1279,7 @@ internal static class FightReport
         PhysicsBattler.Locomotion.ClipFighter.FlowJumpTraced = Environment.GetEnvironmentVariable("FIGHT_FLOWJUMPTRACE") == "1";
         PhysicsBattler.Locomotion.ClipFighter.FlowJumpCarriesBody = Environment.GetEnvironmentVariable("FIGHT_FLOWJUMPCARRIES") != "0";
         if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_FLOWSHOVE"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float flowShove)) PhysicsBattler.Locomotion.ClipFighter.FlowTestShoves = flowShove;
+        if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_BIGPACE"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float bigPace)) PhysicsBattler.Locomotion.AttackMaker.BigPace = bigPace;
         if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_COMBOPACE"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float comboPace)) PhysicsBattler.Locomotion.AttackMaker.ComboPace = comboPace;
         if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_FLOWLEADSMOST"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float leadsMost)) PhysicsBattler.Locomotion.ClipFighter.FlowLeadsAtMost = leadsMost;
         PhysicsBattler.Locomotion.ClipFighter.FlowsOverHisWalk = Environment.GetEnvironmentVariable("FIGHT_FLOWWALKS") == "1";

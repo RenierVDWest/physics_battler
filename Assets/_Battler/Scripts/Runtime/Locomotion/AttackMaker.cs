@@ -183,7 +183,21 @@ namespace PhysicsBattler.Locomotion
         public static float FirstPower = 0.6f, LinkPower = 1f, LastPower = 1.6f;
 
         /// <summary>The last blows a combo of three can end in: the strike, and its name on the panel.</summary>
-        public static readonly string[] Lasts = { "sns_forehand", "sns_chop_lunge", "spin_backhand_mid" };
+        public static readonly string[] Lasts = { "sns_forehand", "sns_chop_lunge", "spin_low" };
+
+        /// <summary>
+        /// The spin is entered this long before it lands (seconds): at its beginning, so that the whole turn is
+        /// seen. Its recording (Renier's reference of 21 November, "Standing Melee Attack 360 Low") turns him 250
+        /// degrees before the cut, which lands 0.93 s in. Entered 0.30 s before the landing, as the other last blows
+        /// may be, most of the turn was over before it began: "does not spin all the way around".
+        /// </summary>
+        public static float SpinWindsUp = 0.8f;
+
+        /// <summary>The spin may turn him this much further (or less far) than its recording does, to bring its cut onto his man (degrees): the turn is taken up in the spin itself.</summary>
+        public static float SpinTurnsAtMost = 120f;
+
+        /// <summary>The spin is a low cut: it is aimed at his hips, whatever the combo's spot.</summary>
+        public static bool SpinGoesLow = true;
         public static readonly string[] LastNames = { "forehand", "chop", "spin" };
 
         /// <summary>
@@ -196,7 +210,30 @@ namespace PhysicsBattler.Locomotion
         /// The last blow: carried all the way through and stepped into. Its wind-up is as recorded: it begins as
         /// the blow before it, bent onto its own, and wound further back it would not carry on from there.
         /// </summary>
-        public static AttackStyle Last = new AttackStyle { WindUp = 1f, ArmSwing = 1f, HipDrive = 1.15f, Twist = 1f, Lean = 1f, Lunge = 1.15f, Drop = 1f, FollowThrough = 1.3f, WindUpTime = 1f, DriveTime = 1f, RecoveryTime = 1.3f };
+        public static AttackStyle LastPlain = new AttackStyle { WindUp = 1f, ArmSwing = 1f, HipDrive = 1.15f, Twist = 1f, Lean = 1f, Lunge = 1.15f, Drop = 1f, FollowThrough = 1.3f, WindUpTime = 1f, DriveTime = 1f, RecoveryTime = 1.3f };
+
+        /// <summary>
+        /// The big one swung big (Combat Feel "The Big One Swings Big"; Renier, 21 November, 12:45: "that slash needs
+        /// to look a lot more impactful, feels weak"): wound up a quarter further, the arm drawn further back and
+        /// carried further through, the hips driving and sinking more, and carried on 1.4 times as far after the
+        /// landing. Its times are the recording's. (Tried with the hips a moment ahead of the arm and the cut a
+        /// tenth quicker: over five throws the blade reached him slower, 12.0 m/s against 14 and more. Wound up half
+        /// again as far the arm could not follow at all.) And it drives on through him at <see cref="BigCarries"/>
+        /// of its pace, not 0.7.
+        /// </summary>
+        public static AttackStyle LastBig = new AttackStyle { WindUp = 1.25f, ArmSwing = 1.15f, HipDrive = 1.15f, Twist = 1.1f, Lean = 1.1f, Lunge = 1.15f, Drop = 1.2f, FollowThrough = 1.4f, WindUpTime = 1f, DriveTime = 1f, RecoveryTime = 1.3f };
+
+        /// <summary>The spin as recorded: its turn is the recording's own, not driven further round.</summary>
+        public static AttackStyle Spin = new AttackStyle { WindUp = 1f, ArmSwing = 1f, HipDrive = 1f, Twist = 1f, Lean = 1f, Lunge = 1f, Drop = 1f, FollowThrough = 1f, WindUpTime = 1f, DriveTime = 1f, RecoveryTime = 1f };
+
+        public static bool BigSwing = true;
+        public static float BigCarries = 0.95f;
+
+        public static AttackStyle Last
+        {
+            get => BigSwing ? LastBig : LastPlain;
+            set { if (BigSwing) LastBig = value; else LastPlain = value; }
+        }
 
         public static string LastName => LastNames[Mathf.Clamp(LastBlow, 0, LastNames.Length - 1)];
     }
@@ -314,6 +351,13 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>The body is turned no further than this to bring the blade onto its line (degrees; 0: as far as any attack, <see cref="AttackMaker.MostTurn"/>). A cut made turning round keeps it small: its turn is its legs', and the blade comes onto its enemy as it sweeps round with him.</summary>
         public float MostTurn;
+
+        /// <summary>
+        /// The cut lands at the moment its recording has it land, and no other (a combo's spin: its cut is a sweep
+        /// across his whole front, and left to choose, the maker took the end of the sweep, out to his side, where
+        /// no turn of his body was asked for and the blade was slow: it met nothing).
+        /// </summary>
+        public bool AsRecorded;
 
         /// <summary>Where the blade's striking part is to land, in the fighter's own frame as the attack begins (leg lengths; x to its right, y over the ground, z forward).</summary>
         public Vector3 Target;
@@ -1020,9 +1064,19 @@ namespace PhysicsBattler.Locomotion
         /// </summary>
         public static float ComboPace = 1f;
 
-        public static AttackStyle Paced(in AttackStyle style, bool combo = false)
+        /// <summary>
+        /// How fast a combo's last blow, the big one, is thrown (Combat Feel "A Combos Big Blow Is Thrown At", 1 = as
+        /// recorded; <c>FIGHT_BIGPACE</c>), apart from <see cref="ComboPace"/>. Renier, 21 November, 12:45, playing
+        /// with the combos at 1.88: "that slash needs to look a lot more impactful, feels weak". At 1.88 the big
+        /// forehand's wind-up and cut together last a quarter of a second: no arm follows that (the sword's point
+        /// was 23 cm off its planned path on average and went 11 m/s where the recording goes 35), and there is no
+        /// wait before it. The first blows may be as quick as he likes; the big one has its own time: da, da ... DUM.
+        /// </summary>
+        public static float BigPace = 1f;
+
+        public static AttackStyle Paced(in AttackStyle style, bool combo = false, bool big = false)
         {
-            float pace = combo ? ComboPace : Pace;
+            float pace = combo ? (big ? BigPace : ComboPace) : Pace;
             return Mathf.Abs(pace - 1f) < 1e-3f ? style : style.AtPace(pace);
         }
 
@@ -1077,12 +1131,13 @@ namespace PhysicsBattler.Locomotion
                 }
 
                 // (Each thirtieth of a second, then finer about the best, twice: the blade crosses 15 cm of height in a sixtieth.)
-                for (float tau = score.Thrust ? contact : drive; tau <= (score.Thrust ? contact : follow) + 1e-4f; tau += 1f / 30f)
+                bool only = score.Thrust || aim.AsRecorded;
+                for (float tau = only ? contact : drive; tau <= (only ? contact : follow) + 1e-4f; tau += 1f / 30f)
                 {
                     Try(tau);
                 }
 
-                for (float step = 1f / 90f; step > 1f / 300f && !score.Thrust && made.Cost < float.MaxValue; step /= 3f)
+                for (float step = 1f / 90f; step > 1f / 300f && !only && made.Cost < float.MaxValue; step /= 3f)
                 {
                     float about = fit.Tau;
                     Try(about - step);

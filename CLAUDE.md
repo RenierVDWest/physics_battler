@@ -4,7 +4,7 @@ This is the briefing a new chat reads first. It is kept short on purpose. The fu
 (over 6,000 lines: search it, never read it whole). Update this file at the end of every milestone or step:
 the "Where things stand" and "Roadmap" sections must always be true.
 
-Last updated: 21 November 2026, 11:43 (combos, step 3: three blows and the big one, built and pushed, waiting for his eye; he said "Ok this all looks good to me. you can proceed" at 10:41 to the two speeds, the carried jump and the panel). Before that: 21 November 2026, 09:49 (two attack speeds; the fall after a long jump in; the panel held to its width). Before that: 21 November 2026, 07:57 (his morning look answered: the jump in for the second blow, an attack speed slider, the dummy's spot, the pounce). Before that: 20 November 2026, 22:08 (step 2 of the combos plan is built and pushed, waiting for his eye; he said "Yes it sounds good. Go." to the combos plan at 18:42, every
+Last updated: 21 November 2026, 13:57 (after his look at step 3: the big one made big and given its own speed, a new spin from his recording, the first blows keep him in reach; he said "Ok that looks good ... Do this and proceed" at 12:45, so step 4 is next without waiting). Before that: 21 November 2026, 11:43 (combos, step 3: three blows and the big one, built and pushed, waiting for his eye; he said "Ok this all looks good to me. you can proceed" at 10:41 to the two speeds, the carried jump and the panel). Before that: 21 November 2026, 09:49 (two attack speeds; the fall after a long jump in; the panel held to its width). Before that: 21 November 2026, 07:57 (his morning look answered: the jump in for the second blow, an attack speed slider, the dummy's spot, the pounce). Before that: 20 November 2026, 22:08 (step 2 of the combos plan is built and pushed, waiting for his eye; he said "Yes it sounds good. Go." to the combos plan at 18:42, every
 default taken. **Step 1 of the combos plan is built and pushed, waiting for his eye:** every recording's blade is
 measured by a report, and the duel lab can draw a made attack's planned blade path and the path the sword really
 took. A view only: nobody fights differently. Next: step 2, two blows as one swing. Corrected at 20:15: what
@@ -592,6 +592,27 @@ draws a run's fighters as stick figures from its log: look at what a blow does b
 right yet: at his own combo speed of 1.44 the spin misses; the 2nd and 3rd blows are planted even when he walks; the chop's leap (hips +0.76 m) and the forehand's
 throw (10 m/s) may be too much; the spin is wild. Next: step 4 (against a man who defends), after his look.
 Its film: https://claude.ai/artifact/3cZJau7b6BLWyTdwq7sJZ1
+
+**He looked at step 3 (21 November, 12:45): "Ok that looks good. The spin does not look good, does not spin all the
+way around and the slash does not seem impactful ... For the forehand combo end I think that slash needs to look a
+lot more impactful, feels weak atm. Do this and proceed".** He plays the combos at speed 1.88. Built for it
+(13:57; README; headless only):
+- **The big one has its own speed** (`AttackMaker.BigPace`, 1; lab "Speed: big one"): at 1.88 its wind-up and cut
+  lasted 0.25 s, with no wait before it. Headless the blade reaches him about as fast as before (11 to 16 m/s); what
+  changed is that it lands every time (5 of 5 against 4 of 5), with a wait, a bigger pose, and through him.
+- **The big one is swung big** (`FlowCombos.LastBig`; lab "The big one's swing:") and drives on through him at 0.95.
+- **A combo's earlier blows leave him in reach** (`StrikeHits.Linking`; lab "Before the big one, a blow:"): in his
+  logs the light first blow threw him back stumbling or floored him, and the rest met him slowly or not at all.
+- **The spin is a new cut, `spin_low`, baked from the recording he gave** (Mixamo "Standing Melee Attack 360 Low";
+  `Tools/Mocap/Combat/combat_sample.py <folder>` then `combat_bake.py`). It is entered at its beginning
+  (`FlowBlow.WindsUp`), may be turned 120 degrees more (`MostTurn`), lands at its recorded moment
+  (`AttackAim.AsRecorded`) and is aimed at the hips. He turns about 400 degrees before the hit. Not right: it lands
+  on the chest, and he ends chest to chest with the dummy.
+- **A new recording must go on `AttackScore.OtherBodies`**: the body's measures (`BodyMeasures.OfClips`) are taken
+  from every strike in the library, and `spin_low` in them moved every blow in the game: the six went to 0.77% and
+  12.6%, over both budgets, until it was taken out of them. Numbers measured in between were thrown away.
+- **One throw is not a measurement.** The same combo's blade speed runs from 9 to 16 m/s from throw to throw. Compare
+  ways with five throws each (`FIGHT_THROWTWO=3,9,15,21,27`, `SECS=33`), at his speeds.
 
 **The night of 20 to 21 November: his order (22:40 and 22:44, going to bed).** "Continue with the combos next steps
 until you are blocked by me, then continue with other tasks." "You will need me to look at things between the

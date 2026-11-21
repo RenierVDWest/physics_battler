@@ -86,6 +86,15 @@ namespace PhysicsBattler.Locomotion
         /// <summary>The blow playing is a combo's showstopper (its last): it lands harder (<see cref="FinisherKnock"/>) and its hit stop is longer (<see cref="FinisherStop"/>).</summary>
         public System.Func<bool> Finishing;
 
+        /// <summary>The blow playing is a flowing combo's, before its last: it drives the man back no harder than <see cref="LinkKeeps"/> of what would throw him back stumbling.</summary>
+        public System.Func<bool> Linking;
+
+        /// <summary>A linking blow's push, as a share of what throws a man back stumbling (<see cref="CombatFeel.StumbleFrom"/>).</summary>
+        public static float LinkKeeps = 0.8f;
+
+        /// <summary>The pace a showstopper keeps as it drives on through the body it landed on (0 or null: <see cref="CombatFeel.SwingKept"/>).</summary>
+        public System.Func<float> FinisherCarry;
+
         /// <summary>Whether the showstopper playing knocks as one (<see cref="FinisherKnock"/>; null: it does): its freeze and its sound are a showstopper's either way.</summary>
         public System.Func<bool> FinisherThrows;
 
@@ -1272,8 +1281,23 @@ namespace PhysicsBattler.Locomotion
                 seen.HandedBack = BlockJarsStriker ? handedOn.magnitude : handedOn.magnitude * (1f - CombatFeel.SwingKept) * CombatFeel.JarScale / ClipFighter.BlockRocks;
             }
 
+            float drive = comboing && !finishing ? 1f / felt : 1f;
+            if (Linking != null && Linking() && !shield && !parried)
+            {
+                // (A flowing combo's blow before its last leaves him in reach: it drives him back, but never so hard
+                // that he is thrown back stumbling or off his feet. Renier's logs of 21 November, 12:32, at combo
+                // speed 1.88: the light first blow met him at 16 m/s and threw him back at 2 m/s, or floored him
+                // outright; the blows after it then met him at 4 to 9 m/s or met nothing, and the big one "feels weak".)
+                float handed = ((glanced ? r.Impulse * GlanceLeft : r.Impulse) * (knock * onBlade * felt)).magnitude / Mathf.Max(1f, struck.Mass);
+                float most = LinkKeeps * CombatFeel.StumbleFrom;
+                if (handed * drive > most)
+                {
+                    drive = most / Mathf.Max(1e-4f, handed);
+                }
+            }
+
             struck.TakeHit(part, shield && !parried, (glanced ? r.Impulse * GlanceLeft : r.Impulse) * (knock * onBlade * felt), r.PartShare, r.PoiseDamage * knock * onBlade, r.Reaction, point, parried,
-                bound: parried && !glanced && !PlayAirborne, drive: comboing && !finishing ? 1f / felt : 1f, heavier: scripted);
+                bound: parried && !glanced && !PlayAirborne, drive: drive, heavier: scripted);
             Struck?.Invoke(new StruckBy
             {
                 Struck = struck, Part = part, Result = r, Shield = shield && !parried, Parried = parried, Point = point, Speed = speed,
@@ -1319,11 +1343,13 @@ namespace PhysicsBattler.Locomotion
                 // On through the body it landed on, slowed; that body is not struck again by this blow, and what
                 // lies beyond it is struck with what is left.
                 momentumLeft = r.MomentumLeft;
-                PlaySpeed = Mathf.Max(0.3f, CombatFeel.SwingKept);
+                // (A flowing combo's big one goes on through him at nearly its full pace: it is not checked by the body it cut.)
+                float bigCarry = finishing && FinisherCarry != null ? FinisherCarry() : 0f;
+                PlaySpeed = Mathf.Max(0.3f, Mathf.Max(CombatFeel.SwingKept, bigCarry));
                 spentOn.Add(struck);
                 // (The sword itself, a solid thing, is let through the body its blow drove on through.)
                 Owner?.LetBladePass(struck);
-                what = $"drove on through the {Name(part)} ({CombatFeel.SwingKept * 100f:0}% of its speed kept)";
+                what = $"drove on through the {Name(part)} ({PlaySpeed * 100f:0}% of its speed kept)";
                 Hits++;
                 Carried++;
             }

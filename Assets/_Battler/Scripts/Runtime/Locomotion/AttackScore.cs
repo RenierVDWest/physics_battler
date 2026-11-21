@@ -77,6 +77,9 @@ namespace PhysicsBattler.Locomotion
 
         private static BodyMeasures ofClips;
 
+        /// <summary>Strikes baked since 21 November from other packs: they are thrown, but the body's measures are not taken from them. Add every new one here.</summary>
+        public static readonly string[] OtherBodies = { "spin_low" };
+
         /// <summary>The measures of the body the combat clips were recorded on (taken once, from every strike and the guard's stand).</summary>
         public static BodyMeasures OfClips
         {
@@ -87,7 +90,11 @@ namespace PhysicsBattler.Locomotion
                     var from = new List<LocoClip>();
                     foreach (var pair in LocoLibrary.Clips)
                     {
-                        if (pair.Value.IsGuard && (pair.Value.Role == "strike" || pair.Key == "sns_idle_b"))
+                        // (Not a recording of another performer's body, added later: the body's measures are what
+                        // every made attack is put together with, and one more recording in them moved every blow
+                        // in the game a little. The fight of six went from 0.07% and 4.8% to 0.77% and 12.6%, both
+                        // over budget, on the day "spin_low" was baked, 21 November.)
+                        if (pair.Value.IsGuard && (pair.Value.Role == "strike" || pair.Key == "sns_idle_b") && System.Array.IndexOf(OtherBodies, pair.Key) < 0)
                         {
                             from.Add(pair.Value);
                         }

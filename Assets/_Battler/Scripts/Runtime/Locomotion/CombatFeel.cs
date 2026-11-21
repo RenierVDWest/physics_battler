@@ -1151,6 +1151,15 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("A combo's last blow is entered at least this long before it lands (seconds): its own wind-up is the loop that brings the blade round, and what tells the eye the big one is coming. Longer: a bigger, later blow (da, da ... DUM).")]
         [Range(0.15f, 0.6f)] public float theLastBlowWindsUpAtLeast = 0.3f;
 
+        [Tooltip("How fast a combo's last blow, the big one, is thrown, apart from the combos' own speed. 1: as recorded. The first blows may be as quick as you like (\"A Combos Blows Are Thrown At\"); the big one keeps its own time: its wind-up is the wait before it, and at 1.88 its wind-up and cut together lasted a quarter of a second, which no arm follows (the sword went 11 m/s where the recording goes 35).")]
+        [Range(0.6f, 2f)] public float aCombosBigBlowIsThrownAt = 1f;
+
+        [Tooltip("On: the big one is swung big: wound up a quarter further and a little slower, the arm drawn further back and carried further through, the hips driving and sinking more, and the cut itself a tenth quicker; it drives on through him at nearly its full pace. Off (as it was at 11:43): the recording's own swing, slowed to 0.7 of its pace by the body it cuts.")]
+        public bool theBigOneSwingsBig = true;
+
+        [Tooltip("On: a combo's blows before its last leave their man in reach: they drive him back, but never so hard that he is thrown back stumbling or off his feet. Off (as it was at 11:43): they throw him as any blow does; in Renier's logs of 21 November at combo speed 1.88 the light first blow threw him back at 2 m/s or floored him outright, and the blows after it met him slowly or not at all.")]
+        public bool aCombosEarlierBlowsLeaveHimInReach = true;
+
         [Tooltip("How much there may be to make up where the last blow is joined to the one before it, as time (seconds): the soonest join within it is taken. 0.2: after a rising backhand the forehand lands 0.67 s later (headless), the blade's course kinking 25 cm at the join. 0: the smoothest join whatever it costs in time: 0.85 s later, 18 cm.")]
         [Range(0f, 0.4f)] public float theLastBlowsJoinMakesUpAtMost = 0.2f;
 
@@ -2107,6 +2116,9 @@ namespace PhysicsBattler.Locomotion
             ClipFighter.FlowLastWindsUp = Mathf.Clamp(theLastBlowWindsUpAtLeast, 0.15f, 0.6f);
             ClipFighter.FlowLastFloors = afterTwoLandedTheLastBlowFloorsHim;
             ClipFighter.FlowLoopBend = Mathf.Clamp(theLastBlowsJoinMakesUpAtMost, 0f, 0.4f);
+            AttackMaker.BigPace = Mathf.Clamp(aCombosBigBlowIsThrownAt, 0.6f, 2f);
+            FlowCombos.BigSwing = theBigOneSwingsBig;
+            ClipFighter.FlowLinksKeepHim = aCombosEarlierBlowsLeaveHimInReach;
             ClipFighter.FlowJumpCarriesBody = inTheJumpHisBodyIsCarriedWithHim;
             ClipFighter.FlowJumpsIn = forTheSecondBlowHeJumpsIn;
             ClipFighter.FlowJumpsFrom = Mathf.Clamp(heJumpsInFrom, 0f, 1f);

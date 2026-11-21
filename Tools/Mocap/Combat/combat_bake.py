@@ -151,6 +151,11 @@ STRIKES = {
     'spin_backhand_mid': ('spin_attack_1', 0.0, 1.73, 0.75, 'backhand middle', 'A backhand cut down across the body, made spinning right round (396 degrees) and stepping 2.4 m'),
     'spin_backhand_high': ('spin_attack_2', 0.0, 1.30, 0.53, 'backhand high', 'A high flat backhand cut, made spinning right round (419 degrees) and stepping 2.9 m'),
     'spin_chop': ('spin_slash', 0.0, 2.43, 1.33, 'downward high', 'A chop from overhead, made leaping and spinning right round (360 degrees)'),
+    # (Renier's reference for a combo's spin, 21 November: "The spin does not look good, does not spin all the way
+    # around and the slash does not seem impactful. See if referencing this anim can be helpful": Mixamo's "Standing
+    # Melee Attack 360 Low". He turns right round on the spot, 250 degrees before the cut and the rest after it, his
+    # hand going up over his head as he turns and then down and across low, left to right. Cut where the turn is done.)
+    'spin_low': ('standing_melee_attack_360_low_1', 0.0, 2.03, 0.95, 'backhand low', 'A low backhand cut made spinning right round on the spot (360 degrees), the hand over the head through the turn'),
     'sns_combo_forehand': ('sword_and_shield_slash', 0.0, 1.05, 0.67, 'forehand high', 'Medium forehand, from the four-cut combo'),
     'sns_combo_backhand': ('sword_and_shield_slash', 1.05, 1.37, 1.23, 'backhand middle', 'Medium backhand, from the four-cut combo (cut before the leap: both feet down)'),
     'sns_combo_chop': ('sword_and_shield_slash', 1.37, 3.53, 2.47, 'downward high', 'Medium leaping spin chop, from the four-cut combo (from both feet down to standing again)'),

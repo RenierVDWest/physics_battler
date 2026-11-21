@@ -4901,6 +4901,8 @@ namespace PhysicsBattler.Locomotion
             Strikes.FinisherStopMost = () => FlowLastBlow ? FlowLastStop : 0f;
             // (The plan's rule 4: after one landed blow the big one sends him stumbling; after two it throws him down.)
             Strikes.FinisherThrows = () => !FlowLastBlow || chainLanded >= 2;
+            Strikes.FinisherCarry = () => FlowLastBlow && FlowCombos.BigSwing ? FlowCombos.BigCarries : 0f;
+            Strikes.Linking = () => FlowLinksKeepHim && chainBlows > 0 && chainWatched < 0f && !FlowLastBlow && (flowFirst != null || flowSecond != null);
             Strikes.Comboing = () => Combo != null && Combo.Playing && Combo.Cores;
             return Strikes;
         }
@@ -5274,6 +5276,9 @@ namespace PhysicsBattler.Locomotion
         /// </summary>
         public bool ThrowsACombo;
 
+        /// <summary>And it is the combo's last, the big one: thrown at <see cref="AttackMaker.BigPace"/>.</summary>
+        public bool ThrowsTheBigOne;
+
         /// <summary>He jumps in when the blow would fall this far short (metres at a Medium's size), by at most this far, and his man is led by this share of how he is going.</summary>
         public static float FlowJumpsFrom = 0.2f, FlowJumpsAtMost = 1.4f, FlowLeads = 0.8f;
 
@@ -5318,7 +5323,7 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>How many second blows he jumped in for.</summary>
         public int FlowJumps { get; private set; }
-        private string flowFirstMet = "", flowSecondMet = "", flowPlan = "", flowMade = "", flowWalkNote = "";
+        private string flowFirstMet = "", flowSecondMet = "", flowPlan = "", flowMade = "", flowWalkNote = "", flowReachNote = "";
 
         /// <summary>For the reports: how the last flow's second blow was made against its first (the maker's turn, lunge, drop, lean and hand's move for each).</summary>
         public string FlowMade => flowMade;
@@ -5328,11 +5333,12 @@ namespace PhysicsBattler.Locomotion
         /// aimed where <paramref name="point"/> says as it is begun. False: nothing is playing to follow, the strike is
         /// not his, or blows do not flow.
         /// </summary>
-        public bool FlowInto(ClipFighter target, System.Func<Vector3> point, in AttackStyle style, string next) => FlowInto(target, point, style, next, false, 1f);
+        public bool FlowInto(ClipFighter target, System.Func<Vector3> point, in AttackStyle style, string next) => FlowInto(target, point, style, next, false, 1f, 0f);
 
         /// <param name="last">A combo's last blow (<see cref="FlowCombo"/>): it is entered early in its own wind-up, which is the loop that brings the blade round, and it lands as the big one.</param>
         /// <param name="power">How hard it lands, against a plain blow (<see cref="StrikeHits.Power"/>).</param>
-        public bool FlowInto(ClipFighter target, System.Func<Vector3> point, in AttackStyle style, string next, bool last, float power)
+        /// <param name="windsUp">For a last blow: entered at least this long before it lands (seconds; 0: <see cref="FlowLastWindsUp"/>).</param>
+        public bool FlowInto(ClipFighter target, System.Func<Vector3> point, in AttackStyle style, string next, bool last, float power, float windsUp = 0f)
         {
             flowFirst = flowSecond = null;
             if (!BlowsFlow || Made == null || Made.Posture || Made.Score == null || Loco.Shot != Made.Clip || point == null)
@@ -5353,7 +5359,7 @@ namespace PhysicsBattler.Locomotion
             // recording, whose frame EnteredAt its own first frame is.)
             int entered = Made.Score.EnteredAt;
             var join = last
-                ? BladeFlow.Join(BladeFlow.Of(Made.Score.Raw ?? Made.Score), BladeFlow.Of(nextScore), FlowLoopBend, FlowLastWindsUp)
+                ? BladeFlow.Join(BladeFlow.Of(Made.Score.Raw ?? Made.Score), BladeFlow.Of(nextScore), FlowLoopBend, windsUp > 0f ? windsUp : FlowLastWindsUp)
                 : BladeFlow.Join(BladeFlow.Of(Made.Score.Raw ?? Made.Score), BladeFlow.Of(nextScore), FlowBend);
             flowLeave = Mathf.Clamp(join.Leave - entered, Mathf.Min(Made.Score.Contact + 1, Made.Score.Frames.Length - 1), Made.Score.Frames.Length - 1);
             flowEnter = join.Enter;
@@ -5584,7 +5590,7 @@ namespace PhysicsBattler.Locomotion
                     // FlowLeadsAtMost: a man thrown back stumbling has stopped within a few steps of the clock, and led
                     // for all of a big blow's long wind-up the jump put him chest to chest with a man who stood still:
                     // at combo speed 1.44 the big forehand met him at 6 m/s, its arm still bent.)
-                    float lands = joined.Contact / joined.Rate / Mathf.Clamp(AttackMaker.ComboPace, 0.4f, 2.5f);
+                    float lands = joined.Contact / joined.Rate / Mathf.Clamp(flowLast ? AttackMaker.BigPace : AttackMaker.ComboPace, 0.4f, 2.5f);
                     Vector3 going = flowTargetGoing;
                     going.y = 0f;
                     aimAt += Vector3.ClampMagnitude(going, 4f * Size) * Mathf.Min(lands * FlowLeads, FlowLeadsAtMost);
@@ -5609,6 +5615,8 @@ namespace PhysicsBattler.Locomotion
                         flowJumped = far;
                         FlowJumps++;
                     }
+
+                    flowReachNote = string.Format(System.Globalization.CultureInfo.InvariantCulture, " [the blow's own reach {0:0.00} m, his man {1:0.00} m off: {2:0} cm {3}]", new Vector3(strikes.x, 0f, strikes.z).magnitude * Loco.Leg, to.magnitude * Loco.Leg, 100f * Mathf.Abs(shortBy) * Loco.Leg, shortBy >= 0f ? "out of reach" : "too near");
                 }
 
                 MadeAttack walked = null;
@@ -5644,8 +5652,12 @@ namespace PhysicsBattler.Locomotion
                 flowFar = new Vector2(lies.x, lies.z).magnitude;
                 flowUp = lies.y;
                 ThrowsACombo = true;
+                ThrowsTheBigOne = flowLast;
+                flowMostTurn = flowNextMostTurn;
+                flowAsRecorded = flowNextAsRecorded;
                 var second = walked ?? (joined != null ? StrikeMade(flowTarget, aimAt, flowStyle, 0f, null, null, null, joined) : null);
-                ThrowsACombo = false;
+                ThrowsACombo = ThrowsTheBigOne = flowAsRecorded = false;
+                flowMostTurn = 0f;
                 flowPlanted = false;
                 if (second == null)
                 {
@@ -5668,6 +5680,7 @@ namespace PhysicsBattler.Locomotion
                     joined.Frames.Length, joined.Rate, joined.Drive, joined.Contact, second.Turn, second.Lunge, 100f * second.Drop * Loco.Leg, second.Lean, 100f * second.HandMoved * Loco.Leg, second.Steer, second.ContactAt,
                     first.Turn, first.Lunge, 100f * first.Drop * Loco.Leg, first.Lean, 100f * first.HandMoved * Loco.Leg, second.ScoreTime)
                     + string.Format(System.Globalization.CultureInfo.InvariantCulture, " [the first landed {0:0.00} s in as made, its clip {1:0.00} s long; the second lands {2:0.00} s in, its clip {3:0.00} s long; a combo's blows at x{4:0.00}, a single blow at x{5:0.00}]", first.ContactAt, first.Clip != null ? first.Clip.Duration : 0f, second.ContactAt, second.Clip != null ? second.Clip.Duration : 0f, AttackMaker.ComboPace, AttackMaker.Pace)
+                    + flowReachNote
                     + (second.OnTheMove && Loco.ShotOverWalk ? " [thrown over his walk]" : " [made standing: " + flowWalkNote + "]")
                     + (flowJumped > 0f ? string.Format(System.Globalization.CultureInfo.InvariantCulture, " [he jumped in {0:0} cm; his man was going {1:0.0} m/s]", 100f * flowJumped, flowTargetGoing.magnitude) : string.Format(System.Globalization.CultureInfo.InvariantCulture, " [no jump in; his man was going {0:0.0} m/s]", flowTargetGoing.magnitude))
                     + string.Format(System.Globalization.CultureInfo.InvariantCulture, " [at the join his root had turned {0:0} degrees since the first blow began; the spot lay {1:0} degrees to his right, {2:0.00} m off and {3:0.00} m up]",
@@ -5689,7 +5702,8 @@ namespace PhysicsBattler.Locomotion
                 EndFlow(null);
                 flowRolls = false;
                 chainAt++;
-                if (!FlowInto(flowTarget, then.Point ?? flowPoint, then.Style, then.Strike, flowRest.Count == 0 && then.Last, then.Power))
+                FlowAllows(then);
+                if (!FlowInto(flowTarget, then.Point ?? flowPoint, then.Style, then.Strike, flowRest.Count == 0 && then.Last, then.Power, then.WindsUp))
                 {
                     flowRest.Clear();
                     EndCombo("the next blow could not follow (" + then.Strike + ")");
@@ -5713,6 +5727,13 @@ namespace PhysicsBattler.Locomotion
             public string Strike, Says;
             public AttackStyle Style;
             public float Power;
+
+            /// <summary>For a last blow: it is entered at least this long before it lands (seconds; 0: <see cref="FlowLastWindsUp"/>). A spin is entered at its beginning: its whole turn is its wind-up.</summary>
+            public float WindsUp;
+
+            /// <summary>The maker may turn him this far to bring the blow onto its line (degrees; 0: as any attack), and the blow lands at its recording's own moment.</summary>
+            public float MostTurn;
+            public bool AsRecorded;
             public bool Last;
             public System.Func<Vector3> Point;
         }
@@ -5726,12 +5747,27 @@ namespace PhysicsBattler.Locomotion
         /// </summary>
         public static float FlowLastWindsUp = 0.3f, FlowLoopBend = 0.2f, FlowLoopOver = 0.2f, FlowLastGrows = 0.25f, FlowLastStop = 0.2f;
 
+        /// <summary>
+        /// A combo's blows before its last leave their man in reach (Combat Feel "A Combos Earlier Blows Leave Him In
+        /// Reach"; <c>FIGHT_COMBOKEEPS=0</c>): they drive him back, never thrown back stumbling or floored
+        /// (<see cref="StrikeHits.Linking"/>). The plan's rule 4: a first blow "knocks his guard or his sword aside", a
+        /// linking blow "staggers him, but leaves him in reach".
+        /// </summary>
+        public static bool FlowLinksKeepHim = true;
+
         /// <summary>A combo's last blow floors its man where two blows of the combo landed before it (Combat Feel "After Two Landed The Last Blow Floors Him"; <c>FIGHT_COMBOFLOORS=0</c>: only where it throws him faster than his legs can catch).</summary>
         public static bool FlowLastFloors = true;
 
         private readonly List<FlowBlow> flowRest = new List<FlowBlow>();
-        private bool flowLast, flowRolls;
-        private float flowPower = 1f;
+        private bool flowLast, flowRolls, flowAsRecorded, flowNextAsRecorded;
+        private float flowPower = 1f, flowMostTurn, flowNextMostTurn;
+
+        /// <summary>The blow that is to follow the one playing brings its own allowance for the maker (<see cref="FlowBlow.MostTurn"/>, <see cref="FlowBlow.AsRecorded"/>): set as it is asked for, used as it is begun.</summary>
+        private void FlowAllows(in FlowBlow blow)
+        {
+            flowNextMostTurn = blow.MostTurn;
+            flowNextAsRecorded = blow.AsRecorded;
+        }
 
         /// <summary>The strike of that name as a score: one of his own, or any recorded cut (a last blow may be one he does not throw alone).</summary>
         private AttackScore FlowScore(string name)
@@ -5795,7 +5831,8 @@ namespace PhysicsBattler.Locomotion
             flowRest.Clear();
             chainBlows = 0;
             var next = rest[0];
-            if (!FlowInto(target, next.Point ?? point, next.Style, next.Strike, rest.Count == 1 && next.Last, next.Power))
+            FlowAllows(next);
+            if (!FlowInto(target, next.Point ?? point, next.Style, next.Strike, rest.Count == 1 && next.Last, next.Power, next.WindsUp))
             {
                 return false;
             }
@@ -6049,7 +6086,7 @@ namespace PhysicsBattler.Locomotion
         public MadeAttack StrikeMade(ClipFighter target, Vector3 point, in AttackStyle styleAsked, float landIn = 0f, string named = null, System.Func<PartId, bool> counts = null, string legs = null, AttackScore given = null, float mostTurn = 0f)
         {
             // (Every weapon's blow at the pace the game is set to: AttackMaker.Pace, a combo's blows AttackMaker.ComboPace.)
-            AttackStyle style = AttackMaker.Paced(styleAsked, ThrowsACombo);
+            AttackStyle style = AttackMaker.Paced(styleAsked, ThrowsACombo, ThrowsTheBigOne);
             if (Strikes != null)
             {
                 // (As heavy as any: a blow of a class sets its own after it is made, AttackClasses.)
@@ -6077,7 +6114,9 @@ namespace PhysicsBattler.Locomotion
                 }
             }
 
-            var aim = new AttackAim { Aimed = true, Target = InOwnFrame(point), LandIn = landIn, MostTurn = mostTurn, Sweeps = given != null && mostTurn > 0f && TurnSlashes.SweepsFree };
+            // (A combo's blow may bring its own allowance: a spin is turned as far as it needs, and lands as recorded.)
+            bool flowAllows = given != null && flowMostTurn > 0f;
+            var aim = new AttackAim { Aimed = true, Target = InOwnFrame(point), LandIn = landIn, MostTurn = flowAllows ? flowMostTurn : mostTurn, AsRecorded = given != null && flowAsRecorded, Sweeps = !flowAllows && given != null && mostTurn > 0f && TurnSlashes.SweepsFree };
             // (A style's manner laid over him: the blow is fitted for the body as the manner will have it.)
             if (Loco.MannerForBlow(out var mannerFrom, out var mannerTo, out var mannerDials))
             {
@@ -6807,7 +6846,7 @@ namespace PhysicsBattler.Locomotion
         /// <param name="given">A score put together for the occasion (a blow entered out of the one before it, the combos' join): that one, and it may be thrown while the blow before is still going over his walk.</param>
         private MadeAttack StrikeOnTheMove(ClipFighter enemy, Vector3 point, in AttackStyle styleAsked, string named, AttackScore given = null)
         {
-            AttackStyle style = AttackMaker.Paced(styleAsked, ThrowsACombo);
+            AttackStyle style = AttackMaker.Paced(styleAsked, ThrowsACombo, ThrowsTheBigOne);
             MovedShort = 0f;
             MovedPlanted = false;
             float pace = new Vector2(Loco.Velocity.x, Loco.Velocity.z).magnitude;

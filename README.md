@@ -1,108 +1,87 @@
 
 
 
-### 21 November, 11:43: combos, step 3: three blows and the big one
+### 21 November, 13:57: after his look at step 3: the big one made big, a new spin from his recording, the first blows keep him in reach
 
-**What he said (10:41):** "Ok this all looks good to me. you can proceed", with two logs.
+**What he said (12:45, with a recording, Mixamo's "Standing Melee Attack 360 Low"):** "Ok that looks good. The spin
+does not look good, does not spin all the way around and the slash does not seem impactful. See if referencing this
+anim can be helpful. For the forehand combo end I think that slash needs to look a lot more impactful, feels weak
+atm. Do this and proceed".
 
-**His logs** (`PlaytestLogs/2026-11-21_10-34-53` and `_10-38-09`; frames looked at and removed; **seen in Unity**).
-The second, with the dummy unarmed: 14 pairs thrown, the second blow landed in 12, 0.47 to 0.62 s after the first.
-He jumped in 10 times, by 21 to 90 cm. **The swordsman did not fall once, and in every jump his chest stayed within
-4 to 8 cm of its pose, the 90 cm one too** (52 cm in the log of 08:33, the old way). So the carried jump of 09:49
-does in Unity what it did headless. In the first log five of eight pairs ended at the first blow: the target there
-has a sword and shield and blocked it; that is step 4's. **The speeds he ended on: a single blow at 1.15, a combo's
-blows at 1.44** (his own Combat Feel; the code's defaults are still 1 and 1).
+**His logs** (`PlaytestLogs/2026-11-21_12-32-15` and `_12-35-52`; frames looked at and removed; **seen in Unity**):
+36 combos, **thrown at combo speed 1.88** (single 1.15). What they show of "feels weak":
+- **The big one's sword reached him slowly.** Over the combos of three with a forehand: 3.9 to 16 m/s, mostly 7 to
+  11, where the light first blow reached him at 16.
+- **The first blow often threw him out of the combo.** At 1.88 the light forehand met him at 16 m/s (8.9 headless at
+  speed 1) and threw him back stumbling at 2 m/s in 14 combos, or floored him outright in 7 ("thrown at 5"). The
+  blows after it then met a man lying down, or one going away, at 4 to 9 m/s, or met nothing.
+- One fall of the swordsman, in the part with an armed target ("borne down, 39 cm"), not after a jump in.
 
-**What is built** (the plan's step 3; every number below headless, dummy with no guard, combos' speed 1):
+**Why the big one was weak:** at 1.88 its wind-up and cut together last a quarter of a second: there is no wait
+before it, and no time for a big swing. And in Unity the man it was meant for had often been thrown out of reach or
+onto the ground by the first blow.
 
-**1. A combo is a chain** (`ClipFighter.FlowCombo`, `FlowBlow`, the roll in `StepFlow`; `FlowCombos` in
-`AttackMaker.cs` says what it is made of; `DuelLab.ThrowCombo`). The pair of step 2 is kept as it was: a blow, and
-the next entered out of its carry-through. A combo is pairs end to end: as the second blow lands (or passes where it
-should have), the pair's account is closed and a new pair is opened on that same blow, which is now "the first".
-`AttackScore` remembers which recording a joined blow is and from which frame (`Raw`, `EnteredAt`), so the third
-blow is joined by the recording's own map. A joined blow's key (`JoinKey`) says all it was made from: the same join
-is the same score, and a third blow never gets a stale second.
+**1. The big one has its own speed** (`AttackMaker.BigPace`, `ClipFighter.ThrowsTheBigOne`; Combat Feel "A Combos Big
+Blow Is Thrown At", 1; lab lever "Speed: big one"; `FIGHT_BIGPACE`). The first blows go at the combos' speed; the
+last keeps its own time: its wind-up is the wait before it. At combos 1.88: the second hit 0.47 to 0.52 s after the
+first, the big one 0.6 to 0.7 s after that.
 
-**2. Light, plain, heavy** (Combat Feel "A Combos Blows Grow"; lab row "A combo's blows: light, plain, heavy / all
-plain (old)"). The first blow is a quick light cut (`FlowCombos.First`: wound up 0.6 as far and in 0.7 of the time;
-after its landing it is as recorded, because its carry-through is the next blow's wind-up) and lands at 0.6 of a
-plain blow. A linking blow is plain. **The last is the big one:**
-- it is entered early in its own wind-up, at least 0.3 s before it lands (`ClipFighter.FlowLastWindsUp`,
-  `BladeFlow.Join`'s new `leastBefore`): that wind-up is the loop that brings the blade round, over the shoulder
-  for a forehand, over the head for a chop, and the wait that says the big one is coming;
-- it lands at 1.6 after one landed blow, a quarter more after two (2.0), a quarter less after none
-  (`FlowCombos.LastPower`, `ClipFighter.FlowLastGrows`);
-- it is the showstopper (`StrikeHits.Finishing`, the old combos' own): its freeze on the hit is longer, up to 0.20 s
-  (`FlowLastStop`), and where two blows landed before it its knock is doubled (`StrikeHits.FinisherThrows`);
-- where two landed before it, it floors him whatever it threw him at (`FlowLastFloors`; a chop onto the head drives
-  him down, not back, and left him standing).
-The plan's words for it: "After one landed blow it sends him stumbling. After two it floors him."
+**2. The big one is swung big** (`FlowCombos.LastBig`, `BigSwing`, `BigCarries`; Combat Feel "The Big One Swings
+Big"; lab row "The big one's swing: big / as recorded (old)"; `FIGHT_BIGSWING=0`, `FIGHT_BIGSTYLE=...`): wound up a
+quarter further, the arm drawn further back and carried further through, the hips driving and sinking more, carried
+on 1.4 times as far after the landing; and it drives on through him at 0.95 of its pace, not 0.7
+(`StrikeHits.FinisherCarry`). Its times are the recording's.
 
-**3. Three last blows to choose from** (Combat Feel "A Combos Last Blow Is"; lab row "Last blow: forehand / chop /
-spin"): the forehand (`sns_forehand`), the leaping chop (`sns_chop_lunge`), and a backhand with a spin behind it
-(`spin_backhand_mid`). Two other spins were tried and met nothing: `spin_backhand_high` (the maker itself planned a
-miss of 92 cm) and `sns_backhand_lunge` (117 cm).
+**3. The first blows leave him in reach** (`StrikeHits.Linking`, `LinkKeeps` 0.8; `ClipFighter.FlowLinksKeepHim`;
+Combat Feel "A Combos Earlier Blows Leave Him In Reach"; lab row "Before the big one, a blow: leaves him in reach /
+throws him (old)"; `FIGHT_COMBOKEEPS=0`). A combo's blow before its last drives him back no harder than 0.8 of what
+would throw him back stumbling: never stumbling, never down. The plan's rule 4: a first blow "knocks his guard or
+his sword aside", a linking blow "staggers him, but leaves him in reach".
 
-**4. Two blows** (lab "Combo: 2 blows"): the forehand, light, and the rising backhand as the big one.
+**Measured, the forehand combo at his speeds (headless; combos 1.88, single 1.15; five throws in one sitting each):**
 
-**Measured** (one throw each unless said; `FIGHT_COMBO`):
+| | combos whose big one landed | the blade as it first touched him (m/s; 16 is the most counted) | what the big one did |
+|---|---|---|---|
+| as at 11:43 | 4 of 5 (one combo met nothing at all) | 16, 16, 12.6, 10.4 | thrown at 5.7 to 11.4 m/s: down |
+| now, swung as recorded | 5 of 5 | 14.0, 16, 9.3, 10.5, 11.7 | down 4 of 5 |
+| now, swung big | 5 of 5 | 11.4, 14.9, 16, 13.9, 12.0 | thrown at 7.7 to 11.0 m/s: down 5 of 5 |
+| swung big, hips ahead of the arm and a quicker cut (tried) | 5 of 5 | 11.7, 8.9, 12.8, 16, 10.7 | down 5 of 5 |
 
-| combo | first hit to last | the big one against the first | what it did to him | the last join |
-|---|---|---|---|---|
-| 3, forehand | 1.25 s | 11 times as heavy | thrown at 9.4 m/s, more than his legs catch (4.4): down, 2.3 m off | left 0.10 s after the landing, entered 0.40 s before; kink 25 cm |
-| 3, chop | 1.48 s | 12 times | on the head, thrown back at 2.8 m/s, floored by the rule; 0.8 m off | left 0.17, entered 0.60; kink 17 cm |
-| 3, spin | 1.60 s | 9 times | on the forearm, floored by the rule; 2.3 m off | left 0.33, entered 0.30; kink 23 cm |
-| 2 blows | 0.70 s | 4.8 times | thrown back stumbling at 1.3 m/s, on his feet, 0.6 m off | left 0.20, entered 0.30 |
-| 3, forehand, all plain (old) | 1.47 s | 1.0 times | a head reaction, driven back at 1.0 m/s, on his feet where he stood | the soonest within 0.15 s |
-| 3, forehand, combos' speed 1.25 | 1.15 s (measured before the 12:15 changes below) | | down | |
-| 3, forehand, his speeds (combos 1.44, single 1.15) | 1.07 s | 7 times | thrown at 6.1 m/s: down | |
-| 3, chop, his speeds | 1.25 s (before the 12:15 changes) | | floored by the rule | |
-| 3, spin, his speeds | **met nothing** | | | |
+**Read honestly: headless, the blade reaches him about as fast as before.** What is different is that the big one
+now lands every time, that there is a wait before it, that the pose is bigger and that it goes through him. And
+headless never showed his real trouble: there the light first blow reaches the dummy at 4.5 to 11.6 m/s and leaves
+him standing, where in his Unity logs it reached him at 16 and threw him. So what rule 3 does in Unity is not
+measured at all. The first blows headless, now: "driven back at 0.4 to 1.0 m/s", never stumbling.
 
-The freeze on the big one: 0.16 to 0.19 s (0.04 and 0.05 on the first two). The second hit comes 0.52 to 0.55 s after
-the first; the third 0.70 s after the second (forehand): da, da ... DUM.
+**A mistake on the way, and what it cost:** the first numbers for all of this (a blade at "up to 40 m/s") were taken
+between baking the new recording and finding that it had moved the body's measures (below). They were wrong and are
+not used.
 
-**Against the plan's pass marks:** "1.15 s or less from the first hit to the third": **1.25 s at speed 1, not met;
-1.15 s at speed 1.25 and 1.07 s at the 1.44 he plays at.** "The last hit throws him at least twice as hard as the first": met,
-9 to 12 times at speed 1, 7 at his. "He is floored, or stumbles 3 m or more": floored by all three last blows of a combo of three.
+**The new recording moved every blow in the game, and the six caught it.** `BodyMeasures.OfClips` takes the body's
+measures (what every made attack is put together with) from every strike in the library. One more strike, of
+another pack's performer, changed them: the fight of six went from 0.07% and 4.8% to **0.77% and 12.6%, both over
+budget**. `AttackScore.OtherBodies` now lists recordings that are thrown but not measured (`spin_low`); the six is
+back at 0.07% and 4.8% exactly. **Every recording baked from now on goes on that list.**
 
-**Looked at, not only counted:** `Tools/Headless/strip.py name t0 t1` draws a run's two fighters as stick figures
-from its log, from the side and from above (new today; `$S/name.strip.png`). In them: the forehand goes up and back
-over his shoulder and comes down with a deep lunge; in the chop he leaps (his hips rise 0.76 m, the recording's own
-leap) and the freeze on the hit catches him in the air; in the spin he crouches, turns and reaches out low. Nothing
-folded or flipped. **The sword is not in those drawings (headless does not record it), and none of this is seen in
-Unity.**
+**4. A new spin, from his recording** (`spin_low`, baked by `Tools/Mocap/Combat/combat_bake.py` from
+`samples/standing_melee_attack_360_low_1.json`; `FlowCombos.Lasts[2]`, `SpinWindsUp` 0.8, `SpinTurnsAtMost` 120,
+`SpinGoesLow`, `FlowCombos.Spin`; `FlowBlow.WindsUp`, `MostTurn`, `AsRecorded`; `AttackAim.AsRecorded`). In the
+recording he turns right round on the spot: 250 degrees before the cut, his hand over his head through the turn,
+then down and across low, left to right; the cut lands 0.93 s in at up to 25 m/s; the rest of the turn after it.
+Why the old one "did not spin all the way around": every last blow was entered 0.3 s before its landing, and by
+then most of a spin is over. Now:
+- the spin is entered at its beginning (0.8 s before it lands), so the whole turn is seen;
+- the maker may turn him up to 120 degrees more to bring the cut onto his man (he stands turned 70 degrees away
+  after the rising backhand), and that is taken up in the spin itself;
+- the cut lands at the moment the recording has it (left to choose, the maker took the tail of the sweep, out to
+  his side, where the blade was slow: it met nothing);
+- it is aimed at the hips, and made as recorded (the big style would drive his hips further round still).
+**Headless: he turns 388 to 412 degrees before the hit** (about 500 in all); the cut landed in 4 of 4 throws, at
+combos 1 and at combos 1.88 (the old spin missed at 1.44), at 10.6 to 16 m/s, the point up to 21 to 37 m/s; thrown at
+8.9 to 11.7 m/s. **Not right:** it lands 50 cm above where it was aimed, on the chest; the sword's point strays 47 to 69 cm
+from its planned path; and in the stick figures he ends chest to chest with the dummy, their legs crossing: the cut
+is a short one (its own reach 0.91 m) and he jumps in 51 cm for it.
 
-**Also:** the stab at a floored man follows by itself (headless with `FIGHT_DOWNED=1`: floored at 4.8 s, struck where
-he lay at 7.5 s). He does not pounce out of the middle of a combo (`RunIn.StepPounce`: not while a flow is on).
-Against a shield the combo ends at the first blow, which is blocked: that is step 4.
+**Also:** `FLOWMADE` says the blow's own reach against how far his man is.
 
-**Not done, or not right yet:** the last blow's step is the forehand's own lunge and the jump in, no new step. The
-second and third blows are made planted even when he walks (step 2's limit). The chop's leap may be too much. The
-spin throws the sword's point 58 cm off its planned path on average (it lands all the same). The big forehand throws
-him at 9 to 10.6 m/s, which may be too far. No sounds, streaks or camera yet (step 6).
-
-**Lab:** rows "Combo: 2 blows / 3 blows / Throw combo", "Last blow:", "A combo's blows:", levers "Last blow lands
-with", "Grows, a blow landed", "Last blow's freeze", "Last blow winds up", "Last join makes up", row "After two
-landed, the last: floors him / only if thrown", readout "His last combo". "Throw two" stays, and is the combo of two.
-**Headless:** `FIGHT_COMBO="3,chop"` with `FIGHT_THROWTWO`, `FIGHT_COMBOGROWS=0`, `FIGHT_COMBOLAST="1.6,0.25,0.2,0.3,0.2"`,
-`FIGHT_COMBOFLOORS=0`, `FIGHT_COMBOSPIN=name`; a `COMBO` line as each ends and a `FLOW` line for each pair. Without
-`FIGHT_COMBO`, `FIGHT_THROWTWO` throws two plain blows as before. `Tools/Headless/wait.sh name...` waits for runs.
-
-Checks: 0 errors; the panel's look list 10 of 10; `flow.sh` OK; the fight of six (40 s, seed 5) at its baseline of this morning: crossings 0.07% (budget 0.5%), tremble 4.8% (budget 8%); no exception in any run.
-
-**Two changes after the first push (12:15; the table above is as it stands now; the film's numbers are from before
-them: 1.22 s, 1.57 s, 0.68 s):**
-- **His man is led for no longer than 0.13 s** (`ClipFighter.FlowLeadsAtMost`; `FIGHT_FLOWLEADSMOST=9` for before),
-  and the time to the landing is counted at the combos' pace. As a blow is begun, the jump in aims at where his man
-  will be when it lands, by how he is going. For the big one that was his speed times the whole of its long
-  wind-up, and a man thrown back stumbling has stopped long before. At his combo speed of 1.44 (the second blow
-  throws the dummy back at 2.4 m/s there, 0.9 at speed 1) the jump put him chest to chest with a man standing still
-  (seen in the stick figures) and the big forehand met him at 6.3 m/s, its arm still bent. Now: 10.0 m/s, on the
-  chest, thrown at 6.1 m/s, down. At speed 1 it moved the forehand from 1.22 to 1.25 s.
-- **A last blow takes its smoothest join where that is also the sooner one** (`BladeFlow.Join`). With two blows, the
-  rising backhand's soonest join within the allowance was entered 0.70 s before its landing (1.05 s hit to hit);
-  its smoothest is entered at 0.30 s: 0.70 s hit to hit.
-**The spin still meets nothing at combo speed 1.44** (it lands at 1). Not looked into.
-
-**Its film** (21 November, 12:02; 3b2b, made by Opus at medium effort; 6 scenes, 26 beats, about 3 minutes 30): https://claude.ai/artifact/3cZJau7b6BLWyTdwq7sJZ1
+Checks: 0 errors; the panel's look list 9 of 9; `flow.sh` OK with the new cut in the map; the fight of six (40 s, seed 5) at its baseline: crossings 0.07% (budget 0.5%), tremble 4.8% (budget 8%), after the mend above; no exception in any run. The chop at combos 1.88: 2 of 2, on the head at 16 m/s, floored; the forehand at combos 1: 2 of 2, down, 1.25 s first hit to last.

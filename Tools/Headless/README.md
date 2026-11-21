@@ -91,6 +91,13 @@ The rest are one-off comparisons from particular days, kept for reference.
   `FIGHT_COMBOFLOORS=0`: it floors him only if it throws him. `FIGHT_COMBOSPIN=name`: the recording the spin is. A
   `COMBO` line as each combo's account is ready (1.5 s after its last hit), a `FLOW` line for each pair of it.
   `FIGHT_DOWNED=1` (and no `FIGHT_POUNCE=0`) to see him go for the man it floored.
+- `FIGHT_BIGPACE=1`: the big one's own speed (the first blows go at `FIGHT_COMBOPACE`). `FIGHT_BIGSWING=0`: swung as
+  recorded. `FIGHT_BIGSTYLE="1.25,1.15,1.15,1.1,1.1,1.15,1.2,1.4,1.15,0.9,0.02,0.02"`: its style, to try others.
+  `FIGHT_COMBOKEEPS=0`: a combo's earlier blows throw him as any blow does. **Renier plays at
+  `FIGHT_COMBOPACE=1.88 FIGHT_ATTACKPACE=1.15`: measure combos there as well as at 1.**
+- A new recording: put the FBX in a folder of its own, `python3 Tools/Mocap/Combat/combat_sample.py <folder>`, add a
+  line to `STRIKES` in `combat_bake.py` (sample, cut from, cut to, landing, kind, about), run it, and read the new
+  cut's line in `flow.sh all`. Check with a diff of the clips that nothing else moved.
 - `strip.py name t0 t1 [frames]`: the two fighters of a run as stick figures between two times of its log (the
   events' first column), from the side and from above: `$S/name.strip.png`. Look at it with the Read tool. The
   sword is not in it (headless does not record the blade). `wait.sh name...`: waits for runs to end, at most 110 s.

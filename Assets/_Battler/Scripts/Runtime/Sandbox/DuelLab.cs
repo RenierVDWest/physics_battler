@@ -614,10 +614,15 @@ namespace PhysicsBattler.Sandbox
                 rest.Add(new PhysicsBattler.Locomotion.ClipFighter.FlowBlow
                 {
                     Strike = PhysicsBattler.Locomotion.FlowCombos.Lasts[which], Says = PhysicsBattler.Locomotion.FlowCombos.LastNames[which] + (grow ? ", the big one" : ""),
-                    Style = grow ? PhysicsBattler.Locomotion.FlowCombos.Last : plain,
+                    Style = !grow ? plain : which == 2 ? PhysicsBattler.Locomotion.FlowCombos.Spin : PhysicsBattler.Locomotion.FlowCombos.Last,
                     Power = grow ? PhysicsBattler.Locomotion.FlowCombos.LastPower : 1f,
                     Last = grow,
-                    Point = () => PhysicsBattler.Locomotion.AimSpots.Point(other.Clip, spot),
+                    WindsUp = which == 2 ? PhysicsBattler.Locomotion.FlowCombos.SpinWindsUp : 0f,
+                    MostTurn = which == 2 ? PhysicsBattler.Locomotion.FlowCombos.SpinTurnsAtMost : 0f,
+                    AsRecorded = which == 2,
+                    Point = which == 2 && PhysicsBattler.Locomotion.FlowCombos.SpinGoesLow
+                        ? () => PhysicsBattler.Locomotion.AimSpots.Point(other.Clip, PhysicsBattler.Locomotion.AimSpot.Hips)
+                        : () => PhysicsBattler.Locomotion.AimSpots.Point(other.Clip, spot),
                 });
             }
 
