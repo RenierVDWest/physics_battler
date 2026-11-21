@@ -635,6 +635,11 @@ lot more impactful, feels weak atm. Do this and proceed".** He plays the combos 
 - **Not right:** the dummy's own blade passes through his own shield a little as he takes three blows (0.09% to
   0.29%, the longest 0.08 s; within the budget, but the old way was 0.00). The rising backhand aimed low often lands
   on the head. Chop, spin and 2-blow combos against a shield were not measured five times.
+- **Found after the push (15:25): the spin combo passes his own blade through his own shield** (a dummy with no
+  guard, five combos: 1.04% of the time, the longest 0.12 s: over both budgets; the chop 0.61%; the forehand 0.00).
+  It was so at 13:57 too and was not measured then. **Not mended: next thing to do on the spin.** Chop and spin
+  against the middling shield: 3 of 4 and 3 of 5 combos with a blow on his body.
+- Its film: https://claude.ai/artifact/GtQDpng7EsNv7xxjnJusJn
 - **The build log was cut short by three of my commits today and put back whole** (see the top of this file).
 
 **The night of 20 to 21 November: his order (22:40 and 22:44, going to bed).** "Continue with the combos next steps

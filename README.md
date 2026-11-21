@@ -8547,3 +8547,15 @@ rule; in 1 the blade glanced off his sword and the blow broke off by itself).
 - 2-blow combos against a shield were not measured.
 
 Checks: 0 errors; the panel's look list 12 of 12; the fight of six (40 s, seed 5) at its baseline: crossings 0.07%, tremble 4.8%.
+
+**Its film** (3b2b, made by Opus at medium effort; 6 scenes, 23 beats, about 3 minutes 15): https://claude.ai/artifact/GtQDpng7EsNv7xxjnJusJn
+
+**Measured after the push (15:25; not in the film; headless, five combos each at his speeds, the middling shield):**
+- The chop as the big one: 3 of 4 combos got a blow onto his body (5 blows), 2 floored him (the fifth was not
+  begun: he was still down). The spin: 3 of 5 (6 blows), none floored, his guard knocked open twice.
+- **The striker's own sword through his own shield, in the chop and spin combos.** Against the shield: 0.05 to
+  0.07 s at a time. Against a dummy with no guard (so nothing of step 4 in it: this is steps 3 and 13:57 as pushed):
+  chop 0.18 s of 30 s (0.61%, no stretch long enough to name), **spin 0.32 s of 30 s (1.04%), the longest 0.12 s:
+  over both budgets (0.5%, 0.10 s).** The forehand combo: 0.00 s. So the spin, and less so the chop, pass his blade
+  through his own shield, and did so before this step; I had not measured it at 13:57. Not mended. The six is not
+  touched by it (no combos there).
