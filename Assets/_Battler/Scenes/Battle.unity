@@ -347,6 +347,7 @@ MonoBehaviour:
   spaceBashesThatAreMedium: 0.5
   aHardBashIsAnAttackInTheDance: 1
   theDancePouncesOnAnOpening: 1
+  theDanceFightsWithCombos: 1
   theDanceStrikesAManWhoIsDown: 1
   theDanceKicks: 1
   danceKicksInsteadOfBashing: 0.35
@@ -364,6 +365,11 @@ MonoBehaviour:
   offBalanceHeStumblesOnRealSteps: 1
   aFighterPouncesOnAnOpening: 1
   pounceReadsIn: 0.15
+  aStumbleIsAnOpeningFrom: 0.6
+  aStumblingTargetsSpotFollowsIt: 1
+  afterGoingForHimHeTakesHisDistanceAgain: 1
+  aFallenTargetsSpotFollowsIt: 1
+  heStepsBackThisLongAfterHisBlowLands: 0.35
   aFighterGoesForAManWhoIsDown: 1
   aKickThrowsABody: 1
   kickPower: 2.6
@@ -380,6 +386,10 @@ MonoBehaviour:
   impactContactTime: 0.2
   impactKneesGive: 0.1
   impactTrunkFolds: 4
+  aBodyTakesABlowInItsKneesAndTrunk: 1
+  blowKneesGive: 0.06
+  blowTrunkFolds: 9
+  blowChestTurns: 14
   aStumblingFightersArmsGoOutForBalance: 1
   stumblingArmsGoOutBy: 1
   stumbleFirstFootLiftsIn: 0.05
@@ -596,7 +606,38 @@ MonoBehaviour:
   attackRecoveryTime: 1.2
   attackHipLead: -0.03
   attackArmLag: 0
-  theBladesPathIsDrawn: 1
+  theBladesPathIsDrawn: 0
+  aBladePassesTheBodyItCut: 1
+  aSecondBlowFlowsOutOfTheFirst: 1
+  aBlowOnItsOwnGoesAt: 1.15
+  inABattleABlowOnItsOwnGoesAt: 1
+  aCombosBlowsGoAt: 1.88
+  aComboHasThisManyBlows: 3
+  aCombosLastBlowIs: 0
+  aCombosBlowsGrow: 1
+  aCombosFirstBlowLandsWith: 0.6
+  aCombosLastBlowLandsWith: 1.6
+  theLastBlowGrowsWithEachBlowLanded: 0.25
+  theLastBlowsFreezeIsAtMost: 0.2
+  theLastBlowWindsUpAtLeast: 0.3
+  aCombosBigBlowIsThrownAt: 1
+  theBigOneSwingsBig: 1
+  aCombosEarlierBlowsLeaveHimInReach: 1
+  aBlockedBlowFlowsOn: 1
+  eachBlowOfAComboIsAimedAtWhatIsOpen: 1
+  theBigOneKnocksAShieldOpenFor: 0.8
+  aParryEndsACombo: 1
+  aComboEndsWhenHisManIsOutOfReach: 1
+  theLastBlowsJoinMakesUpAtMost: 0.2
+  afterTwoLandedTheLastBlowFloorsHim: 1
+  inTheJumpHisBodyIsCarriedWithHim: 1
+  forTheSecondBlowHeJumpsIn: 1
+  heJumpsInFrom: 0.2
+  heJumpsInAtMost: 1.4
+  theJumpInTakes: 0.1
+  atTheJoinHisBodyCarriesOn: 1
+  theJoinMakesUpAtMost: 0.15
+  theJoinBendsOver: 0.12
   concentrationRise: 0.3
   concentrationFall: 0.15
   concentrationGuard: 0.5
