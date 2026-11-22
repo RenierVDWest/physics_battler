@@ -16,8 +16,15 @@ namespace PhysicsBattler.Locomotion
     {
         // ---- Switches and sliders (Combat Feel pushes them) ----------------------------------------------------------
 
-        /// <summary>On: the fighters in the labs and the dance wear the robe. Off (old): nothing.</summary>
-        public static bool Wear = true;
+        /// <summary>
+        /// What the fighters in the labs and the dance wear: 0 nothing; 1 a shirt and trousers that never go into the
+        /// drawn body (<see cref="Outfit"/>, 22 November, after his look at the robe: "still not working"); 2 the open robe
+        /// of this morning (old).
+        /// </summary>
+        public static int Kind = 1;
+
+        /// <summary>The robe is worn (Kind 2).</summary>
+        public static bool Wear => Kind == 2;
 
         /// <summary>On: each robe is worked out on another core (a worker thread, compiled by Burst) and taken up a picture later. Off: here, on the main thread.</summary>
         public static bool OnOtherCores = true;
@@ -120,6 +127,17 @@ namespace PhysicsBattler.Locomotion
         }
 
         private Garment robe;
+        private Outfit outfit;
+        private bool outfitTried;
+
+        /// <summary>His shirt and trousers, if he wears them.</summary>
+        public Outfit Outfit => outfit;
+
+        /// <summary>The shirt and trousers put on the body as it is drawn this picture (Unity: LateUpdate).</summary>
+        public void Place()
+        {
+            outfit?.Place();
+        }
         private readonly UnitRig rig;
         private readonly ShockWave wave;
         private readonly float size;
@@ -138,7 +156,7 @@ namespace PhysicsBattler.Locomotion
         }
 
         /// <summary>His robe's points (for the lab and the report).</summary>
-        public int Points => robe != null ? robe.Net.Count : 0;
+        public int Points => robe != null ? robe.Net.Count : outfit != null ? outfit.Points : 0;
 
         private Frame FrameOf(PartId p)
         {
@@ -165,6 +183,34 @@ namespace PhysicsBattler.Locomotion
             {
                 return;
             }
+
+            // (The shirt and trousers: carried on the body; placed as the picture is drawn (Place), or here headless.)
+            bool wantOutfit = allowed && Kind == 1;
+            if (wantOutfit && outfit == null && !outfitTried)
+            {
+                outfitTried = true;
+                outfit = Outfit.Make(rig, wave, size, side, owner);
+                if (outfit != null)
+                {
+                    Debug.Log("[Clothes] " + outfit.Check);
+                    var unit = owner != null ? owner.GetComponent<PhysicsBattler.Units.UnitController>() : null;
+                    if (unit != null)
+                    {
+                        PhysicsBattler.Diagnostics.PlaytestTrace.Note(unit, "clothes", outfit.Check);
+                    }
+                }
+            }
+            else if (!wantOutfit && outfit != null)
+            {
+                outfit.Release();
+                outfit = null;
+                outfitTried = false;
+            }
+
+#if HEADLESS_STUB
+            // (Headless there is no LateUpdate: placed here, after the step, on the body as it stands.)
+            outfit?.Place();
+#endif
 
             bool want = allowed && Wear;
             if (want != worn)
@@ -732,6 +778,8 @@ namespace PhysicsBattler.Locomotion
         public void Release()
         {
             Make(false);
+            outfit?.Release();
+            outfit = null;
         }
 
         /// <summary>Every point of the robe, with its garment's name, for a picture drawn from the numbers.</summary>

@@ -241,3 +241,22 @@ with `FIGHT_FILM="$S/name.json,3,8.5,medium"`.
   `FIGHT_JOLT=0`: the shock wave as the old jelly instead of the jolt.
 - `FIGHT_COMBOKIND=flat|low`: three flat cuts, or high then low; `FIGHT_COMBO=3,sweep`: the sweep as the last blow.
   `FIGHT_SHIELDASIDE=0`: the shield held in cover through those combos.
+
+## 22 November, late morning: the shirt and trousers
+
+- `FIGHT_CLOTHES=0|1|2`: none, the shirt and trousers (default), the robe (old). `FIGHT_SHAKE=4` as before; the `SHAKE`
+  line now counts the shirt and trousers against the **drawn** body (baked fields), not the physics shapes.
+- `FIGHT_CLOTHDUMP="6.1,13,21"`: `OUTFITTUBE` (every piece's points), `PARTFRAMES` (each part as drawn), `OUTFITNOW`.
+  `python3 -I Tools/Headless/outfit.py name [mover|other|rack] [Part]` draws the real body meshes and the cloth from
+  four sides into `$S/name.outfit.png` (with a part name: close up, `name.zoom.outfit.png`; `HIDE="shirt,sash"` leaves
+  pieces out). **It has its own depth test** (numba): matplotlib's 3D painted skin over cloth and showed bare stripes
+  that were not there. Run it with `-I`, or `coverage.py` beside it hides the `coverage` package numba needs.
+- `python3 -I Tools/Headless/coverage.py name [who]`: for every vertex of the covered meshes, a ray straight out; bare if
+  it meets no cloth within 20 cm (hidden if inside another part). Bare by design: neck, wrists, ankles.
+- `FIGHT_CLOTHRACK=n`: the torture rack: at 2 s, n random poses within the joint limits, the outfit on each (`RACK`
+  lines, the last three dumped as who `rack`); then it ends.
+- `FIGHT_CLOTHSMOOTH=n` (trousers' smoothing passes, 2), `FIGHT_CLOTHMEASURE=n` (measure every n-th picture; headless 1,
+  a game 4).
+- The body is baked by `python3 -I Tools/Cloth/bake_body.py medium` into
+  `Assets/_Battler/Resources/Locomotion/BodyFields_Medium.json` (no `.meta`: he makes it in Unity). Each limb's field is
+  joined with a ball at its joint: the limb meshes' tops are hollow sockets, and cloth slipped into them unseen.

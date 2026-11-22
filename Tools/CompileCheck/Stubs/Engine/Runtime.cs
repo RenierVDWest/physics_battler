@@ -92,6 +92,8 @@ namespace UnityEngine
         public string text { get; } = "";
     }
 
+    public enum MeshTopology { Triangles = 0, Quads = 2, Lines = 3, LineStrip = 4, Points = 5 }
+
     public class Mesh : Object
     {
         public System.Collections.Generic.List<Vector3> vertices = new System.Collections.Generic.List<Vector3>();
@@ -102,6 +104,8 @@ namespace UnityEngine
         public void Clear() { vertices = new System.Collections.Generic.List<Vector3>(); }
         public void MarkDynamic() { }
         public void SetColors(System.Collections.Generic.List<Color> c) { }
+        public void SetIndices(int[] indices, MeshTopology topology, int submesh) { }
+        public Bounds bounds { get; set; }
     }
 
     public class Shader : Object
@@ -126,6 +130,8 @@ namespace UnityEngine
         public Color color { get; set; }
         public void SetColor(string name, Color value) { }
         public void SetFloat(string name, float value) { }
+        public void SetInt(string name, int value) { }
+        public int renderQueue { get; set; }
         public Color GetColor(string name) => default;
         public Color GetColor(int id) => default;
         public bool HasProperty(int id) => false;

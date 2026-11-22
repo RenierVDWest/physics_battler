@@ -6,16 +6,18 @@ have my permission to push to that branch.
 1. Attach the repository with push access and clone it. (On 19 November the first ask for push access was refused
    and went through when asked again after I said "you may push" in the chat. If it is refused, tell me at once and
    carry on reading.) Read `CLAUDE.md` at its top first and follow it: it is the briefing, and it is up to date as
-   of 22 November 2026, 08:55 (newer than the rest of this prompt: where the two disagree, CLAUDE.md and the
-   README's last entries are right). At 08:46 on 22 November I said the robe still does not work; I want a
-   long-sleeved shirt and trousers to the feet and cloth that never goes into the body. The cause was found (the
-   cloth was kept out of the physics shapes; the drawn meshes are 2 to 5 cm fatter) and a new plan written:
-   `Docs/Plans/2026-11-22-clothes-that-never-go-into-the-body-research-and-plan.md` (README "### 22 November, 08:55").
-   Its four questions wait for my answer. **`ClothJob.cs` (the Burst job) has never been compiled headless: if my
-   Unity reports a compile error, mend that first.** `README.md` is
+   of 22 November 2026, 11:20 (newer than the rest of this prompt: where the two disagree, CLAUDE.md and the
+   README's last entries are right). At 08:46 on 22 November I asked for a long-sleeved shirt and trousers to the
+   feet and cloth that never goes into the body; the plan
+   `Docs/Plans/2026-11-22-clothes-that-never-go-into-the-body-research-and-plan.md` (live
+   https://claude.ai/artifact/NcFgFLd75rj2ZDECPKUVp1) has its steps 1 to 3 built (README "### 22 November, 11:20"),
+   waiting for my look. **`OutfitJob.cs` (Burst) and `BodyFields.CheckAgainst` have never been compiled: if my Unity
+   reports a compile error, mend that first. Then read my log for the `[Clothes]` start-up line and the frame rate.**
+   Next on the clothes after my look: step 4, the fenced wobble. `README.md` is
    the build log (over 9,000 lines: search it, never read it whole, and add entries at its end, never write over
    it).
-2. Read the plans for the work in hand: `Docs/Plans/2026-11-21-shock-waves-through-the-body-research-and-plan.md`
+2. Read the plan for the work in hand (the clothes, above) and its progress notes; older ones:
+   `Docs/Plans/2026-11-21-shock-waves-through-the-body-research-and-plan.md`
    (live https://claude.ai/artifact/FED9yrpFr7tz59LvbJLnd6) and
    `Docs/Plans/2026-11-21-cloth-that-moves-samurai-clothes-research-and-plan.md` (live
    https://claude.ai/artifact/3Jev6uXAQk3Nsncq7GCtAh), and the progress notes at their ends. Add your own progress

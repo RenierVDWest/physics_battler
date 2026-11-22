@@ -9082,3 +9082,63 @@ inside, by two independent checks (baked fields every picture; exact mesh test o
 10,000 poses, "Shake him", dances. Six steps; four questions wait for him. Not built.
 
 Its film (3b2b, made by Opus at medium effort; 8 scenes, 33 beats, about 5 minutes): https://claude.ai/artifact/TSXxiad3ARayFmDX7qFWNS
+
+### 22 November, 11:20: a shirt and trousers that never go into the body, steps 1 to 3 (headless only, built blind)
+
+His answer to the plan at 09:21: "Soungs good yes to all. go" (never = no cloth inside the drawn parts it covers, the
+body pressed into itself excepted; snug at shoulders, chest and thighs, looser at the cuffs and from the knee; keep the
+sash; steps 1 to 3 together before he looks).
+
+**What is built**
+- **The drawn body, baked** (`Tools/Cloth/bake_body.py` → `Assets/_Battler/Resources/Locomotion/BodyFields_Medium.json`,
+  3.3 MB, no `.meta`): each part's mesh (X mirrored as Unity imports it) as a distance grid, 8 mm cells, with the
+  covered parts' triangles for an exact check. All meshes are closed. `Locomotion/BodyFields.cs` reads it; at start-up
+  in Unity it compares the bake with the meshes Unity loaded (a `[Clothes]` console line; headless it cannot: the stand-in
+  has no meshes).
+- **Found today: the limb meshes' tops are hollow sockets** (the thigh's field is outside on its own axis from 4 cm
+  below the hip joint up). A trouser leg's top could fold in through that socket, outside every part, and showed a ring
+  of bare skin at the top of each thigh in every pose. Each limb's field is now joined with a ball at its joint (92% of
+  the limb's narrowest top: thigh 6.6 cm, shin 4.0, upper arm 3.9, forearm 2.9).
+- **The shirt and trousers, cut by code** (`Locomotion/Outfit.cs`): tubes of rings round each part's axis, each point
+  1.2 cm (shirt 1.8) outside the drawn surface as it stands; shirt body, two sleeves to the wrists, trousers' waist, two
+  legs to the ankles, the sash. Every point's home is on a part, or over a joint on that joint's ball (a blend of the two
+  parts' turns). A trouser leg's top now stays mostly with the hips (`HipTopFollows` 0.35, to `HipBlendEnd` 14 cm down)
+  so no gap opens over the hip; the waist goes down to 12 cm below the hips' centre.
+- **The last word** (`Locomotion/OutfitSolve.cs`, one piece a thread in a Burst job, `OutfitJob.cs`): every point pushed
+  out of the parts other pieces cover (best it can, 3 mm), then out of its own piece's parts (6 mm), summed over every
+  part it is too near (out of a crease); the trousers smoothed twice and pushed out again (the crotch crumpled; the
+  shirt is not smoothed: its sleeves' tops drew in off the shoulders); then up to six rounds pushing thread middles and
+  face centres out.
+- **Never late:** placed in `LateUpdate` (`UnitClips.LateUpdate` → `Clothes.Place`) on the body as drawn that picture;
+  the job is finished there, before drawing.
+- **Panel** (duel lab, "Clothes"): "Clothes:" shirt and trousers / robe (old) / none; "Shake him"; "X-ray:" (any point
+  found inside drawn as a red cross through everything); "The last word:" on/off; "Off the skin", "Shirt off the skin",
+  "Loose at the ends"; the readout "Cloth inside the body". Combat Feel: "What The Fighters Wear" (1) and the cloth's
+  levers. Labs and dance only. The panel's look list is set for this (panel test: 10 of 10 framed).
+
+**Measured headless** (the count is against the drawn body, joint balls included; the exact check against the mesh
+triangles, every 20th picture):
+
+| | points inside | thread middles | face centres | exact check |
+|---|---|---|---|---|
+| Torture rack, 1000 random poses within the joint limits | 3 of 5.6 million (deepest 0.3 mm) | 137 of 11 million | 15 of 5.4 million | 3 of 1.1 million |
+| "Shake him", 22 s, the mover | 0 of 14.9 million | 128 of 29 million | 49 of 14 million | 1 of 1.5 million |
+
+Counted apart, as agreed: cloth in a fold (an elbow or knee bent shut: 3,700 on the rack, 5,600 in the shake) and cloth
+in a part another piece covers (the body pressed into itself: 45,000 and 49,000). **So not zero by the letter: a few in
+a million between points, a fraction of a millimetre deep.** The robe was 1 to 3 cm inside what he saw.
+
+Bare skin, by rays straight out from every vertex (`coverage.py`): neck, wrists and ankles by design; the thighs 1 to
+12 points of about 520 (27 to 59 before the joint balls); the upper arms 3 to 58 of about 600 on the rack (the shoulder's
+top in arms-overhead poses).
+
+**Cost** (headless, one core, no Burst): 18 ms a fighter a picture in an optimised build in the shake (measured every
+4th picture, as in a game), 22 ms measured every picture; the debug build 40 to 60. In Unity it runs Burst-compiled, a
+piece to a worker thread (six pieces a fighter); how fast that is there is **not known**. The plan's mark for step 3
+(under 1 ms a fighter on the main thread) is not shown.
+
+**Not done or not known:** the Burst job and the start-up check have never been compiled (Unity only); the robe was not
+measured against the bake (step 1 asked for it); nothing is hidden under the clothes (his "so robust we don't need to");
+no wobble yet (step 4); the pictures in `$S` are the headless renderer's, not Unity's. **A lesson:** matplotlib's 3D
+painted skin over cloth (it sorts whole faces); `outfit.py` now has a real depth test, and bare skin is judged by
+`coverage.py`'s rays.

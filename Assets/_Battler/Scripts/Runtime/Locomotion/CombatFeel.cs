@@ -389,9 +389,24 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("The jolt: how hard a heavy blow's jolt kicks the camera (0 to 1; a lighter blow less; none under half a heavy one).")]
         [Range(0f, 1f)] public float joltKicksTheCamera = ShockWave.DefaultJoltCamera;
 
-        [Header("Clothes that move (22 November: the open robe): the labs and the dance only")]
-        [Tooltip("On: the fighters in the labs and the dance wear a robe: one cloth from his shoulders to above his ankles, open down the front so his chest shows, pinned by a sash at his waist; no sleeves yet. It hangs, swings and sways, and is kept out of his body: its threads are kept from passing between a limb (a leg through the cloth). Off: nothing (as it was before the clothes). Not in the fight of six yet. (Rebuilt 22 November after his look at the skirt and top: \"Victorian dresses\".)")]
-        public bool theFightersWearARobe = Clothes.Wear;
+        [Header("Clothes (22 November, after his look at the robe: a shirt and trousers that never go into the body): the labs and the dance only")]
+        [Tooltip("What the fighters in the labs and the dance wear. 1 (new): a long-sleeved shirt to the wrists and trousers to the ankles, with a sash, cut by code from the drawn body and carried on it, so they never go into the body: every cloth point has a home on a body part, a set gap off its drawn skin, moved with the part as it is drawn each picture; and a last word pushes any point, thread middle or face centre still inside the drawn body back out. No wobble yet: they move exactly with him. 2 (old): this morning's open robe. 0: nothing. Not in the fight of six yet.")]
+        [Range(0, 2)] public int whatTheFightersWear = 1;
+
+        [Tooltip("The shirt and trousers: how far the trousers and sleeves are cut off the drawn skin (metres).")]
+        [Range(0.004f, 0.04f)] public float clothesSitOffTheSkin = Outfit.DefaultGap;
+
+        [Tooltip("The shirt and trousers: how far the shirt's body is cut off the drawn skin (metres); a little more than the trousers, so it lies over their waist.")]
+        [Range(0.006f, 0.05f)] public float shirtSitsOffTheSkin = Outfit.DefaultShirtGap;
+
+        [Tooltip("The shirt and trousers: the slack at the cuffs and the bottoms of the trousers. 1: as cut (1.5 cm at the cuffs, 3.5 cm at the trouser bottoms); 0: tight everywhere; 2: twice as loose. Takes effect when they are put on again (switch the clothes off and on).")]
+        [Range(0f, 2f)] public float clothesLooseAtTheEnds = Outfit.DefaultLoose;
+
+        [Tooltip("The shirt and trousers: on, the last word pushes any cloth point, thread middle or face centre still inside the drawn body back out, every picture. Off: the homes alone, to see what the last word does.")]
+        public bool clothesLastWordKeepsThemOut = true;
+
+        [Tooltip("The shirt and trousers: on, any cloth point inside the drawn body is drawn as a red cross through everything, so a fault cannot hide. The duel lab's \"Cloth inside the body\" counts them.")]
+        public bool clothesXRay = false;
 
         [Tooltip("On: each fighter's robe is worked out on another core of the computer (a worker thread, compiled by Burst), while the main thread goes on; it is taken up one picture later. Off: worked out here, on the main thread (the old way: costs the frame rate). Headless it always runs on the main thread.")]
         public bool theRobeIsWorkedOutOnOtherCores = Clothes.OnOtherCores;
@@ -2074,7 +2089,12 @@ namespace PhysicsBattler.Locomotion
             ShockWave.JoltBack = Mathf.Clamp01(joltKicksBack);
             ShockWave.JoltGrip = Mathf.Clamp01(joltHisGripHolds);
             ShockWave.JoltCamera = Mathf.Clamp01(joltKicksTheCamera);
-            Clothes.Wear = theFightersWearARobe;
+            Clothes.Kind = Mathf.Clamp(whatTheFightersWear, 0, 2);
+            Outfit.Gap = Mathf.Clamp(clothesSitOffTheSkin, 0.002f, 0.06f);
+            Outfit.ShirtGap = Mathf.Clamp(shirtSitsOffTheSkin, 0.004f, 0.08f);
+            Outfit.Loose = Mathf.Clamp(clothesLooseAtTheEnds, 0f, 3f);
+            Outfit.LastWordOn = clothesLastWordKeepsThemOut;
+            Outfit.XRay = clothesXRay;
             Clothes.OnOtherCores = theRobeIsWorkedOutOnOtherCores;
             Clothes.Weight = Mathf.Clamp(robeWeight, 0.1f, 5f);
             Clothes.Stiffness = Mathf.Clamp01(robeStiffness);

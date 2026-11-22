@@ -184,3 +184,11 @@ Chen et al. OGC 2025; Macklin et al. Small Steps 2019; Akar et al. shallow SDFs 
 Disney Research optimized centers of rotation; EA SEED Swish. Links in the live document.
 
 Its film (3b2b, made by Opus at medium effort; 8 scenes, 33 beats, about 5 minutes): https://claude.ai/artifact/TSXxiad3ARayFmDX7qFWNS
+
+## Progress, 22 November, 11:20: steps 1 to 3 built (headless only, built blind)
+
+He said go at 09:21 ("yes to all"). Built: the baked drawn body (with a ball at each limb joint, because the limb meshes' tops turned out to be hollow sockets the cloth slipped into); the shirt, sleeves, trousers and sash cut by code, every point carried on the body as drawn; the last word (points, then the trousers smoothed, then thread middles and face centres); placed in LateUpdate, the job finished before drawing. Duel lab, "Clothes": "Shake him", "X-ray:", "The last word:", the fit levers, "Cloth inside the body".
+
+Measured headless, against the drawn body: on a torture rack of 1000 random poses, points inside 3 of 5.6 million (0.3 mm deep at most), thread middles 137 of 11 million, face centres 15 of 5.4 million, the exact mesh check 3 of 1.1 million; in "Shake him", points 0 of 14.9 million, middles 128 of 29 million, centres 49 of 14 million, exact 1 of 1.5 million. Folds and the body pressed into itself are counted apart, as agreed. **Not zero by the letter**: a few in a million, under a millimetre. Bare skin only at the neck, wrists and ankles, by design, and a little at the shoulder's top with the arms overhead.
+
+Not shown: the cost in Unity (headless, one core, no Burst: 18 ms a fighter a picture; the mark was under 1 ms on the main thread); the Burst job and the start-up check have never been compiled. Not built: the wobble (step 4), others pushing the cloth (step 5), the look (step 6). The README's entry of 11:20 has the rest.

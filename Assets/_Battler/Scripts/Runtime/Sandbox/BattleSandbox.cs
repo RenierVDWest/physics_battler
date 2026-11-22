@@ -4392,24 +4392,22 @@ namespace PhysicsBattler.Sandbox
         // Names are matched whole, without a chosen button's square brackets; capitals do not matter.
 
         /// <summary>Names this push's list. Change it with every push that needs his eye: his "highlights off" is kept by tag, so a new list is shown again.</summary>
-        private const string LookTag = "22 November, morning: the open robe on other cores, the jolt, his own combo never fells him (built blind)";
+        private const string LookTag = "22 November, late morning: a shirt and trousers that never go into the body (built blind)";
 
         /// <summary>What he is asked to do, in order.</summary>
         private static readonly string[] LookSteps =
         {
-            "1. Go to \"Duel\", the heading \"Clothes\". Both men wear one robe now: from the shoulders to above the ankles, open down the front so the chest shows, a dark sash at the waist, armholes, no sleeves yet. Press \"Shake him\" (about 18 seconds: walk, leaps, blow, combo, bash, kick down, get-up). Watch: does it fold like cloth, do the legs come through the front opening instead of through the cloth, does it look like the robe in your drawing?",
-            "2. Watch the frame rate while it runs. \"Worked out:\" on other cores (new) / here (old) moves the cloth's sums off the main thread (Burst). Compare the frame rate with both, and with \"Clothes:\" none (old).",
-            "3. Try \"Robe stiffness\" (0.25 now; the first clothes were 0.5), \"Robe weight\", \"Feels his movement\", \"Hem strays at most\". \"The cloth so far\" counts how often a point was inside his body.",
-            "4. The shock wave: the heading \"The shock wave\", \"Its kind:\" jolt (new) / jelly (old). With jolt, press \"chest\" in \"Ring him:\": one hard, fast knock, a small kick back, still in a fifth of a second; his grip holds his sword and shield steadier; the camera kicks. Then jelly, and ring again, to compare.",
-            "5. Try \"Jolt peaks after\" (sharper when shorter), \"Jolt kicks back\", \"His grip holds\", \"Camera kick\". Then \"Throw combo\" and \"Dance\": every hit and block jolts.",
-            "6. Combos: in \"Strike at\", \"Throw combo\" several times. The row \"His own combo:\" never fells him (new) / can fell him (old). He should not fall after his own combo any more.",
+            "1. Go to \"Duel\", the heading \"Clothes\". Both men wear a long-sleeved shirt, trousers to the feet and a sash (\"Clothes:\" shirt and trousers). Nothing is hidden: the whole body is still drawn under the cloth. Press \"Shake him\" (about 18 seconds: walk, leaps, blow, combo, bash, kick down, get-up). Look for any skin or limb poking through the cloth, above all at the knees, elbows, shoulders and hips.",
+            "2. \"X-ray:\" on draws any cloth point that is inside the drawn body as a red cross, through everything, so a fault cannot hide. \"Cloth inside the body\" counts them (the goal is 0; headless it is about 0).",
+            "3. \"The last word:\" off shows the cloth without its last push out of the body: you should see it go into him at bends. Turn it back on.",
+            "4. Try \"Off the skin\", \"Shirt off the skin\" (how far it sits off him) and \"Loose at the ends\" (how wide the cuffs and trouser legs are). Watch the frame rate with \"Clothes:\" none and with the clothes.",
+            "5. In the Unity console, find the line \"[Clothes] the baked body against the meshes Unity loaded\": it says whether the baked body matches the meshes in your project. Push your log afterwards.",
         };
 
         /// <summary>The names of what he is to press and watch.</summary>
         private static readonly string[] LookHere =
         {
-            "Duel", "Clothes", "Clothes:", "Shake him:", "Worked out:", "Robe stiffness", "Robe weight", "Feels his movement", "Hem strays at most", "The cloth so far",
-            "The shock wave", "Its kind:", "Ring him:", "Jolt peaks after", "Jolt kicks back", "His grip holds", "Camera kick", "Throw combo", "Dance", "His own combo:",
+            "Duel", "Clothes", "Clothes:", "Shake him:", "X-ray:", "The last word:", "Off the skin", "Shirt off the skin", "Loose at the ends", "Cloth inside the body",
         };
 
         /// <summary>For the panel check (headless): the names of <see cref="LookHere"/> that were really drawn, and every section taken as open while it looks.</summary>
@@ -5448,24 +5446,23 @@ namespace PhysicsBattler.Sandbox
         /// <summary>The duel lab's clothes (21 November): what they wear, "Shake him", the sliders, what the cloth measured.</summary>
         private void ClothesRows(CombatFeel feel)
         {
-            Heading("Clothes", "Real moving cloth (the plan \"Cloth that moves: samurai clothes\"), rebuilt on 22 November as his drawing has it: one robe from his shoulders to above his ankles, open down the front so his chest shows, pinned by a sash at his waist, no sleeves yet. A net of points simulated against his body's own shapes; its threads are kept from passing between a limb, so a leg cannot go through it. Worked out on other cores of the computer. In the labs and the dance; not in the fight of six yet.");
+            Heading("Clothes", "The clothes (the plan \"Clothes that never go into the body\", 22 November): a long-sleeved shirt and trousers to the ankles, with a sash, cut by code from the drawn body and carried on it. Every cloth point has a home on a body part, a set gap off its drawn skin, and moves with the part as it is drawn each picture; a last word pushes anything still inside the drawn body back out. No wobble yet. The checks measure against the drawn meshes, not the physics shapes. In the labs and the dance; not in the fight of six yet.");
             if (feel == null)
             {
                 return;
             }
 
             BeginRow();
-            Words(new GUIContent("Clothes:", "What both men wear (Combat Feel \"The Fighters Wear A Robe\"). Robe (new): the open robe with its sash. None (old): nothing, as before the clothes."));
-            if (Press(feel.theFightersWearARobe ? "[robe]" : "robe", "Both men wear the open robe.")) feel.theFightersWearARobe = true;
-            if (Press(!feel.theFightersWearARobe ? "[none (old)]" : "none (old)", "Nothing.")) feel.theFightersWearARobe = false;
+            Words(new GUIContent("Clothes:", "What both men wear (Combat Feel \"What The Fighters Wear\"). Shirt and trousers (new). Robe (old): this morning's open robe. None: nothing."));
+            string[] names = { "none", "shirt and trousers", "robe (old)" };
+            foreach (int k in new[] { 1, 2, 0 })
+            {
+                if (Press(feel.whatTheFightersWear == k ? "[" + names[k] + "]" : names[k], "Both men wear this.")) feel.whatTheFightersWear = k;
+            }
+
             EndRow();
             BeginRow();
-            Words(new GUIContent("Worked out:", "Combat Feel \"The Robe Is Worked Out On Other Cores\". On other cores (new): each robe is worked out on a worker thread, compiled by Burst, while the game goes on, and taken up a picture later. Here (old): on the main thread, as the first clothes were (they cost the frame rate). Watch the frame rate as you switch."));
-            if (Press(feel.theRobeIsWorkedOutOnOtherCores ? "[on other cores]" : "on other cores", "Worked out on worker threads.")) feel.theRobeIsWorkedOutOnOtherCores = true;
-            if (Press(!feel.theRobeIsWorkedOutOnOtherCores ? "[here (old)]" : "here (old)", "Worked out on the main thread.")) feel.theRobeIsWorkedOutOnOtherCores = false;
-            EndRow();
-            BeginRow();
-            Words(new GUIContent("Shake him:", "A fixed run of moves, about 18 seconds, so the cloth can be judged on demand: he walks round the other, leaps in, strikes, leaps out, throws a combo, bashes the other so he stumbles, then kicks him down and goes for him, and the other gets up. Watch both men's robes, the legs coming through it, and the frame rate."));
+            Words(new GUIContent("Shake him:", "A fixed run of moves, about 18 seconds, so the clothes can be judged on demand: he walks round the other, leaps in, strikes, leaps out, throws a combo, bashes the other so he stumbles, then kicks him down and goes for him, and the other gets up. Watch both men's clothes: nothing of the body should ever show through them."));
             if (Press("Shake him", "The run of moves, now.") && Duel.Running)
             {
                 shakeFrom = Time.time;
@@ -5474,16 +5471,43 @@ namespace PhysicsBattler.Sandbox
             }
 
             EndRow();
+            if (feel.whatTheFightersWear == 1)
+            {
+                BeginRow();
+                Words(new GUIContent("X-ray:", "Combat Feel \"Clothes X Ray\". On: any cloth point inside the drawn body is drawn as a red cross through everything, so a fault cannot hide. Off: nothing drawn."));
+                if (Press(feel.clothesXRay ? "[on]" : "on", "Red crosses where cloth is inside the body.")) feel.clothesXRay = true;
+                if (Press(!feel.clothesXRay ? "[off]" : "off", "No crosses.")) feel.clothesXRay = false;
+                EndRow();
+                BeginRow();
+                Words(new GUIContent("The last word:", "Combat Feel \"Clothes Last Word Keeps Them Out\". On (new): every picture, any cloth point, thread middle or face centre still inside the drawn body is pushed back out. Off: the homes alone, to see what it does (with the x-ray on)."));
+                if (Press(feel.clothesLastWordKeepsThemOut ? "[on]" : "on", "Pushed out every picture.")) feel.clothesLastWordKeepsThemOut = true;
+                if (Press(!feel.clothesLastWordKeepsThemOut ? "[off]" : "off", "The homes alone.")) feel.clothesLastWordKeepsThemOut = false;
+                EndRow();
+                feel.clothesSitOffTheSkin = Lever("Off the skin", feel.clothesSitOffTheSkin, 0.004f, 0.04f, "How far the trousers and sleeves are cut off the drawn skin (metres). Takes effect when they are put on again.");
+                feel.shirtSitsOffTheSkin = Lever("Shirt off the skin", feel.shirtSitsOffTheSkin, 0.006f, 0.05f, "How far the shirt's body is cut off the drawn skin (metres). Takes effect when they are put on again.");
+                feel.clothesLooseAtTheEnds = Lever("Loose at the ends", feel.clothesLooseAtTheEnds, 0f, 2f, "The slack at the cuffs and the trouser bottoms (1: as cut). Takes effect when they are put on again.");
+                var other = Duel.Other != null ? Duel.Other.Clothes : null;
+                string now = other != null && other.Outfit != null ? $" This picture, the other: {other.Outfit.InsideNow} points inside. {other.Outfit.Check}." : "";
+                Readout(new GUIContent("Cloth inside the body: " + PhysicsBattler.Locomotion.Outfit.Counted() + "." + now, "Every picture of both men's shirt and trousers since the scene began, measured against the drawn body (the baked meshes, not the physics shapes): cloth points, thread middles and face centres inside it (the goal is 0), the deepest, how often the last word had to push, and the cost. The line at the end is the start-up check: the baked body against the meshes Unity loaded."), 4);
+                return;
+            }
+
+            if (feel.whatTheFightersWear != 2)
+            {
+                return;
+            }
+
+            BeginRow();
+            Words(new GUIContent("Worked out:", "Combat Feel \"The Robe Is Worked Out On Other Cores\". On other cores (new): each robe is worked out on a worker thread, compiled by Burst, while the game goes on, and taken up a picture later. Here (old): on the main thread."));
+            if (Press(feel.theRobeIsWorkedOutOnOtherCores ? "[on other cores]" : "on other cores", "Worked out on worker threads.")) feel.theRobeIsWorkedOutOnOtherCores = true;
+            if (Press(!feel.theRobeIsWorkedOutOnOtherCores ? "[here (old)]" : "here (old)", "Worked out on the main thread.")) feel.theRobeIsWorkedOutOnOtherCores = false;
+            EndRow();
             feel.robeWeight = Lever("Robe weight", feel.robeWeight, 0.2f, 3f, "1: like cotton. Heavier hangs straighter and swings slower; lighter flutters.");
-            feel.robeStiffness = Lever("Robe stiffness", feel.robeStiffness, 0f, 1f, "0: soft as silk, folds everywhere. 1: stiff as canvas. (The first clothes were 0.5: paper.)");
+            feel.robeStiffness = Lever("Robe stiffness", feel.robeStiffness, 0f, 1f, "0: soft as silk, folds everywhere. 1: stiff as canvas.");
             feel.robeAir = Lever("Robe air", feel.robeAir, 0f, 6f, "How fast a swing dies away (a second): more is calmer.");
-            feel.robeFeelsHisMovement = Lever("Feels his movement", feel.robeFeelsHisMovement, 0f, 1f, "1: thrown about by everything he does. Lower: calmer, more of it simply carried with him.");
-            feel.robeWind = Lever("Wind", feel.robeWind, 0f, 3f, "A light breeze.");
-            feel.robeGap = Lever("Gap", feel.robeGap, 0f, 0.05f, "How far off his body the robe is held (metres).");
-            feel.robeHemStraysAtMost = Lever("Hem strays at most", feel.robeHemStraysAtMost, 0.05f, 1f, "How far the hem may stray from where it hangs (metres); less higher up, 5 cm above the sash.");
-            feel.robeSmallSteps = Mathf.RoundToInt(Slide("Small steps", feel.robeSmallSteps.ToString(), "Small steps a picture for the robe: more is safer and costs more.", feel.robeSmallSteps, 1f, 24f));
+            feel.robeFeelsHisMovement = Lever("Feels his movement", feel.robeFeelsHisMovement, 0f, 1f, "1: thrown about by everything he does. Lower: calmer.");
             var one = Duel.Other != null ? Duel.Other.Clothes : null;
-            Readout(new GUIContent("The cloth so far: " + PhysicsBattler.Locomotion.Clothes.Counted() + (one != null ? $"; the other wears {one.Points} points" : "") + ".", "Every picture of every fighter's robe since the scene began: how often a point of cloth was inside his body (deeper than nothing: the gap is outside it), the deepest, the most a thread was stretched, how often the robe went wrong and was put back to hanging, and what it costs the main thread a fighter a picture."), 3);
+            Readout(new GUIContent("The cloth so far: " + PhysicsBattler.Locomotion.Clothes.Counted() + (one != null ? $"; the other wears {one.Points} points" : "") + ".", "The robe's own measure (against the physics shapes: it says nothing about the drawn body)."), 3);
         }
 
         /// <summary>The duel lab's shock wave (21 November): ring the other from a part with no blow, the switches and the sliders, what the last wave did.</summary>

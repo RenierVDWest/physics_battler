@@ -212,6 +212,15 @@ namespace PhysicsBattler.Units
         /// <summary>His clothes (the cloth plan, 21 November).</summary>
         public PhysicsBattler.Locomotion.Clothes Clothes { get; private set; }
 
+        /// <summary>
+        /// The clothes put on the body as it is about to be drawn (22 November): the body parts are moved between physics
+        /// steps (interpolated), so clothes placed in the physics step would be drawn where the body was, not where it is.
+        /// </summary>
+        private void LateUpdate()
+        {
+            Clothes?.Place();
+        }
+
         private BladeStreak streak;
         private StreakSettings streakLook;
 
