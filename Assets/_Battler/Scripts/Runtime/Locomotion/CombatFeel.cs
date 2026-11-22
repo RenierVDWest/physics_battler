@@ -371,39 +371,57 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("On: the wave runs on through the hips into the legs, fading through the thighs and stopping at the shins; the feet stay planted. Off: it stops at the hips.")]
         public bool theShockWaveTakesTheLegs = true;
 
-        [Header("Clothes that move (21 November): the labs and the dance only")]
-        [Tooltip("What the fighters in the labs and the dance wear. 0: nothing (as it was). 1: the hakama, one pleated skirt from a sash at his waist to above his ankles (the undivided kind). 2: the skirt and a top: a jacket over his chest that bends with him but does not move of itself, and two sleeves tied back on his upper arms. The skirt and sleeves are simulated: it hangs, swings and sways, and is pushed out of his body's own shapes. Not in the fight of six yet.")]
-        [Range(0, 2)] public int theFightersWear = Clothes.Wear;
+        [Tooltip("On (new, 22 November, after his look: \"very toy like now, instead of brutal\"): the wave is a jolt, not a jelly. Each part is knocked once, hard and fast, along the blow, with one small kick back, and is still again in about a fifth of a second; it runs through him fast; his grip holds, so his hands and what they hold move less than his trunk; a heavy one kicks the camera. Off (old): the jelly, a swing that rings seven times a second and dies away.")]
+        public bool theShockWaveIsAJolt = ShockWave.Jolt;
 
-        [Tooltip("On: the parts the clothes cover completely are not drawn (his hips and thighs under the skirt, his trunk under the top, his upper arms under the sleeves), so a slip of cloth into them cannot be seen. Off: drawn under the cloth.")]
-        public bool coveredPartsAreHidden = true;
+        [Tooltip("The jolt: how soon a part's knock peaks after the wave reaches it (seconds). Shorter is sharper.")]
+        [Range(0.01f, 0.1f)] public float joltPeaksAfter = ShockWave.DefaultJoltRise;
 
-        [Tooltip("The cloth's weight. 1: like cotton. Heavier hangs straighter and swings slower; lighter flutters in the wind.")]
-        [Range(0.2f, 3f)] public float clothWeight = Clothes.DefaultWeight;
+        [Tooltip("The jolt: how fast it runs through his body (m/s). 14: the chest to the hands in about a twentieth of a second.")]
+        [Range(2f, 40f)] public float joltRunsAt = ShockWave.DefaultJoltSpeed;
 
-        [Tooltip("How hard the cloth is to fold. 0: soft as silk. 1: stiff as canvas.")]
-        [Range(0f, 1f)] public float clothStiffness = Clothes.DefaultStiffness;
+        [Tooltip("The jolt: the one small kick back after the knock, against it (0: none, 1: as big as the knock).")]
+        [Range(0f, 1f)] public float joltKicksBack = ShockWave.DefaultJoltBack;
 
-        [Tooltip("How far the cloth's threads give (0 to 0.1, roughly the share of their length).")]
-        [Range(0f, 0.1f)] public float clothStretch = Clothes.DefaultStretch;
+        [Tooltip("The jolt: his hands' share of it (his grip holds; his forearms take half way between). 1: as loose as the jelly's.")]
+        [Range(0f, 1f)] public float joltHisGripHolds = ShockWave.DefaultJoltGrip;
 
-        [Tooltip("How fast a swing of the cloth dies away (a second): more is calmer.")]
-        [Range(0f, 6f)] public float clothAir = Clothes.DefaultAir;
+        [Tooltip("The jolt: how hard a heavy blow's jolt kicks the camera (0 to 1; a lighter blow less; none under half a heavy one).")]
+        [Range(0f, 1f)] public float joltKicksTheCamera = ShockWave.DefaultJoltCamera;
 
-        [Tooltip("How much of his movement the cloth feels. 1: thrown about by everything he does. Lower: calmer, more of it simply carried with him.")]
-        [Range(0f, 1f)] public float clothFeelsHisMovement = Clothes.DefaultFeel;
+        [Header("Clothes that move (22 November: the open robe): the labs and the dance only")]
+        [Tooltip("On: the fighters in the labs and the dance wear a robe: one cloth from his shoulders to above his ankles, open down the front so his chest shows, pinned by a sash at his waist; no sleeves yet. It hangs, swings and sways, and is kept out of his body: its threads are kept from passing between a limb (a leg through the cloth). Off: nothing (as it was before the clothes). Not in the fight of six yet. (Rebuilt 22 November after his look at the skirt and top: \"Victorian dresses\".)")]
+        public bool theFightersWearARobe = Clothes.Wear;
 
-        [Tooltip("A light breeze on the cloth.")]
-        [Range(0f, 3f)] public float clothWind = Clothes.DefaultWind;
+        [Tooltip("On: each fighter's robe is worked out on another core of the computer (a worker thread, compiled by Burst), while the main thread goes on; it is taken up one picture later. Off: worked out here, on the main thread (the old way: costs the frame rate). Headless it always runs on the main thread.")]
+        public bool theRobeIsWorkedOutOnOtherCores = Clothes.OnOtherCores;
 
-        [Tooltip("How far off his body the cloth is held (metres).")]
-        [Range(0f, 0.05f)] public float clothGap = Clothes.DefaultGap;
+        [Tooltip("The robe's weight. 1: like cotton. Heavier hangs straighter and swings slower; lighter flutters in the wind.")]
+        [Range(0.2f, 3f)] public float robeWeight = Clothes.DefaultWeight;
 
-        [Tooltip("How far a point of a sleeve may stray from its place (metres); down the skirt to twice as far at the hem.")]
-        [Range(0.05f, 0.6f)] public float clothLeash = Clothes.DefaultLeash;
+        [Tooltip("How hard the robe is to fold. 0: soft as silk. 1: stiff as canvas. (The first clothes were 0.5 and read as paper.)")]
+        [Range(0f, 1f)] public float robeStiffness = Clothes.DefaultStiffness;
 
-        [Tooltip("Small steps a picture for the cloth: more is safer against cloth in the body, and costs more.")]
-        [Range(1, 24)] public int clothSmallSteps = Clothes.DefaultSteps;
+        [Tooltip("How far the robe's threads give (0 to 0.1, roughly the share of their length).")]
+        [Range(0f, 0.1f)] public float robeStretch = Clothes.DefaultStretch;
+
+        [Tooltip("How fast a swing of the robe dies away (a second): more is calmer.")]
+        [Range(0f, 6f)] public float robeAir = Clothes.DefaultAir;
+
+        [Tooltip("How much of his movement the robe feels. 1: thrown about by everything he does. Lower: calmer, more of it simply carried with him.")]
+        [Range(0f, 1f)] public float robeFeelsHisMovement = Clothes.DefaultFeel;
+
+        [Tooltip("A light breeze on the robe.")]
+        [Range(0f, 3f)] public float robeWind = Clothes.DefaultWind;
+
+        [Tooltip("How far off his body the robe is held (metres).")]
+        [Range(0f, 0.05f)] public float robeGap = Clothes.DefaultGap;
+
+        [Tooltip("How far the robe's hem may stray from where it hangs (metres); less higher up, 5 cm above the sash.")]
+        [Range(0.05f, 1f)] public float robeHemStraysAtMost = Clothes.DefaultLeash;
+
+        [Tooltip("Small steps a picture for the robe: more is safer against cloth in the body, and costs more.")]
+        [Range(1, 24)] public int robeSmallSteps = Clothes.DefaultSteps;
 
         [Tooltip("On: in the dance a fighter goes for a man who is down by himself: he runs to him and stabs down from beside him. Off: he lets him get up. Only the dance: in the duel lab \"A Fighter Goes For A Man Who Is Down\" decides. Decided on 20 November: fighters go for him.")]
         public bool theDanceStrikesAManWhoIsDown = true;
@@ -2050,17 +2068,23 @@ namespace PhysicsBattler.Locomotion
             ShockWave.InTheFreeze = theShockWaveRunsThroughTheFreeze;
             ShockWave.AttackerShudders = theAttackersArmShuddersWhenHisBlowIsStopped;
             ShockWave.Legs = theShockWaveTakesTheLegs;
-            Clothes.Wear = Mathf.Clamp(theFightersWear, 0, 2);
-            Clothes.HideCovered = coveredPartsAreHidden;
-            Clothes.Weight = Mathf.Clamp(clothWeight, 0.1f, 5f);
-            Clothes.Stiffness = Mathf.Clamp01(clothStiffness);
-            Clothes.Stretch = Mathf.Clamp(clothStretch, 0f, 0.2f);
-            Clothes.Air = Mathf.Clamp(clothAir, 0f, 10f);
-            Clothes.Feel = Mathf.Clamp01(clothFeelsHisMovement);
-            Clothes.Wind = Mathf.Clamp(clothWind, 0f, 5f);
-            Clothes.Gap = Mathf.Clamp(clothGap, 0f, 0.1f);
-            Clothes.Leash = Mathf.Clamp(clothLeash, 0.02f, 1f);
-            Clothes.Steps = Mathf.Clamp(clothSmallSteps, 1, 32);
+            ShockWave.Jolt = theShockWaveIsAJolt;
+            ShockWave.JoltRise = Mathf.Clamp(joltPeaksAfter, 0.005f, 0.2f);
+            ShockWave.JoltSpeed = Mathf.Clamp(joltRunsAt, 1f, 60f);
+            ShockWave.JoltBack = Mathf.Clamp01(joltKicksBack);
+            ShockWave.JoltGrip = Mathf.Clamp01(joltHisGripHolds);
+            ShockWave.JoltCamera = Mathf.Clamp01(joltKicksTheCamera);
+            Clothes.Wear = theFightersWearARobe;
+            Clothes.OnOtherCores = theRobeIsWorkedOutOnOtherCores;
+            Clothes.Weight = Mathf.Clamp(robeWeight, 0.1f, 5f);
+            Clothes.Stiffness = Mathf.Clamp01(robeStiffness);
+            Clothes.Stretch = Mathf.Clamp(robeStretch, 0f, 0.2f);
+            Clothes.Air = Mathf.Clamp(robeAir, 0f, 10f);
+            Clothes.Feel = Mathf.Clamp01(robeFeelsHisMovement);
+            Clothes.Wind = Mathf.Clamp(robeWind, 0f, 5f);
+            Clothes.Gap = Mathf.Clamp(robeGap, 0f, 0.1f);
+            Clothes.Leash = Mathf.Clamp(robeHemStraysAtMost, 0.02f, 1.5f);
+            Clothes.Steps = Mathf.Clamp(robeSmallSteps, 1, 32);
             PhysicsBattler.Sandbox.Dance.StrikesDowned = theDanceStrikesAManWhoIsDown;
             PhysicsBattler.Sandbox.Dance.Kicks = theDanceKicks;
             PhysicsBattler.Sandbox.Dance.KickShare = Mathf.Clamp01(danceKicksInsteadOfBashing);

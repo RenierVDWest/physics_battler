@@ -235,5 +235,9 @@ with `FIGHT_FILM="$S/name.json,3,8.5,medium"`.
   costly headless: use `FIGHT_CLOTHES=0` for runs that do not need it.** `FIGHT_SHAKE=4`: the lab's "Shake him" from that
   second (`SHAKE` lines). `FIGHT_CLOTHDUMP="5.5,17"`: every point (`CLOTHPTS`, `BODYPTS`, `CLOTHNET`); then
   `python3 Tools/Headless/cloth.py name [mover|other]` draws them into `$S/name.cloth.png`. Every report: a `CLOTHES` line.
+  Since 22 November the clothes are one robe (`FIGHT_CLOTHES=0|1`): `python3 Tools/Headless/robe.py name [mover|other]`
+  draws it as shaded cloth (its lining pale) from his front, three-quarters and side into `$S/name.robe.png`. The
+  `CLOTHES`/`SHAKE` lines split the cost into the sums (on other cores in Unity) and the rest (the main thread).
+  `FIGHT_JOLT=0`: the shock wave as the old jelly instead of the jolt.
 - `FIGHT_COMBOKIND=flat|low`: three flat cuts, or high then low; `FIGHT_COMBO=3,sweep`: the sweep as the last blow.
   `FIGHT_SHIELDASIDE=0`: the shield held in cover through those combos.

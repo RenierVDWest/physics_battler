@@ -231,7 +231,6 @@ namespace PhysicsBattler.Units
 
                 if (Clothes != null)
                 {
-                    Clothes.FollowHide();
                     Clothes.Step(dt, PhysicsBattler.Locomotion.AttackMaker.InALab);
                 }
             }

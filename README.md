@@ -8961,7 +8961,7 @@ aside: they are a lab choice, not the default, until that is mended (the forehan
 **The night's films** (3b2b, made by Opus at medium effort): the clothes (6 scenes, 24 beats, about 3 minutes):
 https://claude.ai/artifact/GA5FrDmgSqaxDYsk5eLmMq ; combos step 7 (5 scenes, 20 beats, about 3 minutes): https://claude.ai/artifact/P6fPxWrGjvhqqv5RLAbwEH . The shock wave's is above.
 
-### 22 November, 07:25: his morning look; his own combo no longer fells him (headless can't show it)
+### 22 November, 07:20: his morning look; his own combo no longer fells him (headless can't show it)
 
 **His words (07:12):** "Something about the combos broke and now they seem to fail and cause the attacker to fall every
 time now." The shock wave "does what it was supposed to" but "looks very toy like now, instead of brutal. Lets think on
@@ -8984,3 +8984,67 @@ the report's `COMBOS so far` line counts the pictures it spared him). A man driv
 not felled either in that time: the price. **Headless never showed these falls**, so the mend is unconfirmed until his
 next log. The frames of the three logs were looked at (the 07:00 fall: the big flat forehand's jump, then flat on his
 back) and removed.
+
+### 22 November, 08:20: the open robe, worked out on other cores; the jolt (headless only, built blind)
+
+**His words (07:12 and his answers at 07:2x):** the clothes looked like "Victorian dresses"; he wants "a single cloth that
+is pinned at the waist, open in front so that you can see the chest" (his drawing: a long robe from the shoulders to the
+ankles, open down the front, a sash); the cloth was stiff "like paper or thick rubber", let the legs through, and tanked
+the frame rate: "Is it possible to offload this to more cores?" The shock wave "looks very toy like now, instead of
+brutal." Answers: "Yes, build the jolt"; "No sleeves yet"; "Yes, add Burst now".
+
+**The robe** (`Locomotion/Clothes.cs`, rewritten): one sheet of 36 columns by 24 rows (864 points), from his left front
+edge round his back to his right front edge. Its collar row is held round the base of his neck in the chest's frame
+(inside his shoulder joints); its seventh row is pinned by the sash in the hips' frame; the rows between ride on both
+(their home blended from the chest's to the hips'). Open in front: 30 degrees each side at the collar, nearly closed at
+the sash (6), opening again to 28 at the hem, so the legs come through. **Armholes:** no thread joins a front panel to the
+back above the sash, so the arms come out at the sides. The cloth round the chest is a rounded square outside the chest
+box's corners (an ellipse left the corners inside the cloth and pushed its points apart). A dark sash band is drawn round
+the waist. Robe blue or red by side. Nothing of the body is hidden now. Softer: stiffness 0.25 (was 0.5), under new
+Combat Feel names ("The Fighters Wear A Robe", "Robe Stiffness" and the rest: a changed default needs a new name).
+
+**Legs through the cloth:** the across and down threads are kept out of every capsule of the body as threads, not only as
+points (`ClothSolve.EdgeOut`): a limb cannot pass between two joined points. Two guards found on the way: an edge push next
+to a pinned row threw the free point by depth / s (metres when the bone crossed near the pin): capped at the cloth's
+thickness; and as the last word of each small step no thread is let past 1.6 times its length (`ClothSolve.TearsAt`).
+Without them a man lying under his robe had it put back to hanging 20 times in six seconds.
+
+**Other cores:** the sums are now one Burst-compatible core on plain numbers (`Locomotion/ClothSolve.cs`) over a packed
+array (`ClothNet.cs`). In Unity each robe's picture is a Burst job (`Locomotion/ClothJob.cs`, `ClothRun`): begun after his
+body has moved, taken up at the next picture, so the robe is one picture behind his body. Headless runs the same sums on
+the main thread (`HEADLESS_STUB`; the stub has no jobs). Combat Feel "The Robe Is Worked Out On Other Cores" (on) and lab
+row "Worked out:" on other cores / here (old). The asmdef now allows unsafe code and references Unity.Burst;
+`com.unity.burst` 2.0.0 is in the manifest (it was already in the lock as a dependency). **`ClothJob.cs` is never compiled
+headless: the first compile is in his Unity.**
+
+**Measured headless (the duel lineup, "Shake him" from 4 s, 22 s; debug build, no Burst):**
+
+| The robe | |
+|---|---|
+| A point inside his body | 0.050% of point-steps, the deepest 4.9 cm |
+| Pictures with a thread at twice its length | 63 of 2642 (2.4%) |
+| Put back to hanging | 0 (20 before the two guards) |
+| Main thread, a fighter, a picture | 7.6 ms with the sums here; **0.9 ms without them** (the first clothes: about 4 ms, all of it here) |
+
+The last line is the one that matters for his frame rate: in Unity the sums (7.1 ms here, debug and not Burst-compiled)
+go to a worker thread, and what is left on the main thread is the shapes, the hand-over and the mesh (0.9 ms here). How
+fast Burst makes the sums and what his frame rate becomes are **not known until he runs it**. A robe's points are seen
+inside a drawn part in 14% of pictures (the front is open, nothing is hidden), mostly a centimetre or two.
+`Tools/Headless/robe.py name [mover|other]` draws the robe as shaded cloth (lining pale) from his front, three-quarters
+and side from `FIGHT_CLOTHDUMP`. Looked at: the open V at the chest, the sash, the legs coming through the front opening;
+lying down it bunches round him.
+
+**The jolt** (`ShockWave.Jolt`; Combat Feel "The Shock Wave Is A Jolt", on, and five levers; duel lab row "Its kind:"
+jolt / jelly (old) and the jolt's sliders; `FIGHT_JOLT=0` headless for the jelly). Each part is knocked once along the
+blow (x e^(1-x), peaking 0.03 s after the wave reaches it), with one small kick back, and is still in about a fifth of a
+second; the wave runs at 14 m/s (was 5); his grip holds (hands 0.35 of the wave, forearms 0.68); a heavy one kicks the
+camera (`ShockWave.Jolted`, heard by `OrbitCamera.Kick`). Headless, a ring at the chest:
+
+| | Jelly (old) | Jolt |
+|---|---|---|
+| Chest | 7.7 cm, 6 swings, still at 0.82 s | 8.9 cm, 1 swing, still at 0.25 s |
+| Hands reached at | 0.18 s | 0.07 s |
+| Hands | 3.2 cm, 5 swings | 1.3 cm, 1 swing |
+| Sword's point / shield's rim | 18.2 / 10.4 cm | 12.0 / 4.5 cm |
+
+Not built of the jolt's plan: a squash of the struck part. The camera kick is not seen headless.

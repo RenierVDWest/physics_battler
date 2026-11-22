@@ -1190,10 +1190,12 @@ internal static class FightReport
             PhysicsBattler.Sandbox.Dance.Pounces = own[0].Trim() != "0";
             // (FIGHT_DANCECOMBOS=0: the dance's fighters start no combos by themselves, as before step 5 of the combos plan.)
             PhysicsBattler.Sandbox.Dance.Combos = Environment.GetEnvironmentVariable("FIGHT_DANCECOMBOS") != "0";
-        // (FIGHT_CLOTHES=0, 1 or 2: what the labs' and the dance's fighters wear; 2, skirt and sleeves, as the game has it.
+        // (FIGHT_CLOTHES=0 or 1: whether the labs' and the dance's fighters wear the robe (22 November); 1 as the game has it.
         // FIGHT_WAVE=0: no shock wave on a hit.)
-        if (int.TryParse(Environment.GetEnvironmentVariable("FIGHT_CLOTHES"), out int clothesEnv)) PhysicsBattler.Locomotion.Clothes.Wear = clothesEnv;
+        if (int.TryParse(Environment.GetEnvironmentVariable("FIGHT_CLOTHES"), out int clothesEnv)) PhysicsBattler.Locomotion.Clothes.Wear = clothesEnv != 0;
         PhysicsBattler.Locomotion.ShockWave.On = Environment.GetEnvironmentVariable("FIGHT_WAVE") != "0";
+        // (FIGHT_JOLT=0: the jelly wave (old) instead of the jolt.)
+        PhysicsBattler.Locomotion.ShockWave.Jolt = Environment.GetEnvironmentVariable("FIGHT_JOLT") != "0";
             // (FIGHT_SHOW=0: none of the show's cues, as before step 6 of the combos plan. FIGHT_SHOW="1,1,1,1,1,1":
             // streaks, the rising swish, the deep hit, the camera kick, the slow beat, sparks. A combo's COMBOS line counts them.)
             {

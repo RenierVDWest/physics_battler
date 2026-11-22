@@ -6,12 +6,13 @@ have my permission to push to that branch.
 1. Attach the repository with push access and clone it. (On 19 November the first ask for push access was refused
    and went through when asked again after I said "you may push" in the chat. If it is refused, tell me at once and
    carry on reading.) Read `CLAUDE.md` at its top first and follow it: it is the briefing, and it is up to date as
-   of 21 November 2026, 23:59 (newer than the rest of this prompt: where the two disagree, CLAUDE.md and the
-   README's last entries are right). On the night of 21 November three things were built blind, headless only,
-   and wait for my look: the shock wave through the body on a hit (README "### 21 November, 22:50"), clothes that
-   move (a hakama, a top and tied-back sleeves on our own cloth solver; "### 21 November, 23:55: clothes") and the
-   combos plan's step 7, more cuts ("### 21 November, 23:55: combos"). The combos plan is fully built. `README.md` is
-   the build log (over 8,900 lines: search it, never read it whole, and add entries at its end, never write over
+   of 22 November 2026, 08:20 (newer than the rest of this prompt: where the two disagree, CLAUDE.md and the
+   README's last entries are right). On the morning of 22 November, after my look, three things were built blind,
+   headless only, and wait for my look: my own combo no longer fells me (README "### 22 November, 07:20"), the
+   clothes rebuilt as one open robe whose sums run on other cores in a Burst job, and the shock wave's jolt beside the
+   jelly (both "### 22 November, 08:20"). **`ClothJob.cs` (the Burst job) has never been compiled headless: if my
+   Unity reports a compile error, mend that first.** `README.md` is
+   the build log (over 9,000 lines: search it, never read it whole, and add entries at its end, never write over
    it).
 2. Read the plans for the work in hand: `Docs/Plans/2026-11-21-shock-waves-through-the-body-research-and-plan.md`
    (live https://claude.ai/artifact/FED9yrpFr7tz59LvbJLnd6) and

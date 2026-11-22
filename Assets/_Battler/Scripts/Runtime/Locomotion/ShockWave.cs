@@ -70,8 +70,38 @@ namespace PhysicsBattler.Locomotion
         /// <summary>A blow this heavy (N·s on a Medium) moves the struck part by <see cref="Strength"/>; a lighter one less.</summary>
         public static float HeavyBlow = DefaultHeavyBlow;
 
+        // ---- The jolt (22 November, after his look: "very toy like now, instead of brutal") ---------------------------
+
+        /// <summary>
+        /// On (new): a jolt, not a jelly. Each part is knocked once, hard and fast, along the blow (a one-sided hump that peaks
+        /// at <see cref="JoltRise"/> and is gone in about a fifth of a second), with one small kick back; the wave runs fast
+        /// (<see cref="JoltSpeed"/>); his grip holds, so his hands and what they hold move less than his trunk
+        /// (<see cref="JoltGrip"/>); and a heavy one kicks the camera. Off (old): the jelly, a swing that rings 7 times a second.
+        /// </summary>
+        public static bool Jolt = true;
+
+        public const float DefaultJoltRise = 0.03f, DefaultJoltSpeed = 14f, DefaultJoltBack = 0.3f, DefaultJoltGrip = 0.35f, DefaultJoltCamera = 0.6f;
+
+        /// <summary>How soon a part's knock peaks after the wave reaches it (seconds).</summary>
+        public static float JoltRise = DefaultJoltRise;
+
+        /// <summary>How fast the jolt runs along the body (m/s).</summary>
+        public static float JoltSpeed = DefaultJoltSpeed;
+
+        /// <summary>The kick back after the knock, against the knock (0: none).</summary>
+        public static float JoltBack = DefaultJoltBack;
+
+        /// <summary>His hands' share of the jolt (his grip holds; the forearms take half way between).</summary>
+        public static float JoltGrip = DefaultJoltGrip;
+
+        /// <summary>How hard a heavy blow's jolt kicks the camera (0 to 1; a lighter blow less; none under half a heavy one).</summary>
+        public static float JoltCamera = DefaultJoltCamera;
+
+        /// <summary>A jolt heavy enough to kick the camera: along its way, how hard (0 to 1). The camera listens.</summary>
+        public static event System.Action<Vector3, float> Jolted;
+
         /// <summary>Waves started, everywhere, since the scene began (for the report and the panel).</summary>
-        public static int Started, Rung, Shudders;
+        public static int Started, Rung, Shudders, CameraKicks;
 
         /// <summary>The struck part's swing of the waves begun (metres): the sum and the largest, and how many by size.</summary>
         public static float SwingSum, SwingMost;
@@ -80,8 +110,8 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>The waves begun so far, told: how many, how far they moved the struck part, the attackers' shudders.</summary>
         public static string Counted() => Started == 0 ? (On ? "none begun" : "off") : string.Format(System.Globalization.CultureInfo.InvariantCulture,
-            "{0} begun ({1} rung from the lab, {2} attackers' shudders); the struck part swung {3:0.0} cm on average, {4:0.0} at most; under 2 cm {5}, 2 to 5 cm {6}, 5 to 9 cm {7}, over 9 cm {8}",
-            Started, Rung, Shudders, 100f * SwingSum / Started, 100f * SwingMost, BySize[0], BySize[1], BySize[2], BySize[3]);
+            "{0} begun as {9} ({1} rung from the lab, {2} attackers' shudders, {10} camera kicks); the struck part knocked {3:0.0} cm on average, {4:0.0} at most; under 2 cm {5}, 2 to 5 cm {6}, 5 to 9 cm {7}, over 9 cm {8}",
+            Started, Rung, Shudders, 100f * SwingSum / Started, 100f * SwingMost, BySize[0], BySize[1], BySize[2], BySize[3], Jolt ? "jolts" : "jelly", CameraKicks);
 
         // ---- The body as a chain -----------------------------------------------------------------------------------
 
@@ -229,6 +259,14 @@ namespace PhysicsBattler.Locomotion
             }
 
             waves.Add(new Wave { From = (int)part, Way = way, Amp = amp, Age = 0f, Wait = wait, D = d, J = jj });
+            // (A heavy jolt kicks the camera: from half a heavy blow up, harder the heavier.)
+            float heavy = amp / Mathf.Max(1e-4f, Strength * Size * Mathf.Max(0.01f, OverTheTop));
+            if (Jolt && JoltCamera > 0f && heavy >= 0.5f)
+            {
+                CameraKicks++;
+                Jolted?.Invoke(way, Mathf.Clamp01(JoltCamera * heavy));
+            }
+
             Started++;
             SwingSum += amp;
             SwingMost = Mathf.Max(SwingMost, amp);
@@ -255,10 +293,26 @@ namespace PhysicsBattler.Locomotion
 
         private float SwingOf(in Wave w, float d, int j, float looseness)
         {
-            float t = w.Age - w.Wait - d / Mathf.Max(0.1f, Speed);
+            float t = w.Age - w.Wait - d / Mathf.Max(0.1f, Jolt ? JoltSpeed : Speed);
             if (t <= 0f)
             {
                 return 0f;
+            }
+
+            if (Jolt)
+            {
+                // (A knock: x e^(1-x), 1 at its peak, at x = 1 (t = the rise); then one small kick back, quickly gone.)
+                float rise = Mathf.Max(0.005f, JoltRise);
+                float x = t / rise;
+                float knock = x < 12f ? x * Mathf.Exp(1f - x) : 0f;
+                float back = 0f;
+                if (t > 2f * rise)
+                {
+                    float tb = t - 2f * rise;
+                    back = tb < 0.3f ? -JoltBack * Mathf.Sin(2f * Mathf.PI * 9f * tb) * Mathf.Exp(-tb * 0.6931472f / 0.05f) : 0f;
+                }
+
+                return w.Amp * Mathf.Pow(Mathf.Clamp01(PassOn), j) * looseness * (knock + back);
             }
 
             float h = Mathf.Max(0.005f, HalfLife * (0.5f + 0.5f * OverTheTop));
@@ -286,7 +340,8 @@ namespace PhysicsBattler.Locomotion
                     furthest = Mathf.Max(furthest, x);
                 }
 
-                if (w.Age > w.Wait + furthest / Mathf.Max(0.1f, Speed) + 7f * h + 0.05f)
+                float gone = Jolt ? furthest / Mathf.Max(0.1f, JoltSpeed) + 12f * Mathf.Max(0.005f, JoltRise) + 0.35f : furthest / Mathf.Max(0.1f, Speed) + 7f * h + 0.05f;
+                if (w.Age > w.Wait + gone)
                 {
                     waves.RemoveAt(k);
                     continue;
@@ -322,6 +377,14 @@ namespace PhysicsBattler.Locomotion
                             e += w.Way * SwingOf(w, w.D[p] + end, w.J[p], LooseEnds);
                         }
                     }
+                }
+
+                // (The jolt: his grip holds, so his hands (and what they hold) and less so his forearms move less.)
+                if (Jolt)
+                {
+                    float grip = p == (int)PartId.HandL || p == (int)PartId.HandR ? JoltGrip : p == (int)PartId.ForearmL || p == (int)PartId.ForearmR ? 0.5f * (1f + JoltGrip) : 1f;
+                    s *= grip;
+                    e *= grip;
                 }
 
                 u[p] = Vector3.ClampMagnitude(s, cap);

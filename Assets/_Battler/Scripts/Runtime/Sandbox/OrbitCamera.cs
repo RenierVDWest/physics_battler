@@ -80,11 +80,13 @@ namespace PhysicsBattler.Sandbox
         private void OnEnable()
         {
             PhysicsBattler.Locomotion.ComboShow.Kicked += Kick;
+            PhysicsBattler.Locomotion.ShockWave.Jolted += Kick;
         }
 
         private void OnDisable()
         {
             PhysicsBattler.Locomotion.ComboShow.Kicked -= Kick;
+            PhysicsBattler.Locomotion.ShockWave.Jolted -= Kick;
         }
 
         private float shake;

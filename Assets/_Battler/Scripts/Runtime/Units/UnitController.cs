@@ -146,6 +146,8 @@ namespace PhysicsBattler.Units
             all.Remove(this);
             // (Off the engine's steps with it: a fighter left told of them reaches for a body that has gone.)
             Clip?.Release();
+            // (His robe's picture on another core waited for and its memory given back.)
+            Clothes?.Release();
             ForgetGround();
             DestroySeveredLimbs();
             if (detachedBody != null)

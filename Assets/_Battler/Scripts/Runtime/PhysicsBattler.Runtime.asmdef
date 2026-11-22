@@ -2,11 +2,12 @@
     "name": "PhysicsBattler.Runtime",
     "rootNamespace": "PhysicsBattler",
     "references": [
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "Unity.Burst"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
-    "allowUnsafeCode": false,
+    "allowUnsafeCode": true,
     "overrideReferences": false,
     "precompiledReferences": [],
     "autoReferenced": true,

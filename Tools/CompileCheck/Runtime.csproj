@@ -6,6 +6,9 @@
     <DefineConstants Condition="'$(LegacyInput)' != 'true'">ENABLE_INPUT_SYSTEM</DefineConstants>
     <DefineConstants Condition="'$(LegacyInput)' == 'true'">ENABLE_LEGACY_INPUT_MANAGER</DefineConstants>
     <DefineConstants Condition="'$(WithEditor)' == 'true'">$(DefineConstants);UNITY_EDITOR</DefineConstants>
+    <!-- The stub has no Jobs or Burst: code for other cores is left out (the robe runs on the main thread headless). -->
+    <DefineConstants>$(DefineConstants);HEADLESS_STUB</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <OutputPath Condition="'$(WithEditor)' == 'true'">bin/RuntimeWithEditor/</OutputPath>
     <BaseIntermediateOutputPath Condition="'$(WithEditor)' == 'true'">obj/RuntimeWithEditor/</BaseIntermediateOutputPath>
   </PropertyGroup>

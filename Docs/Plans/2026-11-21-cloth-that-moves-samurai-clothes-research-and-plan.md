@@ -203,3 +203,15 @@ against the shins); nothing put back to hanging; about 4 ms a fighter a picture 
 "clothes that move" has the table. Not done: steps 5 and 6, crisp pleats, pattern, two-legged trousers, full sleeves.
 
 The build's film (3b2b, about three minutes): https://claude.ai/artifact/GA5FrDmgSqaxDYsk5eLmMq
+
+## Progress, 22 November, 08:20: the open robe, on other cores (headless only)
+
+His look at the first build: "Victorian dresses", stiff "like paper or thick rubber", legs through it, and it tanked the
+frame rate. His drawing: one robe from the shoulders to the ankles, open down the front, a sash. His answers: no sleeves
+yet; Burst now. Built: one sheet of 864 points held at the collar (chest) and pinned by the sash (hips), open in front,
+armholes at the sides, stiffness 0.25; the threads kept out of the limbs as threads (a leg cannot pass between two
+points); two guards against tearing; the sums moved into a Burst job, one picture behind his body (`ClothSolve.cs`,
+`ClothJob.cs`). Headless through "Shake him": a point inside his body 0.05% of the time (the deepest 4.9 cm), never put
+back to hanging, a thread at twice its length in 2.4% of pictures; on the main thread, without the sums, 0.9 ms a fighter.
+**The Burst job is first compiled in his Unity; the frame rate is not known until he runs it.** The build log's entry of
+22 November, 08:20 has the tables.

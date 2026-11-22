@@ -194,3 +194,11 @@ skeleton from the hips out, so the body stays joined (its joints within 3 to 5 c
 wave" in the duel lab, "Ring him:" six buttons, the eight sliders, three switches. Labs and dance only. Measured: a ring
 of the chest reaches the hands at 0.18 s (3.2 cm) and is still at 0.8 s; the sword's point swings 25 cm. One dance: 57
 waves, 17 attackers' shudders. The build log's entry of 22:50 has the tables. The build's film: https://claude.ai/artifact/NxqQKD4EN8eZmRxQkkz9pZ
+
+## Progress, 22 November, 08:20: the jolt (headless only)
+
+His look: it works but "looks very toy like now, instead of brutal". Built as a switch beside the old wave: the jolt, a
+single hard knock along the blow (peaking 0.03 s after the wave arrives) with one small kick back, still in about 0.25 s;
+it runs at 14 m/s; his grip holds (hands 0.35 of it); a heavy one kicks the camera. Ringing the chest: the chest 8.9 cm,
+1 swing, still at 0.25 s (the jelly: 7.7 cm, 6 swings, 0.82 s); the sword's point 12 cm (18). Not built: a squash of
+the struck part. The build log's entry of 22 November, 08:20 has the table.
