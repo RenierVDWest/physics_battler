@@ -32,6 +32,9 @@ namespace PhysicsBattler.Locomotion
         {
             public Vector3 P, BC;
             public Quaternion R, I;
+            // (The turn a sewn garment is carried by: R, or on a limb R without the limb's roll about itself since the
+            // drape (<see cref="SewnOutfit.SleevesIgnoreTheRoll"/>), so a sleeve follows where the arm points, not how it rolls.)
+            public Quaternion C;
             public float BR; // negative: not there (no field, or cut off)
         }
 
@@ -50,6 +53,30 @@ namespace PhysicsBattler.Locomotion
         }
 
         /// <summary>What one piece measured in one picture.</summary>
+        /// <summary>
+        /// The cloth slides over him (22 November, the plan "clothes that slide", step 4): on; how much further a point may
+        /// go along his body than away from it (metres at scale 1); the share of the pull back to the drape it keeps along
+        /// his body; its grip on his limbs and on his trunk (0 slides freely, 1 does not slide while it touches him); and
+        /// how much its leash may stretch (a share).
+        /// </summary>
+        public struct SlideSet
+        {
+            public int On;
+            public float By, HoldShare, Grip, GripTrunk, Slack;
+        }
+
+        /// <summary>
+        /// Elbows, knees and falls (22 November, the plan "clothes that slide", step 6): a point carried round a bent
+        /// joint is carried clear of the joint as drawn (on/off); the floor in the cloth's world (on/off, its height);
+        /// the most a hard stop of his body may throw a point in one picture (metres at scale 1; 0 no limit); and a
+        /// point the last word left as a lone spike is put back among its neighbours (on/off).
+        /// </summary>
+        public struct MoreSet
+        {
+            public int JointReach, FloorOn, LoneSpikes;
+            public float FloorY, Jolt;
+        }
+
         public struct Stats
         {
             public long PointsChecked, PointsIn, MiddlesChecked, MiddlesIn, CentresChecked, CentresIn, Pushed, StillIn, Crossed, Folded;
@@ -89,6 +116,12 @@ namespace PhysicsBattler.Locomotion
             // fence; on, the small steps a picture, gravity (m/s2, times the cloth's weight), the share of its own speed it
             // keeps a picture, how much of his movement it feels, and how hard it resists squashing and bending.)
             public Vector3* R, RPrev, HomeWas, HomeWas2;
+            // (Sliding (step 4 of "clothes that slide"): each point's leash, to the held point nearest along the cloth (-1:
+            // none) and its length along the cloth (metres at scale 1); and the settings.)
+            public int* LeashTo;
+            public float* Leash;
+            public SlideSet Slide;
+            public MoreSet More;
             public float* ThreadRest, BendRest, Fence;
             public int* Bends;
             public int Dynamic, Steps;
@@ -774,6 +807,7 @@ namespace PhysicsBattler.Locomotion
             float keep = Mathf.Pow(Mathf.Clamp01(d.Keep), 1f / n);
             float fall = d.Gravity * h * h;
             float hold = Mathf.Pow(1f - Mathf.Clamp01(d.HoldShape), 1f / n);
+            float holdAlong = Mathf.Pow(1f - Mathf.Clamp01(d.HoldShape * Mathf.Clamp01(d.Slide.HoldShare)), 1f / n);
             int* th = d.Threads + 2 * mp->ThreadStart;
             float* tl = d.ThreadRest + mp->ThreadStart;
             int* bd = d.Bends + 2 * mp->BendStart;
@@ -817,7 +851,15 @@ namespace PhysicsBattler.Locomotion
                     if (s == 0)
                     {
                         // (His change of speed since the last picture, felt in part: the cloth's own way stays behind.)
-                        vel -= (d.Home[i] - 2f * d.HomeWas[i] + d.HomeWas2[i]) * (d.Inertia / n);
+                        Vector3 jolt = (d.Home[i] - 2f * d.HomeWas[i] + d.HomeWas2[i]) * d.Inertia;
+                        float jm = d.More.Jolt * d.Size, j2 = jolt.sqrMagnitude;
+                        if (jm > 0f && j2 > jm * jm)
+                        {
+                            // (A hard stop (he lands, his arm is stopped by a blow) throws the cloth on no further than this.)
+                            jolt *= jm / Mathf.Sqrt(j2);
+                        }
+
+                        vel -= jolt / n;
                     }
 
                     d.RPrev[i] = d.R[i];
@@ -825,22 +867,46 @@ namespace PhysicsBattler.Locomotion
                     // (Down now, less down as it was in the drape for this point's part: standing as draped, nothing;
                     // bent over or lying, the cloth hangs anew.)
                     Skin* sk = d.Skins + i;
-                    Vector3 was = Rotate(d.Frames[sk->A].R, sk->GA);
+                    Vector3 was = Rotate(d.Frames[sk->A].C, sk->GA);
                     d.R[i] += new Vector3(-was.x, -1f - was.y, -was.z) * fall;
                     // (And drawn a little back to the drape's shape, so it settles where it hung.)
-                    d.R[i] *= hold;
                     // (The fence on where it was thrown, before the threads: a thread his body stretched as it carried
                     // the cloth (the crotch, legs apart) may pull its points together past the fence. Held points
                     // (reach 0) stay carried.)
                     float f = d.Fence[i] * d.Size;
-                    float m2 = d.R[i].sqrMagnitude;
                     if (f <= 0f)
                     {
                         d.R[i] = Vector3.zero;
                     }
-                    else if (m2 > f * f)
+                    else if (d.Slide.On != 0)
                     {
-                        d.R[i] *= f / Mathf.Sqrt(m2);
+                        // (Sliding: along his body it is drawn back less and may go further than away from him.)
+                        Vector3 nw = Rotate(d.Frames[sk->A].C, sk->NA);
+                        float rn = Vector3.Dot(d.R[i], nw);
+                        Vector3 along = d.R[i] - nw * rn;
+                        rn *= hold;
+                        along *= holdAlong;
+                        if (rn * rn > f * f)
+                        {
+                            rn = rn > 0f ? f : -f;
+                        }
+
+                        float fa = f + d.Slide.By * d.Size, a2 = along.sqrMagnitude;
+                        if (a2 > fa * fa)
+                        {
+                            along *= fa / Mathf.Sqrt(a2);
+                        }
+
+                        d.R[i] = nw * rn + along;
+                    }
+                    else
+                    {
+                        d.R[i] *= hold;
+                        float m2 = d.R[i].sqrMagnitude;
+                        if (m2 > f * f)
+                        {
+                            d.R[i] *= f / Mathf.Sqrt(m2);
+                        }
                     }
 
                     d.Shove[i] = hs;
@@ -898,6 +964,27 @@ namespace PhysicsBattler.Locomotion
                         d.X[b] -= e * (c * wb);
                     }
                 }
+                // (The leash: no further from the held point nearest along the cloth than that way is long, so cloth that
+                // slides cannot slide off him or stretch away from where it is held.)
+                if (d.Slide.On != 0 && d.LeashTo != null)
+                {
+                    float slack = 1f + Mathf.Max(0f, d.Slide.Slack);
+                    for (int i = s0; i < s1; i++)
+                    {
+                        int a = d.LeashTo[i];
+                        if (a < 0 || a == i || d.Fence[i] <= 0f)
+                        {
+                            continue;
+                        }
+
+                        Vector3 e = d.X[i] - d.X[a];
+                        float most = d.Leash[i] * d.Size * slack, l2 = e.sqrMagnitude;
+                        if (l2 > most * most)
+                        {
+                            d.X[i] = d.X[a] + e * (most / Mathf.Sqrt(l2));
+                        }
+                    }
+                }
 #if HEADLESS_STUB
                 long tickC = System.Diagnostics.Stopwatch.GetTimestamp();
                 TicksThreads += tickC - tickT;
@@ -929,7 +1016,7 @@ namespace PhysicsBattler.Locomotion
                         // limb that moves faster than the cloth meets it from inside and cannot pass out through it.)
                         if (!folded && d.Backstop != 0)
                         {
-                            Vector3 nw = Rotate(d.Frames[sk->A].R, sk->NA);
+                            Vector3 nw = Rotate(d.Frames[sk->A].C, sk->NA);
                             float dn = Vector3.Dot(d.X[i] - d.Shove[i], nw), back = sk->Back * d.Size;
                             if (dn < -back)
                             {
@@ -937,9 +1024,31 @@ namespace PhysicsBattler.Locomotion
                             }
                         }
 
+                        // (The floor: cloth under a man on the ground stays on it, not through it.)
+                        if (d.More.FloorOn != 0 && d.X[i].y < d.More.FloorY + FloorMargin)
+                        {
+                            d.X[i].y = d.More.FloorY + FloorMargin;
+                        }
+
+                        // (Its grip on him, sliding: where his body pushed it, the part of its slide along him this small
+                        // step that the grip holds back.)
+                        Vector3 pushed = d.X[i] - before;
+                        float p2 = pushed.sqrMagnitude;
+                        if (d.Slide.On != 0 && p2 > 1e-12f)
+                        {
+                            float grip = IsLimb(sk->A) ? d.Slide.Grip : d.Slide.GripTrunk;
+                            if (grip > 0f)
+                            {
+                                Vector3 nrm = pushed / Mathf.Sqrt(p2);
+                                Vector3 slid = d.X[i] - d.Shove[i] - d.RPrev[i];
+                                slid -= nrm * Vector3.Dot(slid, nrm);
+                                d.X[i] -= slid * Mathf.Clamp01(grip);
+                            }
+                        }
+
                         // (Pushed by his body, it goes with him, but keeps only half of that push as its own speed:
                         // kept whole, a fast arm flung the cuff 14 cm off.)
-                        d.RPrev[i] += (d.X[i] - before) * PushKeep;
+                        d.RPrev[i] += pushed * PushKeep;
                     }
 
                     d.R[i] = d.X[i] - d.Shove[i];
@@ -1004,8 +1113,12 @@ namespace PhysicsBattler.Locomotion
             }
         }
 
+        /// <summary>An arm or a leg (not his trunk, hands or feet), for the grip.</summary>
+        private static bool IsLimb(int part) => part == (int)PhysicsBattler.Rig.PartId.UpperArmL || part == (int)PhysicsBattler.Rig.PartId.ForearmL || part == (int)PhysicsBattler.Rig.PartId.UpperArmR || part == (int)PhysicsBattler.Rig.PartId.ForearmR
+            || part == (int)PhysicsBattler.Rig.PartId.ThighL || part == (int)PhysicsBattler.Rig.PartId.ShinL || part == (int)PhysicsBattler.Rig.PartId.ThighR || part == (int)PhysicsBattler.Rig.PartId.ShinR;
+
         // (The moving cloth's fixed limits.)
-        private const float PushKeep = 0.5f, MostSpeed = 3f, StrayPast = 0.01f, LastWordMost = 0.03f;
+        private const float PushKeep = 0.5f, MostSpeed = 3f, StrayPast = 0.01f, LastWordMost = 0.03f, FloorMargin = 0.005f, LoneSpikeOver = 2f;
 #if HEADLESS_STUB
         /// <summary>Headless only: time spent in the moving step and in the last word and the measure (Stopwatch ticks).</summary>
         public static long TicksMove, TicksWord, TicksThreads, TicksCollide;
@@ -1031,24 +1144,49 @@ namespace PhysicsBattler.Locomotion
                 if (sk->W > 0f && sk->J >= 0)
                 {
                     Frame* fb = d.Frames + sk->B;
-                    Vector3 dir = Rotate(fa->R, sk->OA) * (1f - sk->W) + Rotate(fb->R, sk->OB) * sk->W;
+                    Vector3 dir = Rotate(fa->C, sk->OA) * (1f - sk->W) + Rotate(fb->C, sk->OB) * sk->W;
                     float m = Mathf.Sqrt(dir.x * dir.x + dir.y * dir.y + dir.z * dir.z);
-                    dir = m > 1e-6f ? dir / m : Rotate(fb->R, sk->OB);
+                    dir = m > 1e-6f ? dir / m : Rotate(fb->C, sk->OB);
                     h = d.Frames[sk->J].P + dir * (sk->R * d.Size);
+                    if (d.More.JointReach != 0)
+                    {
+                        // (A bent elbow or knee sticks out further than the joint's ball: carried at least clear of it as
+                        // drawn, out along its own way from the joint, 4 cm at most.)
+                        Vector3 from = h;
+                        for (int k = 0; k < 3; k++)
+                        {
+                            float dh = NearestOf(ref d, mp->Own, h, out _);
+                            if (dh >= d.PointMargin)
+                            {
+                                break;
+                            }
+
+                            h += dir * (d.PointMargin - dh);
+                        }
+
+                        if ((h - from).sqrMagnitude > RadialMost * RadialMost * d.Size * d.Size)
+                        {
+                            h = from + (h - from).normalized * (RadialMost * d.Size);
+                        }
+
+                        // (Wholly at the joint, not at all where the band round it ends, so its neighbours outside the
+                        // band are not left behind: pushed alone, the band's points pulled their threads into spikes.)
+                        h = from + (h - from) * Mathf.Clamp01(2f * sk->W);
+                    }
                 }
                 else
                 {
-                    h = fa->P + Rotate(fa->R, sk->HA * d.Size);
+                    h = fa->P + Rotate(fa->C, sk->HA * d.Size);
                     if (sk->W > 0f)
                     {
                         Frame* fb = d.Frames + sk->B;
-                        h = h * (1f - sk->W) + (fb->P + Rotate(fb->R, sk->HB * d.Size)) * sk->W;
+                        h = h * (1f - sk->W) + (fb->P + Rotate(fb->C, sk->HB * d.Size)) * sk->W;
                     }
                 }
 
                 if (d.Tucked != 0 && sk->Tuck > 0f)
                 {
-                    h -= Rotate(fa->R, sk->NA) * (sk->Tuck * d.Size);
+                    h -= Rotate(fa->C, sk->NA) * (sk->Tuck * d.Size);
                 }
 
                 d.Home[i] = h;
@@ -1229,6 +1367,63 @@ namespace PhysicsBattler.Locomotion
 
             }
 
+            // (A lone spike: a moving point whose every thread is over twice its flat length (the last word threw it out
+            // of him on its own) is put back among its neighbours, where they are outside him.)
+            if (d.More.LoneSpikes != 0 && d.Dynamic != 0 && d.AdjStart != null)
+            {
+                for (int i = s0; i < s1; i++)
+                {
+                    d.Shove[i] = new Vector3(float.MaxValue, 0f, 0f);
+                }
+
+                for (int k = 0; k < mp->ThreadCount; k++)
+                {
+                    int a = th[2 * k], b = th[2 * k + 1];
+                    float rest = d.ThreadRest[mp->ThreadStart + k] * d.Size;
+                    if (rest < 1e-5f)
+                    {
+                        continue;
+                    }
+
+                    float ratio = (d.X[b] - d.X[a]).magnitude / rest;
+                    d.Shove[a].x = Mathf.Min(d.Shove[a].x, ratio);
+                    d.Shove[b].x = Mathf.Min(d.Shove[b].x, ratio);
+                    d.Shove[a].y += 1f;
+                    d.Shove[b].y += 1f;
+                }
+
+                for (int i = s0; i < s1; i++)
+                {
+                    if (d.Fence[i] <= 0f || d.Shove[i].y < 2f || d.Shove[i].x <= LoneSpikeOver)
+                    {
+                        continue;
+                    }
+
+                    Vector3 mid = Vector3.zero;
+                    int nn = 0;
+                    for (int k = d.AdjStart[i]; k < d.AdjStart[i + 1]; k++)
+                    {
+                        mid += d.X[d.Adj[k]];
+                        nn++;
+                    }
+
+                    if (nn > 0)
+                    {
+                        mid /= nn;
+                        if (NearestOf(ref d, mp->Own, mid, out _) >= 0f)
+                        {
+                            d.X[i] = mid;
+                            st->Pushed++;
+                        }
+                    }
+                }
+
+                for (int i = s0; i < s1; i++)
+                {
+                    d.Shove[i] = Vector3.zero;
+                }
+            }
+
             // (The cloth remembers where the last word left it: its offset from its carried place.)
 #if HEADLESS_STUB
             TicksWord += System.Diagnostics.Stopwatch.GetTimestamp() - tick1;
@@ -1253,7 +1448,7 @@ namespace PhysicsBattler.Locomotion
                 // from where it is carried, the limb come out through it.)
                 {
                     Skin* skm = d.Skins + i;
-                    Vector3 nwm = Rotate(d.Frames[skm->A].R, skm->NA);
+                    Vector3 nwm = Rotate(d.Frames[skm->A].C, skm->NA);
                     if (Vector3.Dot(d.X[i] - d.Home[i], nwm) < -(skm->Back * d.Size + 0.01f))
                     {
                         st->Crossed++;

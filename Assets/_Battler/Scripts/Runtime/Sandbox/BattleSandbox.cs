@@ -1610,8 +1610,9 @@ namespace PhysicsBattler.Sandbox
         private const int KickHim = 4;
 
         /// <summary>The other is stood before him and bashed or kicked: at once, or once both are on their feet.</summary>
-        private void AskStumble(int kind, string name)
+        private void AskStumble(int kind, string name, float from = -1f)
         {
+            from = from > 0f ? from : StumbleBashFrom[kind];
             var basher = Duel.Mover != null ? Duel.Mover.Clip : null;
             var other = Duel.Other != null ? Duel.Other.Clip : null;
             if (basher == null)
@@ -1627,11 +1628,11 @@ namespace PhysicsBattler.Sandbox
                 stumbleWaits = kind;
                 message = name + ": waiting until both are on their feet.";
             }
-            else if (Duel.PutOtherAt(StumbleBashFrom[kind]))
+            else if (Duel.PutOtherAt(from))
             {
                 stumbleBash = kind;
                 stumbleBashAt = Time.time + 0.6f;
-                message = $"{name}: the other is stood {StumbleBashFrom[kind]:0.0} m before him.";
+                message = $"{name}: the other is stood {from:0.00} m before him.";
             }
             else
             {
@@ -1785,6 +1786,13 @@ namespace PhysicsBattler.Sandbox
             }
 
             EndRow();
+            BeginRow();
+            Words(new GUIContent("A man stuck in a shield:", "Combat Feel \"A Shield Lets Go Of A Man Stuck In It\". Let go (new): when a part of another man is more than 3 cm in a board for a tenth of a second, the board and his body stop meeting until he is clear of it, so the shield arm draws the board back to its place. Held (old): they stay solid against each other, and a board driven into a man can stay in him, carried along with him. \"Bash him close\" bashes him from 0.75 m, the distance his log had it at."));
+            if (Press(feel.aShieldLetsGoOfAManStuckInIt ? "[let go (new)]" : "let go (new)", "The board lets go of him.")) feel.aShieldLetsGoOfAManStuckInIt = true;
+            if (Press(!feel.aShieldLetsGoOfAManStuckInIt ? "[held (old)]" : "held (old)", "As before.")) feel.aShieldLetsGoOfAManStuckInIt = false;
+            if (Press("Bash him close", "A small bash with the other stood only 0.75 m before him, so the board meets his chest at once, as in your log of 19:55.")) AskStumble(0, "Bash him close", 0.75f);
+            EndRow();
+            Readout(new GUIContent("In the other man's shield: " + PhysicsBattler.Locomotion.OthersInShield.Short() + "; let go " + PhysicsBattler.Locomotion.ClipFighter.ShieldLetGoAll + " times.", "Since the playtest began: how long a part of one man was more than 2 cm inside the other's board, as seen, how often, how long at the longest and how deep; and how often a board let go of a man stuck in it. Also written to the playtest log (shieldin and shieldletgo lines)."), 3);
             BeginRow();
             Words(new GUIContent("Kick him:", "A kick at a standing fighter on demand (Combat Feel \"A Kick Throws A Body\"). The other is put 1.4 m straight before him, stands a moment, and is kicked: a front kick with the back foot, from the sword-and-shield recordings. Where the foot meets his body or his board he is thrown as by any impact. Pressed while either is down or stumbling, it waits until both stand. No fighter kicks by himself yet."));
             string[] kicks = { "Soft kick", "Medium kick", "Hard kick" };
@@ -4396,20 +4404,22 @@ namespace PhysicsBattler.Sandbox
         private float movingNext;
         private string movingText = "";
 
-        private const string LookTag = "22 November, 20:00: the sewn clothes after his look: limbs kept in, trousers under the shirt, cheaper";
+        private const string LookTag = "22 November, 22:00: clothes that slide (all six steps of the plan) and a shield that lets go";
 
         /// <summary>What he is asked to do, in order.</summary>
         private static readonly string[] LookSteps =
         {
-            "1. Go to \"Duel\", the heading \"Clothes\" (\"Clothes:\" sewn (new), \"Cloth:\" moves (new)). Press \"Shake him\": do arms and legs still come out through the sleeves and trouser legs? \"Cloth at his skin:\" passes (old) is how it was.",
-            "2. Look below the sash, front and back: do the trousers still show through the shirt? \"Trousers under the shirt:\" as draped (old) is how it was.",
-            "3. Look at the bent elbows and knees for spikes. Then push the playtest log: is the frame faster? \"Both men's cloth:\" in turn (old) is the old cost, to compare.",
+            "1. Duel, heading \"Clothes\". Press \"Shake him\" and watch an arm lift and turn: does the cloth slide over it instead of pinching? \"Cloth on him:\" glued (old) and \"The limb's roll:\" carried (old) are how it was. Try \"Grip on his limbs\" if it slides too much or too little.",
+            "2. The shoulder seam and the bent elbows: still a ridge, still the elbow through? \"The shoulder seams:\" by side (old) to compare. \"At a bent joint:\" clear (to try) is off: headless it made more spikes.",
+            "3. Falls: \"Hard kick\" (Kick him:) a few times. Spikes as he lands and lies? \"The floor:\" and \"Lone spikes:\" (old) to compare.",
+            "4. The shield: \"Bash him close\" (A man stuck in a shield:) a few times, then fight. Does anything stay stuck in a shield? Push the playtest log: it now has shieldin and shieldletgo lines.",
         };
 
         /// <summary>The names of what he is to press and watch.</summary>
         private static readonly string[] LookHere =
         {
-            "Duel", "Clothes", "Shake him:", "Cloth at his skin:", "Trousers under the shirt:", "Both men's cloth:", "The cloth moving",
+            "Duel", "Clothes", "Shake him:", "Cloth on him:", "Grip on his limbs", "The limb's roll:", "The shoulder seams:", "At a bent joint:", "The floor:", "Lone spikes:", "The cloth moving",
+            "Kick him:", "A man stuck in a shield:",
         };
 
         /// <summary>For the panel check (headless): the names of <see cref="LookHere"/> that were really drawn, and every section taken as open while it looks.</summary>
@@ -5490,6 +5500,40 @@ namespace PhysicsBattler.Sandbox
                 Words(new GUIContent("Trousers under the shirt:", "Combat Feel \"Sewn Trousers Tucked Under The Shirt\". Tucked (new): the trousers under the shirt are drawn close to his body and the shirt over them kept 6 mm further off, so they never show through the shirt; near the shirt's hem the trousers are as draped. As draped (old): both where the drape left them."));
                 if (Press(feel.sewnTrousersTuckedUnderTheShirt ? "[tucked (new)]" : "tucked (new)", "The trousers kept under the shirt.")) feel.sewnTrousersTuckedUnderTheShirt = true;
                 if (Press(!feel.sewnTrousersTuckedUnderTheShirt ? "[as draped (old)]" : "as draped (old)", "Both as the drape left them.")) feel.sewnTrousersTuckedUnderTheShirt = false;
+                EndRow();
+                BeginRow();
+                Words(new GUIContent("Cloth on him:", "Combat Feel \"Sewn Cloth Slides Over Him\". Slides (new): the cloth is drawn back to its place a quarter as hard along his body as away from it, may go 4 cm further along him, is held by a leash to where the garment is held (collar, shoulders, waistband), and grips him only a little where his body pushes it. Glued (old): it goes wherever the part under it goes. The two grips below: 0 slides freely, 1 does not slide while it touches him."));
+                if (Press(feel.sewnClothSlidesOverHim ? "[slides (new)]" : "slides (new)", "The cloth slides over his body.")) feel.sewnClothSlidesOverHim = true;
+                if (Press(!feel.sewnClothSlidesOverHim ? "[glued (old)]" : "glued (old)", "The cloth goes with the part under it.")) feel.sewnClothSlidesOverHim = false;
+                EndRow();
+                feel.sewnClothGripOnHisLimbs = Lever("Grip on his limbs", feel.sewnClothGripOnHisLimbs, 0f, 1f, "Where his arms and legs push the cloth: 0 it slides freely, 1 it does not slide at all.");
+                feel.sewnClothGripOnHisTrunk = Lever("Grip on his trunk", feel.sewnClothGripOnHisTrunk, 0f, 1f, "The same on his chest, belly and hips.");
+                feel.sewnClothSlidesAlongHimBy = Lever("Slides along him by", feel.sewnClothSlidesAlongHimBy, 0f, 0.15f, "How much further a point may go along his body than away from it (metres).");
+                BeginRow();
+                Words(new GUIContent("The shoulder seams:", "Combat Feel \"Sewn Seams Carried Smoothly\". Smooth (new): near a shoulder seam both sides are carried alike, so it does not stand up as a ridge when the arm lifts. By side (old): the sleeve by the arm, the shirt's body by the chest."));
+                if (Press(feel.sewnSeamsCarriedSmoothly ? "[smooth (new)]" : "smooth (new)", "Both sides of the seam carried alike.")) feel.sewnSeamsCarriedSmoothly = true;
+                if (Press(!feel.sewnSeamsCarriedSmoothly ? "[by side (old)]" : "by side (old)", "As before.")) feel.sewnSeamsCarriedSmoothly = false;
+                EndRow();
+                BeginRow();
+                Words(new GUIContent("At a bent joint:", "Combat Feel \"Sewn Cloth Clears A Bent Joint\". Clear (to try): cloth carried round a bent elbow or knee is carried clear of it as drawn: fewer points inside him, but headless it more than doubled the spikes, so it starts off. As draped (as before): at the distance from the joint it had in the drape, so a bent elbow's point can come through."));
+                if (Press(feel.sewnClothClearsABentJoint ? "[clear (to try)]" : "clear (to try)", "Carried clear of a bent elbow or knee.")) feel.sewnClothClearsABentJoint = true;
+                if (Press(!feel.sewnClothClearsABentJoint ? "[as draped]" : "as draped", "As before.")) feel.sewnClothClearsABentJoint = false;
+                EndRow();
+                BeginRow();
+                Words(new GUIContent("The floor:", "Combat Feel \"Sewn Cloth Stops On The Floor\". Stops it (new): cloth under a man who is down lies on the floor. Not there (old): it hangs through the floor and pulls its neighbours."));
+                if (Press(feel.sewnClothStopsOnTheFloor ? "[stops it (new)]" : "stops it (new)", "The floor stops the cloth.")) feel.sewnClothStopsOnTheFloor = true;
+                if (Press(!feel.sewnClothStopsOnTheFloor ? "[not there (old)]" : "not there (old)", "As before.")) feel.sewnClothStopsOnTheFloor = false;
+                EndRow();
+                BeginRow();
+                Words(new GUIContent("Lone spikes:", "Combat Feel \"Sewn Cloth Lone Spikes Put Back\". Put back (new): a point whose every thread is over twice its length is put back among its neighbours. Left (old): it stays out as a spike."));
+                if (Press(feel.sewnClothLoneSpikesPutBack ? "[put back (new)]" : "put back (new)", "Lone spikes put back.")) feel.sewnClothLoneSpikesPutBack = true;
+                if (Press(!feel.sewnClothLoneSpikesPutBack ? "[left (old)]" : "left (old)", "As before.")) feel.sewnClothLoneSpikesPutBack = false;
+                EndRow();
+                feel.sewnClothThrownOnByAHardStopAtMost = Lever("A hard stop throws it", feel.sewnClothThrownOnByAHardStopAtMost, 0f, 0.1f, "When his body stops hard (a landing), the cloth is thrown on by at most this much in one picture (metres). 0: no limit, as before.");
+                BeginRow();
+                Words(new GUIContent("The limb's roll:", "Combat Feel \"Sewn Sleeves Ignore The Limb's Roll\". Ignored (new): a sleeve or trouser leg follows where the limb points, not how it rolls about itself, so as the forearm rolls the arm turns inside its sleeve. Carried (old): the sleeve rolls with the arm and the cloth between arm and chest is wrung. \"The cloth moving\" says how far a roll was left out."));
+                if (Press(feel.sewnSleevesIgnoreTheLimbsRoll ? "[ignored (new)]" : "ignored (new)", "The sleeves follow where the limb points.")) feel.sewnSleevesIgnoreTheLimbsRoll = true;
+                if (Press(!feel.sewnSleevesIgnoreTheLimbsRoll ? "[carried (old)]" : "carried (old)", "The sleeves roll with the limb.")) feel.sewnSleevesIgnoreTheLimbsRoll = false;
                 EndRow();
                 BeginRow();
                 Words(new GUIContent("Both men's cloth:", "Combat Feel \"Sewn Clothes Of Both Men At Once\". At once (new): both men's clothes are worked out on the other cores at the same time while the game goes on, and waited for once. In turn (old): each man's worked out and waited for in turn. \"Cloth inside the body\" ends with the cost a picture."));

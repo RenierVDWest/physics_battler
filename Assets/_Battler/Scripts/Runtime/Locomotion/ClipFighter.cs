@@ -2677,6 +2677,294 @@ namespace PhysicsBattler.Locomotion
             }
         }
 
+        private float othersInFor, othersInDeepest, othersBladeFor, othersInSince, othersInPartOff, othersInBoardOff;
+        private string othersInWhat = "", othersInDoing = "", othersInHis = "", othersInPartName = "", othersInHisDoing = "";
+
+        /// <summary>The deepest a part of another man was in his board in the last step (metres), and that part's name: for the lab's readout.</summary>
+        public float OthersInNow { get; private set; }
+
+        private static readonly string[] PartNames = { "hips", "belly", "chest", "head", "shield upper arm", "shield forearm", "shield hand", "sword upper arm", "sword forearm", "sword hand", "shield-side thigh", "shield-side shin", "shield-side foot", "sword-side thigh", "sword-side shin", "sword-side foot" };
+
+        /// <summary>
+        /// Is a part of another fighter inside his shield's board, as seen (<see cref="OthersInShield"/>; the plan "clothes
+        /// that slide", steps 1 and 2). For each other fighter whose hips are within 2 m: each of his parts' solids against
+        /// the board's disc, and his blade against it. It changes nothing.
+        /// </summary>
+        private void MeasureOthersInShield(float dt)
+        {
+            OthersInNow = 0f;
+            if (!(SelfCrossings.Measures || Diagnostics.PlaytestTrace.Enabled || ShieldLetsGoOfTheStuck) || Authority == null || dt <= 0f
+                || stance != Stances.Shield || !ShieldBoard(out Vector3 centre, out Vector3 normal, out float radius) || Rig.IsSevered(PartId.HandL))
+            {
+                LetAllGo();
+                return;
+            }
+
+            Vector3 hips = Rig.Part(PartId.Pelvis).transform.position;
+            float deepest = 0f;
+            string what = "", his = "";
+            bool near = false, blade = false;
+            foreach (var unit in Units.UnitController.All)
+            {
+                var other = unit != null ? unit.Clip : null;
+                if (other == null || other == this || other.Rig == null || other.Rig.Part(PartId.Pelvis) == null
+                    || (other.Rig.Part(PartId.Pelvis).transform.position - hips).sqrMagnitude > 4f)
+                {
+                    continue;
+                }
+
+                near = true;
+                float hisDeepest = float.MinValue;
+                for (int id = 0; id < PartNames.Length; id++)
+                {
+                    if (!other.SeenSolid((PartId)id, out Vector3 a, out Vector3 b, out float thick))
+                    {
+                        continue;
+                    }
+
+                    float gap = float.MaxValue;
+                    for (int k = 0; k <= 8; k++)
+                    {
+                        gap = Mathf.Min(gap, DiscGap(Vector3.Lerp(a, b, k / 8f), centre, normal, radius, out _));
+                    }
+
+                    float depth = thick - gap;
+                    hisDeepest = Mathf.Max(hisDeepest, depth);
+                    if (depth > OthersInShield.Deep)
+                    {
+                        OthersInShield.Add(OthersInShield.ByPart, PartNames[id], dt);
+                        if (!what.Contains(PartNames[id]))
+                        {
+                            what = what.Length > 0 ? what + ", " + PartNames[id] : PartNames[id];
+                        }
+                    }
+
+                    if (depth > deepest)
+                    {
+                        deepest = depth;
+                        his = unit.name;
+                        if (depth > othersInDeepest && depth > OthersInShield.Deep)
+                        {
+                            // (At its deepest: how far the part he has in the board, and the board itself, are from where their poses have them.)
+                            var posedPart = other.Anim.Part((PartId)id);
+                            othersInPartOff = posedPart != null ? Vector3.Distance(posedPart.position, other.Rig.Part((PartId)id).transform.position) : -1f;
+                            othersInBoardOff = Anim.SlotWeaponL != null && BoardOnSlot(out var onSlot) ? Vector3.Distance(Anim.SlotWeaponL.TransformPoint(onSlot), centre) : -1f;
+                            othersInPartName = PartNames[id];
+                            othersInHisDoing = other.DoingNow(out _);
+                        }
+                    }
+                }
+
+                StepLetGo(other, hisDeepest, dt);
+                var sword = other.Rig.SlotWeaponR;
+                if (sword != null && other.Poser != null && !other.Rig.IsSevered(PartId.HandR))
+                {
+                    Vector3 along = sword.rotation * Vector3.forward;
+                    blade |= ThroughBoard(sword.position + along * (0.15f * other.Size), sword.position + along * other.Poser.WeaponLength, centre, normal, radius);
+                }
+            }
+
+            if (!near)
+            {
+                LetAllGo();
+                EndOthersIn();
+                return;
+            }
+
+            OthersInShield.Watched += dt;
+            OthersInNow = deepest;
+            if (blade)
+            {
+                OthersInShield.BladeThrough += dt;
+                othersBladeFor += dt;
+            }
+            else
+            {
+                if (othersBladeFor >= OthersInShield.Long)
+                {
+                    OthersInShield.BladeStretches++;
+                }
+
+                othersBladeFor = 0f;
+            }
+
+            if (deepest > OthersInShield.Deep)
+            {
+                OthersInShield.In += dt;
+                string doing = DoingNow(out _);
+                OthersInShield.Add(OthersInShield.ByDoing, doing, dt);
+                if (othersInFor <= 0f)
+                {
+                    othersInDoing = doing;
+                    othersInWhat = "";
+                    othersInHis = his;
+                    othersInSince = UnityEngine.Time.time;
+                }
+
+                foreach (string name in what.Split(new[] { ", " }, System.StringSplitOptions.RemoveEmptyEntries))
+                {
+                    if (!othersInWhat.Contains(name))
+                    {
+                        othersInWhat = othersInWhat.Length > 0 ? othersInWhat + ", " + name : name;
+                    }
+                }
+
+                othersInFor += dt;
+                othersInDeepest = Mathf.Max(othersInDeepest, deepest);
+                return;
+            }
+
+            EndOthersIn();
+        }
+
+        /// <summary>
+        /// A shield lets go of a man stuck in it (Combat Feel "A Shield Lets Go Of A Man Stuck In It"; 22 November, the
+        /// plan "clothes that slide", step 2; <c>FIGHT_SHIELDLETSGO=0</c> for the old way). In his playtest log of 19:55 a
+        /// bash drove the board through the other man's chest in one step, and it stayed there, 9 cm deep, for 1.1 s:
+        /// carried along with his chest as he stumbled back, the shield hand 80 cm from its pose and unable to pull it out
+        /// (a thin board cut through the middle of a round part has no side the engine pushes it out of). When a part of
+        /// another man is more than <see cref="LetGoDeep"/> inside the board for <see cref="LetGoAfter"/> seconds, the
+        /// board and that man's body stop meeting, so the arm draws the board back to where its pose has it; they meet
+        /// again once every part of him is <see cref="LetGoClear"/> clear of it (or after <see cref="LetGoAtMost"/>).
+        /// </summary>
+        public static bool ShieldLetsGoOfTheStuck = true;
+
+        /// <summary>How deep a part of him must be in the board (metres), and for how long (seconds), before it lets go; how clear every part must be before they meet again (metres); and the longest they are kept apart (seconds).</summary>
+        public static float LetGoDeep = 0.03f, LetGoAfter = 0.1f, LetGoClear = 0.01f, LetGoAtMost = 2f;
+
+        /// <summary>Times its shield let go of a man stuck in it.</summary>
+        public int ShieldLetGo { get; private set; }
+
+        /// <summary>Times any shield let go of a man stuck in it (for the reports and the lab).</summary>
+        public static int ShieldLetGoAll;
+
+        /// <summary>Times a board and a man it let go of met again, and the longest they were kept apart (seconds).</summary>
+        public static int LetGoMet;
+
+        public static float LetGoLongest;
+
+        private readonly Dictionary<ClipFighter, float> stuckFor = new Dictionary<ClipFighter, float>();
+        private readonly Dictionary<ClipFighter, float> letGoSince = new Dictionary<ClipFighter, float>();
+        private readonly List<(Collider mine, Collider his, ClipFighter whose)> letGo = new List<(Collider, Collider, ClipFighter)>();
+
+        private void StepLetGo(ClipFighter other, float deepest, float dt)
+        {
+            if (letGoSince.TryGetValue(other, out float since))
+            {
+                if (deepest < -LetGoClear || clock - since > LetGoAtMost || other.Upper == null)
+                {
+                    MeetAgain(other);
+                }
+
+                return;
+            }
+
+            if (!ShieldLetsGoOfTheStuck || Upper == null || other.Upper == null || deepest <= LetGoDeep)
+            {
+                stuckFor.Remove(other);
+                return;
+            }
+
+            stuckFor.TryGetValue(other, out float was);
+            stuckFor[other] = was + dt;
+            if (was + dt < LetGoAfter - 1e-4f)
+            {
+                return;
+            }
+
+            bool any = false;
+            for (int i = 0; i < Upper.Held.Count; i++)
+            {
+                var mine = Upper.Held[i];
+                if (mine == null || Upper.HeldBy(i) != PartId.HandL)
+                {
+                    continue;
+                }
+
+                foreach (var his in other.Upper.Colliders)
+                {
+                    if (his == null || other.Upper.IsHeld(his))
+                    {
+                        continue;
+                    }
+
+                    Physics.IgnoreCollision(mine, his, true);
+                    letGo.Add((mine, his, other));
+                    any = true;
+                }
+            }
+
+            stuckFor.Remove(other);
+            if (any)
+            {
+                letGoSince[other] = clock;
+                ShieldLetGo++;
+                ShieldLetGoAll++;
+                if (Diagnostics.PlaytestTrace.Enabled)
+                {
+                    Diagnostics.PlaytestTrace.Note(FightUnit, "shieldletgo", string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                        "{0} was {1:0.0} cm in his shield for {2:0.00} s: the board and his body stop meeting until he is clear of it", other.FightUnit != null ? other.FightUnit.name : "?", 100f * deepest, was + dt));
+                }
+            }
+        }
+
+        private void MeetAgain(ClipFighter other)
+        {
+            for (int i = letGo.Count - 1; i >= 0; i--)
+            {
+                var (mine, his, whose) = letGo[i];
+                if (whose != other)
+                {
+                    continue;
+                }
+
+                if (mine != null && his != null)
+                {
+                    Physics.IgnoreCollision(mine, his, false);
+                }
+
+                letGo.RemoveAt(i);
+            }
+
+            if (letGoSince.TryGetValue(other, out float since))
+            {
+                LetGoLongest = Mathf.Max(LetGoLongest, clock - since);
+                LetGoMet++;
+            }
+
+            letGoSince.Remove(other);
+        }
+
+        private void LetAllGo()
+        {
+            if (letGoSince.Count == 0)
+            {
+                return;
+            }
+
+            foreach (var other in new List<ClipFighter>(letGoSince.Keys))
+            {
+                MeetAgain(other);
+            }
+        }
+
+        private void EndOthersIn()
+        {
+            if (othersInFor > 0f)
+            {
+                string me = FightUnit != null ? FightUnit.name : "?";
+                string said = string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0}'s {1} in {2}'s shield for {3:0.00} s from {6:0.00} s, {4:0.0} cm deep at most; {2} was {5}, {0} {7}; at the deepest his {8} {9:0} cm from its pose and the board {10:0} cm from its",
+                    othersInHis, othersInWhat, me, othersInFor, 100f * othersInDeepest, othersInDoing, othersInSince, othersInHisDoing, othersInPartName, 100f * othersInPartOff, 100f * othersInBoardOff);
+                OthersInShield.Ended(said, othersInFor, othersInDeepest);
+                if (Diagnostics.PlaytestTrace.Enabled && othersInFor >= 0.05f)
+                {
+                    Diagnostics.PlaytestTrace.Note(FightUnit, "shieldin", said);
+                }
+            }
+
+            othersInFor = othersInDeepest = 0f;
+        }
+
         private static bool Inside(Collider solid, Vector3 p) => (solid.ClosestPoint(p) - p).sqrMagnitude < 1e-8f;
 
         /// <summary>Does the line from <paramref name="from"/> to <paramref name="to"/> pass through the board's disc.</summary>
@@ -3178,6 +3466,7 @@ namespace PhysicsBattler.Locomotion
             }
 
             MeasureOwnCrossings(dt);
+            MeasureOthersInShield(dt);
             MeasureHeldShake(dt);
             TrackBladePath(dt);
             StepBladePass();
@@ -8300,22 +8589,13 @@ namespace PhysicsBattler.Locomotion
         public int ShieldStillIn;
         public float ShieldStillInMost;
 
-        /// <summary>A part's solid as the pose has the part (world): a line from one end to the other and its thickness about that line; a ball's ends are one.</summary>
-        private bool PoseSolid(PartId id, out Vector3 a, out Vector3 b, out float radius)
+        /// <summary>A solid as a line from one end to the other in its own transform's space, and its thickness about that line (world scale); a ball's ends are one; a box is the ball that fits it along its longest side.</summary>
+        private static bool SolidLocal(Collider solid, out Vector3 la, out Vector3 lb, out float radius)
         {
-            a = b = Vector3.zero;
-            radius = 0f;
-            var part = Rig.Part(id);
-            var posed = Anim.Part(id);
-            if (part == null || posed == null || part.partCollider == null)
-            {
-                return false;
-            }
-
-            var solid = part.partCollider;
             var t = solid.transform;
             float scale = Mathf.Max(Mathf.Abs(t.lossyScale.x), Mathf.Max(Mathf.Abs(t.lossyScale.y), Mathf.Abs(t.lossyScale.z)));
-            Vector3 la, lb;
+            la = lb = Vector3.zero;
+            radius = 0f;
             if (solid is SphereCollider ball)
             {
                 la = lb = ball.center;
@@ -8331,7 +8611,6 @@ namespace PhysicsBattler.Locomotion
             }
             else if (solid is BoxCollider box)
             {
-                // (A box as the ball that fits inside it along its longest side.)
                 Vector3 size = box.size;
                 float thin = Mathf.Min(size.x, Mathf.Min(size.y, size.z)), longest = Mathf.Max(size.x, Mathf.Max(size.y, size.z));
                 Vector3 axis = longest == size.x ? Vector3.right : longest == size.y ? Vector3.up : Vector3.forward;
@@ -8341,6 +8620,77 @@ namespace PhysicsBattler.Locomotion
                 radius = 0.5f * thin * scale;
             }
             else
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// For reading his playtest logs (which hold each part's place and turn but not the shield): each part's solid in
+        /// that part's own space (ends and thickness), and the shield's board in his shield hand's space (centre, the way
+        /// it looks, radius). One line, numbers in metres.
+        /// </summary>
+        public string SolidsInParts()
+        {
+            var c = System.Globalization.CultureInfo.InvariantCulture;
+            var sb = new System.Text.StringBuilder();
+            for (int id = 0; id < PartNames.Length; id++)
+            {
+                var part = Rig.Part((PartId)id);
+                if (part == null || part.partCollider == null || !SolidLocal(part.partCollider, out Vector3 la, out Vector3 lb, out float r))
+                {
+                    continue;
+                }
+
+                var t = part.partCollider.transform;
+                Vector3 a = part.transform.InverseTransformPoint(t.TransformPoint(la)), b = part.transform.InverseTransformPoint(t.TransformPoint(lb));
+                sb.Append(string.Format(c, " {0}={1:0.0000},{2:0.0000},{3:0.0000},{4:0.0000},{5:0.0000},{6:0.0000},{7:0.0000}", (PartId)id, a.x, a.y, a.z, b.x, b.y, b.z, r));
+            }
+
+            if (ShieldBoard(out Vector3 centre, out Vector3 normal, out float radius) && Rig.Part(PartId.HandL) != null)
+            {
+                var hand = Rig.Part(PartId.HandL).transform;
+                Vector3 lc = hand.InverseTransformPoint(centre), ln = hand.InverseTransformDirection(normal);
+                sb.Append(string.Format(c, " Board={0:0.0000},{1:0.0000},{2:0.0000},{3:0.0000},{4:0.0000},{5:0.0000},{6:0.0000}", lc.x, lc.y, lc.z, ln.x, ln.y, ln.z, radius));
+            }
+
+            return sb.ToString();
+        }
+
+        /// <summary>A part's solid as the physical body has it (world): a line from one end to the other and its thickness about that line.</summary>
+        public bool SeenSolid(PartId id, out Vector3 a, out Vector3 b, out float radius)
+        {
+            a = b = Vector3.zero;
+            radius = 0f;
+            var part = Rig.Part(id);
+            if (part == null || part.partCollider == null || Rig.IsSevered(id) || !SolidLocal(part.partCollider, out Vector3 la, out Vector3 lb, out radius))
+            {
+                return false;
+            }
+
+            var t = part.partCollider.transform;
+            a = t.TransformPoint(la);
+            b = t.TransformPoint(lb);
+            return true;
+        }
+
+        /// <summary>A part's solid as the pose has the part (world): a line from one end to the other and its thickness about that line; a ball's ends are one.</summary>
+        private bool PoseSolid(PartId id, out Vector3 a, out Vector3 b, out float radius)
+        {
+            a = b = Vector3.zero;
+            radius = 0f;
+            var part = Rig.Part(id);
+            var posed = Anim.Part(id);
+            if (part == null || posed == null || part.partCollider == null)
+            {
+                return false;
+            }
+
+            var solid = part.partCollider;
+            var t = solid.transform;
+            if (!SolidLocal(solid, out Vector3 la, out Vector3 lb, out radius))
             {
                 return false;
             }

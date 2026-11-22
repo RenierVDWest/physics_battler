@@ -225,6 +225,115 @@ namespace PhysicsBattler.Locomotion
     }
 
     /// <summary>
+    /// The other man in his shield (22 November, the plan "clothes that slide", steps 1 and 2): how deep and how long a
+    /// part of another fighter's body, as seen (the physical body), is inside a fighter's shield's board, and how long
+    /// another man's blade passes through the board. It changes nothing. A part counts when the board's disc reaches
+    /// more than <see cref="Deep"/> into its solid; a stretch is written to the playtest log (<c>shieldin</c>) when it
+    /// lasts <see cref="Long"/> seconds or more. The plan's pass mark: no stretch that long.
+    /// </summary>
+    public static class OthersInShield
+    {
+        /// <summary>A part this deep in a board counts (metres); a stretch this long is one he would see (seconds).</summary>
+        public const float Deep = 0.02f, Long = 0.1f;
+
+        /// <summary>Seconds a shield was watched with another man within reach of it; seconds with a part of him in it (over <see cref="Deep"/>); seconds with his blade through it.</summary>
+        public static float Watched, In, BladeThrough;
+
+        /// <summary>The longest stretch with a part in it (seconds), the deepest (metres), stretches of <see cref="Long"/> or more, and all stretches.</summary>
+        public static float Longest, Deepest;
+
+        public static int LongStretches, Stretches, BladeStretches;
+
+        public static string LongestWas = "";
+
+        /// <summary>For each part of the other man: the seconds it was in a board.</summary>
+        public static readonly Dictionary<string, float> ByPart = new Dictionary<string, float>();
+
+        /// <summary>For what the shield's bearer was doing: the seconds with a part of the other man in his board.</summary>
+        public static readonly Dictionary<string, float> ByDoing = new Dictionary<string, float>();
+
+        public static readonly List<string> Log = new List<string>();
+
+        public static void Clear()
+        {
+            Watched = In = BladeThrough = Longest = Deepest = 0f;
+            LongStretches = Stretches = BladeStretches = 0;
+            LongestWas = "";
+            ByPart.Clear();
+            ByDoing.Clear();
+            Log.Clear();
+        }
+
+        public static void Ended(string said, float seconds, float deepest)
+        {
+            Stretches++;
+            LongStretches += seconds >= Long - 1e-4f ? 1 : 0;
+            if (seconds > Longest)
+            {
+                Longest = seconds;
+                LongestWas = said;
+            }
+
+            Deepest = System.Math.Max(Deepest, deepest);
+            if (Log.Count < 40)
+            {
+                Log.Add(said);
+            }
+        }
+
+        public static void Add(Dictionary<string, float> rows, string key, float dt)
+        {
+            rows.TryGetValue(key, out float was);
+            rows[key] = was + dt;
+        }
+
+        /// <summary>One line: the verdict against the plan's pass mark, with the figures.</summary>
+        public static string Budget()
+        {
+            var c = System.Globalization.CultureInfo.InvariantCulture;
+            if (Watched < 0.5f)
+            {
+                return "SHIELDIN not measured (no shield had another man near it)";
+            }
+
+            return string.Format(c, "SHIELDIN {0}: a part of the other man more than {1:0} cm inside a shield {2:0.00} s of {3:0} s watched near ({4:0.00}%), {5} stretches, {6} of {7:0.0} s or more, the longest {8:0.00} s{9}, the deepest {10:0.0} cm; his blade through a shield {11:0.00} s ({12} stretches)",
+                LongStretches == 0 ? "OK" : "OVER", 100f * Deep, In, Watched, 100f * In / Watched, Stretches, LongStretches, Long, Longest, Longest > 0f ? " (" + LongestWas + ")" : "", 100f * Deepest, BladeThrough, BladeStretches);
+        }
+
+        /// <summary>One line for the lab.</summary>
+        public static string Short()
+        {
+            var c = System.Globalization.CultureInfo.InvariantCulture;
+            if (Watched < 0.5f)
+            {
+                return "nothing yet (it reads while two men are near and a playtest is recorded)";
+            }
+
+            return string.Format(c, "{0:0.00} s of {1:0} s near: {2} times a part of him over {3:0} cm in a shield, {4} for {5:0.0} s or more, the longest {6:0.00} s, the deepest {7:0} cm; a blade through it {8:0.00} s",
+                In, Watched, Stretches, 100f * Deep, LongStretches, Long, Longest, 100f * Deepest, BladeThrough);
+        }
+
+        public static string Text()
+        {
+            var c = System.Globalization.CultureInfo.InvariantCulture;
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("    the other man in a shield, as seen: " + Short());
+            if (ByPart.Count > 0)
+            {
+                sb.AppendLine("      by his part: " + string.Join(", ", ByPart.OrderByDescending(p => p.Value).Select(p => string.Format(c, "{0} {1:0.00} s", p.Key, p.Value))));
+                sb.AppendLine("      by what the shield's bearer was doing: " + string.Join(", ", ByDoing.OrderByDescending(p => p.Value).Select(p => string.Format(c, "{0} {1:0.00} s", p.Key, p.Value))));
+            }
+
+            foreach (string line in Log)
+            {
+                sb.AppendLine("      " + line);
+            }
+
+            return sb.ToString();
+        }
+    }
+
+    /// <summary>
     /// How much what a fighter holds trembles (18 November). Six places are followed each step: his board's middle and
     /// his blade's tip, each as seen (the physical body), as posed, and the seen against the posed. Of each, what is
     /// left when its own smooth motion is taken off (the place less the average of five steps about it: a tremble

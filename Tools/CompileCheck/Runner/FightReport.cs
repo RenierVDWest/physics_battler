@@ -1091,6 +1091,12 @@ internal static class FightReport
         PhysicsBattler.Locomotion.SwordParry.FreeArmInFront = Environment.GetEnvironmentVariable("FIGHT_FREEARM") != "back";
         PhysicsBattler.Locomotion.ClipFighter.MeasuresArms = true;
         PhysicsBattler.Locomotion.SelfCrossings.Clear();
+        PhysicsBattler.Locomotion.OthersInShield.Clear();
+        // (FIGHT_SHIELDLETSGO=0: a board driven into a man stays solid against him, as it was.)
+        PhysicsBattler.Locomotion.ClipFighter.ShieldLetsGoOfTheStuck = Environment.GetEnvironmentVariable("FIGHT_SHIELDLETSGO") != "0";
+        // (FIGHT_LETGOAFTER, FIGHT_LETGODEEP: how long and how deep a man must be in a board before it lets go of him.)
+        if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_LETGOAFTER"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float letGoAfter)) PhysicsBattler.Locomotion.ClipFighter.LetGoAfter = letGoAfter;
+        if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_LETGODEEP"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float letGoDeep)) PhysicsBattler.Locomotion.ClipFighter.LetGoDeep = letGoDeep;
         PhysicsBattler.Locomotion.HeldShake.Clear();
         PhysicsBattler.Locomotion.HeldShake.Trace = Environment.GetEnvironmentVariable("FIGHT_SHAKELOG") == "1";
         PhysicsBattler.Locomotion.SelfCrossings.Measures = true;
@@ -1219,6 +1225,22 @@ internal static class FightReport
         PhysicsBattler.Locomotion.SewnOutfit.Sweeps = (int)SewnLever("FIGHT_SEWNSWEEPS", PhysicsBattler.Locomotion.SewnOutfit.Sweeps);
         PhysicsBattler.Locomotion.SewnOutfit.HoldShape = SewnLever("FIGHT_SEWNHOLD", PhysicsBattler.Locomotion.SewnOutfit.HoldShape);
         PhysicsBattler.Locomotion.SewnOutfit.LongestThread = SewnLever("FIGHT_SEWNLONGEST", PhysicsBattler.Locomotion.SewnOutfit.LongestThread);
+        // (FIGHT_SEWNROLL=1: sleeves and trouser legs roll with the limb, as before 22 November, 21:00.)
+        PhysicsBattler.Locomotion.SewnOutfit.SleevesIgnoreTheRoll = Environment.GetEnvironmentVariable("FIGHT_SEWNROLL") != "1";
+        // (FIGHT_SEWNSLIDE=0: the cloth goes wherever the part under it goes, as before 22 November, 21:00. The levers: FIGHT_SEWNSLIDEBY, FIGHT_SEWNSLIDEHOLD, FIGHT_SEWNGRIP, FIGHT_SEWNGRIPTRUNK, FIGHT_SEWNLEASHSLACK.)
+        PhysicsBattler.Locomotion.SewnOutfit.Slides = Environment.GetEnvironmentVariable("FIGHT_SEWNSLIDE") != "0";
+        PhysicsBattler.Locomotion.SewnOutfit.SlideBy = SewnLever("FIGHT_SEWNSLIDEBY", PhysicsBattler.Locomotion.SewnOutfit.SlideBy);
+        PhysicsBattler.Locomotion.SewnOutfit.SlideHold = SewnLever("FIGHT_SEWNSLIDEHOLD", PhysicsBattler.Locomotion.SewnOutfit.SlideHold);
+        PhysicsBattler.Locomotion.SewnOutfit.Grip = SewnLever("FIGHT_SEWNGRIP", PhysicsBattler.Locomotion.SewnOutfit.Grip);
+        PhysicsBattler.Locomotion.SewnOutfit.GripTrunk = SewnLever("FIGHT_SEWNGRIPTRUNK", PhysicsBattler.Locomotion.SewnOutfit.GripTrunk);
+        PhysicsBattler.Locomotion.SewnOutfit.LeashSlack = SewnLever("FIGHT_SEWNLEASHSLACK", PhysicsBattler.Locomotion.SewnOutfit.LeashSlack);
+        // (FIGHT_SEWNJOINTREACH=1: the joint reach on (it starts off); FIGHT_SEWNFLOOR=0, FIGHT_SEWNLONE=0, FIGHT_SEWNJOLT=0: step 6 of "clothes that slide" off, each.)
+        PhysicsBattler.Locomotion.SewnOutfit.JointReach = Environment.GetEnvironmentVariable("FIGHT_SEWNJOINTREACH") == "1";
+        PhysicsBattler.Locomotion.SewnOutfit.FloorStops = Environment.GetEnvironmentVariable("FIGHT_SEWNFLOOR") != "0";
+        PhysicsBattler.Locomotion.SewnOutfit.LoneSpikesBack = Environment.GetEnvironmentVariable("FIGHT_SEWNLONE") != "0";
+        PhysicsBattler.Locomotion.SewnOutfit.JoltMost = SewnLever("FIGHT_SEWNJOLT", PhysicsBattler.Locomotion.SewnOutfit.JoltMost);
+        // (FIGHT_SEWNSEAMS=0: each side of the shoulder seam carried by its own rule, as before.)
+        PhysicsBattler.Locomotion.SewnOutfit.SeamsSmooth = Environment.GetEnvironmentVariable("FIGHT_SEWNSEAMS") != "0";
         if (Environment.GetEnvironmentVariable("FIGHT_SEWNBACKSTOP") == "0") PhysicsBattler.Locomotion.SewnOutfit.Backstop = false;
         if (Environment.GetEnvironmentVariable("FIGHT_SEWNTUCK") == "0") PhysicsBattler.Locomotion.SewnOutfit.TuckUnderShirt = false;
         PhysicsBattler.Locomotion.SewnOutfit.PushEvery = (int)SewnLever("FIGHT_SEWNPUSHEVERY", PhysicsBattler.Locomotion.SewnOutfit.PushEvery);
@@ -2671,6 +2693,7 @@ internal static class FightReport
                         var rackPos = new Vector3[PartInfo.Count];
                         var rackRot = new Quaternion[PartInfo.Count];
                         PhysicsBattler.Locomotion.SewnOutfit.Forget();
+                        PhysicsBattler.Locomotion.SewnOutfit.ForgetLooks();
                         PhysicsBattler.Locomotion.SewnOutfit.ExactEvery = 10;
                         var rackClock = System.Diagnostics.Stopwatch.StartNew();
                         for (int pose = 0; pose < sewnPoses; pose++)
@@ -3445,13 +3468,21 @@ internal static class FightReport
             sb.AppendLine($"    a blow's force ({PhysicsBattler.Locomotion.CombatFeel.HitForce:0.0} times its momentum): " + string.Join(", ", units.Where(u => u.Clip != null).Select(u => $"{u.name} {u.Clip.HitForces} blows, {u.Clip.HitForceGiven:0} N·s, a joint turned aside {(u.Clip.Upper != null ? u.Clip.Upper.HitBentMost : 0f):0} degrees at most")));
             sb.Append(PhysicsBattler.Locomotion.SelfCrossings.Text());
             sb.Append(PhysicsBattler.Locomotion.HeldShake.Text());
+            sb.Append(PhysicsBattler.Locomotion.OthersInShield.Text());
             // (The budget, the shield plan's step 5: one line each, read by Tools/Headless/checks.sh.)
             sb.AppendLine(PhysicsBattler.Locomotion.SelfCrossings.Budget());
             sb.AppendLine(PhysicsBattler.Locomotion.HeldShake.Budget());
+            sb.AppendLine(PhysicsBattler.Locomotion.OthersInShield.Budget() + $"; a shield let go of a man stuck in it {PhysicsBattler.Locomotion.ClipFighter.ShieldLetGoAll} times ({(PhysicsBattler.Locomotion.ClipFighter.ShieldLetsGoOfTheStuck ? "on" : "off")}), met again {PhysicsBattler.Locomotion.ClipFighter.LetGoMet} times, kept apart {PhysicsBattler.Locomotion.ClipFighter.LetGoLongest:0.00} s at the longest");
             sb.AppendLine("SHOCKWAVES " + PhysicsBattler.Locomotion.ShockWave.Counted());
             sb.AppendLine("CLOTHES " + PhysicsBattler.Locomotion.Clothes.Counted());
         sb.AppendLine("OUTFIT " + PhysicsBattler.Locomotion.Outfit.Counted());
         sb.AppendLine("SEWN " + PhysicsBattler.Locomotion.SewnOutfit.Counted());
+        sb.AppendLine("SEWNLOOK " + PhysicsBattler.Locomotion.SewnOutfit.Looked() + FormattableString.Invariant($"; a limb's roll left out of its sleeve {PhysicsBattler.Locomotion.SewnOutfit.RollLeftOutMost:0} degrees at the most ({PhysicsBattler.Locomotion.SewnOutfit.RollLeftOutWas}), {(PhysicsBattler.Locomotion.SewnOutfit.RollCount > 0 ? PhysicsBattler.Locomotion.SewnOutfit.RollSum / PhysicsBattler.Locomotion.SewnOutfit.RollCount : 0):0} on average ({(PhysicsBattler.Locomotion.SewnOutfit.SleevesIgnoreTheRoll ? "on" : "off")})"));
+        foreach (var u in units.Where(u => u.Clip != null))
+        {
+            sb.AppendLine("SOLIDS " + u.name + u.Clip.SolidsInParts());
+        }
+
         sb.AppendLine(FormattableString.Invariant($"SEWNTIME moving {1000.0 * PhysicsBattler.Locomotion.OutfitSolve.TicksMove / System.Diagnostics.Stopwatch.Frequency:0} ms, the last word and measure {1000.0 * PhysicsBattler.Locomotion.OutfitSolve.TicksWord / System.Diagnostics.Stopwatch.Frequency:0} ms in all; of the moving, the threads and bends {1000.0 * PhysicsBattler.Locomotion.OutfitSolve.TicksThreads / System.Diagnostics.Stopwatch.Frequency:0} ms, the body's push {1000.0 * PhysicsBattler.Locomotion.OutfitSolve.TicksCollide / System.Diagnostics.Stopwatch.Frequency:0} ms"));
             sb.AppendLine($"    what he holds follows its pose smoothly: {(PhysicsBattler.Locomotion.ClipFighter.HeldSettles ? $"on ({PhysicsBattler.Locomotion.ClipFighter.HeldSettleRate:0} and {PhysicsBattler.Locomotion.ClipFighter.HeldSettleQuick:0} a second)" : "off")}; the furthest a hand was behind its pose for it (cm, shield hand / sword hand): " + string.Join(", ", units.Where(u => u.Clip != null && u.Clip.HeldBehindMost[0] + u.Clip.HeldBehindMost[1] > 0f).Select(u => $"{u.name} {100f * u.Clip.HeldBehindMost[0]:0} / {100f * u.Clip.HeldBehindMost[1]:0}")));
             sb.AppendLine($"    what he holds met softly by his own body: {(PhysicsBattler.Authority.UpperBodyArticulation.HeldMetSoftly ? "on" : "off")}; steps it was against his body (shield arm / sword arm): " + string.Join(", ", units.Where(u => u.Clip != null && u.Clip.Upper != null).Select(u => $"{u.name} {u.Clip.Upper.HeldTouched[0]} / {u.Clip.Upper.HeldTouched[1]}")));

@@ -310,3 +310,26 @@ with `FIGHT_FILM="$S/name.json,3,8.5,medium"`.
 - `FIGHT_SEWNBALLS=0` (two parts' points blended straight, not carried round the joint), `FIGHT_SEWNTHIGHS=0` (the
   shirt's hem on his hips alone), `FIGHT_SEWNROUNDS=n` (rounds of middles, 6), `FIGHT_SEWNFOLDS=0` (cloth in a crease pushed out
   of it: flaps), `FIGHT_SEWNSMOOTH=n`, `FIGHT_SEWNKEEPMOST=1`, `FIGHT_SEWNRADIAL=1` (ways tried and left off).
+
+## Clothes that slide, and the shield that lets go (22 November, 22:00)
+
+- `stR.sh name ENV...`: the shield duel (as `st.sh`) on the **Release** build, faster: build it first with
+  `dotnet build Tools/CompileCheck/Tests.csproj -c Release`. The cloth runs use `FIGHT_CLOTHES=3` (the sewn clothes;
+  without it no clothes are worn headless) and `FIGHT_SHAKE=4` ("Shake him").
+- `SHIELDIN` line (every report): a part of the other man more than 2 cm inside a shield, as seen, how long and how
+  deep; the stretches with what each was doing, how far the part and the board were from their poses. And how often
+  a shield let go of a man stuck in it. `FIGHT_SHIELDLETSGO=0` (old), `FIGHT_LETGOAFTER`, `FIGHT_LETGODEEP`.
+  **The stuck board of his log could not be made headless:** headless the engine pushes a board out of a chest in
+  0.03 s; in his Unity it stayed 9 cm in for 1.1 s.
+- `SOLIDS` lines (every report): each part's solid in its own space and the board in the shield hand's space.
+  `python3 Tools/Headless/shieldin_log.py PlaytestLogs/<date_time> <report with SOLIDS> [shielded units]` reads the
+  same measure out of one of his logs that has no `shieldin` lines (approximate: the board taken as fixed in the hand).
+- `SEWNLOOK` line: what he would see of the cloth, on measured pictures: a spike that shows (a thread over 2 times its
+  length with both ends and its middle outside him), over 3 times; pinched threads (under 60% of their length) at the
+  armpit, elbow, knee; the shoulder seam's ridge beyond the drape's; how far a limb's roll was left out of its sleeve.
+- Switches, each the old way: `FIGHT_SEWNROLL=1` (sleeves roll with the limb), `FIGHT_SEWNSLIDE=0` (no slide, no
+  leash, no grip; levers `FIGHT_SEWNSLIDEBY`, `FIGHT_SEWNSLIDEHOLD`, `FIGHT_SEWNGRIP`, `FIGHT_SEWNGRIPTRUNK`,
+  `FIGHT_SEWNLEASHSLACK`), `FIGHT_SEWNSEAMS=0` (each side of the shoulder seam by its own rule), `FIGHT_SEWNJOINTREACH=1` (on: it starts off),
+  `FIGHT_SEWNFLOOR=0`, `FIGHT_SEWNLONE=0`, `FIGHT_SEWNJOLT=0` (no cap on a hard stop's throw).
+- A fall test: `FIGHT_KICK=1 FIGHT_KICKED="5.2,0.25" FIGHT_BASHAT="3,11,19" FIGHT_BASHPUT="1.4"` (a hard kick that
+  knocks him down, three times).

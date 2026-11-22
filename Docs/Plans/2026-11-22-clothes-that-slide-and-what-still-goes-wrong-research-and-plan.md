@@ -171,3 +171,23 @@ My recommendation comes first in each; "go" takes them all.
 - Macklin and others: [Small Steps in Physics Simulation](https://diglib.eg.org/bitstreams/5ccd0aa4-edd9-48a1-8ed5-1c50d227a37a/download), SCA 2019
 - Macklin, Müller, Chentanez, Kim: [Unified Particle Physics for Real-Time Applications](https://matthias-research.github.io/pages/publications/flex.pdf), SIGGRAPH 2014
 - His playtest log `PlaytestLogs/2026-11-22_19-55-41` and seven pictures of 20:11; this project's README entries of 18:20 and 19:45
+
+## Progress
+
+**22 November, 22:40: he said "go" at 20:48; all six steps built (headless only; the Burst job's new fields built blind).**
+The README's entry of 22:40 has the tables.
+
+- Step 1: the measures are in his log (`shieldin`, `shieldletgo`, and two more figures on each `cloth` line) and headless
+  (`SHIELDIN`, `SEWNLOOK`). The grey elbow ball is the forearm mesh's own top: the cloth already knows it.
+- Step 2: in his log of 19:55 the board stayed 9 cm in the other man's chest for 1.1 s after a small bash, carried along
+  as he stumbled back. Not reproducible headless (the engine pushes it out in 0.03 s). Built: a shield lets go of a man
+  stuck in it for a tenth of a second ("A man stuck in a shield:", "Bash him close").
+- Step 3: sleeves follow where the limb points, not its roll ("The limb's roll:"). Alone the best of the six.
+- Step 4: the cloth slides, with a leash and a grip ("Cloth on him:", "Grip on his limbs" 0.1, "Grip on his trunk" 0.3).
+- Step 5: the shoulder seams carried smoothly ("The shoulder seams:").
+- Step 6: the floor, a cap on a hard stop's throw, lone spikes put back; the joint's real reach built and left off (it
+  more than doubled the spikes).
+- Headless, "Shake him", old against new: spikes over 3 times in 19.1% of pictures to 13.0%; armpit pinch 2.5% to 1.0%
+  (halved); elbow pinch 4.3% to 4.4% (not halved); the seam's worst ridge 16.6 to 6.0 cm; points through 31,077 to
+  20,530. Three falls: spikes over 3 times 22.4% to 18.2%. The deepest point inside got worse (2.4 to 5.9 cm).
+- Not met: the elbow pinch halved; the falls' 1 in 1,000. Not known: how it looks or costs in Unity.

@@ -438,6 +438,39 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("The sewn clothes' cost (19:45, after his log of 19:03: 18 to 20 ms a picture for both men). On (new): every man's clothes are begun on the other cores in his own LateUpdate and all waited for together after the last, so both men's are worked out at the same time while the game goes on. Off (old): each man's worked out and waited for in turn.")]
         public bool sewnClothesOfBothMenAtOnce = true;
 
+        [Tooltip("A man stuck in a shield (22 November, after his look at 20:11: a head, an arm and a sword stuck in the other man's shield). In his log of 19:55 a bash drove the board 9 cm into the other man's chest in one step, and it stayed there for 1.1 s, carried along as he stumbled back, the shield arm unable to draw it out. On (new): when a part of another man is more than 3 cm in the board for a tenth of a second, the board and his body stop meeting until every part of him is 1 cm clear of it (2 s at most), so the arm draws the board back to its place. Off (old): they stay solid against each other, and a board driven through a man can stay in him.")]
+        public bool aShieldLetsGoOfAManStuckInIt = true;
+
+        [Tooltip("The sewn clothes' sleeves and trouser legs (22 November, after his look at 20:11: as the arm lifted and turned, the cloth was pulled and pinched instead of moving under it). On (new): a sleeve or trouser leg follows where the limb points, not how it rolls about itself: as the forearm rolls, the sleeve stays and the arm turns inside it. Off (old): each point is carried by its part's whole turn, roll and all, so a rolling arm wrings its sleeve.")]
+        public bool sewnSleevesIgnoreTheLimbsRoll = true;
+
+        [Tooltip("The sewn cloth slides over him (22 November, his ask at 20:11: less friction, so the cloth slides over his body instead of being pulled and pinched). On (new): each point is drawn back to where it is carried a quarter as hard along his body as away from him, and may go 4 cm further along him than away; a leash to where the garment is held (collar, shoulders, waistband), as long as the cloth between, keeps it from sliding off or stretching away; where his body pushes it, its grip holds back part of its slide. Off (old): drawn back alike every way, so the cloth goes wherever the part under it goes.")]
+        public bool sewnClothSlidesOverHim = true;
+
+        [Tooltip("The sliding cloth's grip on his arms and legs: 0 slides freely where his body pushes it, 1 does not slide at all while it touches him.")]
+        [Range(0f, 1f)] public float sewnClothGripOnHisLimbs = 0.1f;
+
+        [Tooltip("The sliding cloth's grip on his chest, belly and hips (the shoulders and the waist hold better than the arms).")]
+        [Range(0f, 1f)] public float sewnClothGripOnHisTrunk = 0.3f;
+
+        [Tooltip("How much further a sliding point may go along his body than away from it (metres).")]
+        [Range(0f, 0.15f)] public float sewnClothSlidesAlongHimBy = 0.04f;
+
+        [Tooltip("The sewn cloth at a bent elbow or knee (22 November, his look at 20:11: the elbow through, spikes round it). On (to try): a point carried round the joint is carried clear of the elbow or knee as drawn, which sticks out further than the joint's ball when bent (4 cm at most): fewer points inside him, but headless in \"Shake him\" it more than doubled the spikes over three times their length, so it starts off. Off (as before): at the distance from the joint it had in the drape.")]
+        public bool sewnClothClearsABentJoint = false;
+
+        [Tooltip("The sewn cloth and the floor (22 November: spikes when a man falls). On (new): the cloth stays on the floor under a man who is down. Off (old): the floor is not in the cloth's world; cloth under him hangs through it and pulls its neighbours.")]
+        public bool sewnClothStopsOnTheFloor = true;
+
+        [Tooltip("The sewn cloth when his body stops hard (a landing, an arm stopped by a blow): it is thrown on by at most this much in one picture (metres). 0: no limit (old). The spikes in a fall came partly from this throw.")]
+        [Range(0f, 0.1f)] public float sewnClothThrownOnByAHardStopAtMost = 0.02f;
+
+        [Tooltip("The sewn cloth's lone spikes (22 November). On (new): a moving point whose every thread is over twice its length (pushed out of him on its own by the last word) is put back among its neighbours, where they are outside him. Off (old): it stays out as a spike.")]
+        public bool sewnClothLoneSpikesPutBack = true;
+
+        [Tooltip("The sewn shirt's shoulder seams (22 November, his look at 20:11: a ridge along the shoulder seam). On (new): within 7 cm of a shoulder seam each point's share of the parts that carry it is smoothed over its neighbours, so both sides of the seam are carried alike as the arm lifts. Off (old): the sleeve rides the arm and the shirt's body the chest, each by its own rule, and the seam stands up as a ridge.")]
+        public bool sewnSeamsCarriedSmoothly = true;
+
         [Tooltip("The shirt and trousers: how far the trousers and sleeves are cut off the drawn skin (metres). 2 cm since his look at 11:42 (\"so tight that I cant see any cloth like deformation\"; it was 1.2 cm). They are cut again when it changes.")]
         [Range(0.004f, 0.06f)] public float clothesSitLooselyOffTheSkin = Outfit.DefaultGap;
 
@@ -2162,6 +2195,17 @@ namespace PhysicsBattler.Locomotion
             PhysicsBattler.Locomotion.SewnOutfit.TuckUnderShirt = sewnTrousersTuckedUnderTheShirt;
             PhysicsBattler.Locomotion.SewnOutfit.LongestThread = Mathf.Clamp(sewnClothLongestThread, 1f, 3f);
             Clothes.BothAtOnce = sewnClothesOfBothMenAtOnce;
+            ClipFighter.ShieldLetsGoOfTheStuck = aShieldLetsGoOfAManStuckInIt;
+            SewnOutfit.SleevesIgnoreTheRoll = sewnSleevesIgnoreTheLimbsRoll;
+            SewnOutfit.Slides = sewnClothSlidesOverHim;
+            SewnOutfit.Grip = sewnClothGripOnHisLimbs;
+            SewnOutfit.GripTrunk = sewnClothGripOnHisTrunk;
+            SewnOutfit.SlideBy = sewnClothSlidesAlongHimBy;
+            SewnOutfit.JointReach = sewnClothClearsABentJoint;
+            SewnOutfit.FloorStops = sewnClothStopsOnTheFloor;
+            SewnOutfit.JoltMost = sewnClothThrownOnByAHardStopAtMost;
+            SewnOutfit.LoneSpikesBack = sewnClothLoneSpikesPutBack;
+            SewnOutfit.SeamsSmooth = sewnSeamsCarriedSmoothly;
             Outfit.Gap = Mathf.Clamp(clothesSitLooselyOffTheSkin, 0.002f, 0.08f);
             Outfit.ShirtGap = Mathf.Clamp(shirtSitsLooselyOffTheSkin, 0.004f, 0.1f);
             Outfit.Loose = Mathf.Clamp(clothesLooserAtTheEnds, 0f, 3f);

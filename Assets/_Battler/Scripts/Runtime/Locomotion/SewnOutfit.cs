@@ -119,6 +119,199 @@ namespace PhysicsBattler.Locomotion
         /// <summary>Cloth points measured further in than his skin along their own way out by more than 1 cm (a limb come out through the cloth).</summary>
         public static long Through;
 
+        // ---- What he sees (22 November, the plan "clothes that slide", step 1) ----------------------------------------
+
+        /// <summary>Measured pictures of one man's clothes; of them, pictures with a spike that shows (a thread over twice its flat length with both its ends outside the body) and with one over three times; the worst such spike (times its length).</summary>
+        public static long LookPictures, SpikePictures, Spike3Pictures;
+
+        public static float SpikeWorst;
+
+        /// <summary>Where the cloth is pinched (a thread under <see cref="PinchUnder"/> of its flat length, both ends outside the body), by where it is: the armpit, the elbow, the knee, elsewhere. Threads looked at and threads pinched.</summary>
+        public static readonly long[] PinchLooked = new long[4], PinchIn = new long[4];
+
+        public static readonly string[] PinchWhere = { "armpit", "elbow", "knee", "elsewhere" };
+
+        public const float PinchUnder = 0.6f, SpikeOver = 2f;
+
+        /// <summary>The ridge along the shoulder seams: how far a seam point stands out from its neighbours beyond what it does in the drape (metres): summed over measured pictures (the picture's worst), and the worst.</summary>
+        public static double SeamRidgeSum;
+
+        public static float SeamRidgeMost;
+
+        public static string Looked()
+        {
+            if (LookPictures == 0)
+            {
+                return "not looked at";
+            }
+
+            var c = System.Globalization.CultureInfo.InvariantCulture;
+            var pinch = new System.Text.StringBuilder();
+            for (int r = 0; r < 4; r++)
+            {
+                pinch.Append(string.Format(c, "{0}{1} {2:0.0}%", r > 0 ? ", " : "", PinchWhere[r], PinchLooked[r] > 0 ? 100.0 * PinchIn[r] / PinchLooked[r] : 0.0));
+            }
+
+            return string.Format(c, "{0} pictures looked at; a spike that shows (a thread over {1:0} times its length, both ends outside him) in {2:0.00}% of them, over 3 times in {3:0.00}%, the worst {4:0.0} times; pinched threads (under {5:0}% of their length): {6}; the shoulder seam's ridge beyond the drape's {7:0.0} cm on average (the worst a picture), {8:0.0} cm at the worst",
+                LookPictures, SpikeOver, 100.0 * SpikePictures / LookPictures, 100.0 * Spike3Pictures / LookPictures, SpikeWorst, 100f * PinchUnder, pinch, 100.0 * SeamRidgeSum / LookPictures, 100f * SeamRidgeMost);
+        }
+
+        public static void ForgetLooks()
+        {
+            LookPictures = SpikePictures = Spike3Pictures = 0;
+            SpikeWorst = SeamRidgeMost = 0f;
+            SeamRidgeSum = 0;
+            System.Array.Clear(PinchLooked, 0, 4);
+            System.Array.Clear(PinchIn, 0, 4);
+        }
+
+        /// <summary>This man's clothes at the last measured picture: the worst spike that shows (times its length), and the shoulder seam's ridge beyond the drape's (metres).</summary>
+        public float SpikeNow { get; private set; }
+
+        public float SeamRidgeNow { get; private set; }
+
+        private int[] seamPoints = new int[0];
+        private float[] seamRest = new float[0];
+        private byte[] pinchRegion = new byte[0];
+
+        /// <summary>The points of the shoulder seams (a sleeve's points with a thread into the shirt's body, and the body's with one into a sleeve), with how far each stands out of its neighbours in the drape; and each thread's place on him (armpit, elbow, knee, elsewhere).</summary>
+        private void PrepareLooks()
+        {
+            var seam = new List<int>();
+            for (int i = 0; i < x.Length; i++)
+            {
+                bool sleeve = pieceOf[i].StartsWith("sleeve"), body = pieceOf[i] == "shirt_front" || pieceOf[i] == "shirt_back";
+                if (!sleeve && !body)
+                {
+                    continue;
+                }
+
+                for (int k = adjStart[i]; k < adjStart[i + 1]; k++)
+                {
+                    string other = pieceOf[adj[k]];
+                    if (sleeve ? other == "shirt_front" || other == "shirt_back" : other.StartsWith("sleeve"))
+                    {
+                        seam.Add(i);
+                        break;
+                    }
+                }
+            }
+
+            seamPoints = seam.ToArray();
+            seamRest = new float[seamPoints.Length];
+            for (int j = 0; j < seamPoints.Length; j++)
+            {
+                seamRest[j] = StandsOut(restX, seamPoints[j]);
+            }
+
+            pinchRegion = new byte[threadRest.Length];
+            for (int k = 0; k < threadRest.Length; k++)
+            {
+                int a = threads[2 * k];
+                pinchRegion[k] = (byte)RegionOf(skins[a]);
+            }
+        }
+
+        private static bool IsArm(PartId p) => p == PartId.UpperArmL || p == PartId.UpperArmR;
+
+        private static int RegionOf(OutfitSolve.Skin skin)
+        {
+            PartId a = (PartId)skin.A, b = (PartId)skin.B;
+            bool upper = IsArm(a) || IsArm(b), fore = a == PartId.ForearmL || a == PartId.ForearmR || b == PartId.ForearmL || b == PartId.ForearmR;
+            bool trunk = a == PartId.Chest || b == PartId.Chest || a == PartId.Spine || b == PartId.Spine;
+            bool thigh = a == PartId.ThighL || a == PartId.ThighR || b == PartId.ThighL || b == PartId.ThighR, shin = a == PartId.ShinL || a == PartId.ShinR || b == PartId.ShinL || b == PartId.ShinR;
+            bool shared = skin.W > 0.02f && skin.W < 0.98f;
+            if (shared && upper && trunk) return 0;
+            if (shared && upper && fore) return 1;
+            if (shared && thigh && shin) return 2;
+            return 3;
+        }
+
+        /// <summary>How far a point (world) is outside his drawn body this picture (metres, negative inside), by the covered parts' fields.</summary>
+        private float BodyDistanceNow(Vector3 at)
+        {
+            float best = 10f;
+            foreach (var id in Outfit.Covered)
+            {
+                var f = fields.Of(id);
+                int p = (int)id;
+                if (f == null || rig.IsSevered(id))
+                {
+                    continue;
+                }
+
+                Vector3 local = fi[p] * (at - fp[p]) / size;
+                if ((local - f.Centre).sqrMagnitude > f.Bound * f.Bound)
+                {
+                    continue;
+                }
+
+                best = Mathf.Min(best, f.Distance(local) * size);
+            }
+
+            return best;
+        }
+
+        /// <summary>How far a point stands out from the middle of its neighbours (metres).</summary>
+        private float StandsOut(Vector3[] at, int i)
+        {
+            Vector3 mid = Vector3.zero;
+            int n = 0;
+            for (int k = adjStart[i]; k < adjStart[i + 1]; k++)
+            {
+                mid += at[adj[k]];
+                n++;
+            }
+
+            return n > 0 ? (at[i] - mid / n).magnitude : 0f;
+        }
+
+        /// <summary>A measured picture: what he would see of spikes, pinches and the seam's ridge (<see cref="Looked"/>).</summary>
+        private void Look()
+        {
+            if (pinchRegion.Length != threadRest.Length)
+            {
+                PrepareLooks();
+            }
+
+            float worst = 0f;
+            for (int k = 0; k < threadRest.Length; k++)
+            {
+                float rest = threadRest[k] * size;
+                int a = threads[2 * k], b = threads[2 * k + 1];
+                if (rest < 1e-5f || insideFlags[a] != 0 || insideFlags[b] != 0)
+                {
+                    continue;
+                }
+
+                float ratio = (x[b] - x[a]).magnitude / rest;
+                // (A spike shows only where its middle is outside him too: one across a bent elbow lies inside the arm.)
+                if (ratio > SpikeOver && ratio > worst && BodyDistanceNow(0.5f * (x[a] + x[b])) > 0f)
+                {
+                    worst = ratio;
+                }
+
+                int r = pinchRegion.Length > k ? pinchRegion[k] : 3;
+                PinchLooked[r]++;
+                PinchIn[r] += ratio < PinchUnder ? 1 : 0;
+            }
+
+            float ridge = 0f;
+            for (int j = 0; j < seamPoints.Length; j++)
+            {
+                ridge = Mathf.Max(ridge, StandsOut(x, seamPoints[j]) - seamRest[j] * size);
+            }
+
+            LookPictures++;
+            SpikePictures += worst > SpikeOver ? 1 : 0;
+            Spike3Pictures += worst > 3f ? 1 : 0;
+            SpikeWorst = Mathf.Max(SpikeWorst, worst);
+            SeamRidgeSum += ridge;
+            SeamRidgeMost = Mathf.Max(SeamRidgeMost, ridge);
+            SpikeNow = worst;
+            SeamRidgeNow = ridge;
+        }
+
         public static void Forget()
         {
             Pictures = PointsChecked = PointsIn = MiddlesChecked = MiddlesIn = CentresChecked = CentresIn = Pushed = StillIn = Folded = Through = 0;
@@ -300,6 +493,186 @@ namespace PhysicsBattler.Locomotion
             return RestDistance(p, at);
         }
 
+        /// <summary>A point's carry by its nearer part and the share of a second (at rest: its places on each, and round their joint if they meet at one).</summary>
+        private OutfitSolve.Skin SkinFor(Vector3 p, PartId best, PartId next, float w)
+        {
+            var sk = new OutfitSolve.Skin
+            {
+                A = (int)best, B = (int)next, W = w, J = -1,
+                HA = Quaternion.Inverse(restRot[(int)best]) * (p - restPos[(int)best]),
+                HB = Quaternion.Inverse(restRot[(int)next]) * (p - restPos[(int)next]),
+            };
+            // (Two parts that meet at a joint: carried round the joint at its own distance from it.)
+            PartId joint = PartInfo.HasParent(next) && PartInfo.Parent(next) == best ? next
+                : PartInfo.HasParent(best) && PartInfo.Parent(best) == next ? best : (PartId)(-1);
+            if (w > 0f && (int)joint >= 0 && JointBalls)
+            {
+                Vector3 j = restPos[(int)joint];
+                sk.J = (int)joint;
+                sk.R = (p - j).magnitude;
+                sk.OA = Quaternion.Inverse(restRot[(int)best]) * (p - j);
+                sk.OB = Quaternion.Inverse(restRot[(int)next]) * (p - j);
+            }
+
+            sk.GA = Quaternion.Inverse(restRot[(int)best]) * Vector3.down;
+            return sk;
+        }
+
+        /// <summary>
+        /// The shoulder seams carried smoothly (Combat Feel "Sewn Seams Carried Smoothly"; 22 November, the plan "clothes
+        /// that slide", step 5; <c>FIGHT_SEWNSEAMS=0</c> for the old way). His picture of 20:11: a ridge along the
+        /// shoulder seam. The sleeve's points ride the upper arm (and the chest within 10 cm of the shoulder), the shirt's
+        /// body the chest (and the upper arm within 8 cm), so the two sides of the seam were carried differently and stood
+        /// up as a ridge when the arm lifted. On: within <see cref="SeamBand"/> of a shoulder seam, along the cloth, each
+        /// point's share of each part is smoothed over its neighbours (<see cref="SeamSmoothing"/> rounds), so neighbours
+        /// on both sides are carried alike. Off: each side by its own rule.
+        /// </summary>
+        public static bool SeamsSmooth = true;
+
+        /// <summary>How far from a shoulder seam the carry is smoothed (metres along the cloth), and how many rounds.</summary>
+        public const float SeamBand = 0.07f;
+
+        public const int SeamSmoothing = 12;
+
+        private OutfitSolve.Skin[] skinsBySide = new OutfitSolve.Skin[0], skinsSmooth = new OutfitSolve.Skin[0];
+        private bool seamsSmoothNow;
+
+        /// <summary>Changes when the skins the solver should carry by change (the job copies them in again).</summary>
+        public int SkinsVersion { get; private set; }
+
+        /// <summary>The carry smoothed across the shoulder seams (see <see cref="SeamsSmooth"/>); from the skins by side.</summary>
+        private OutfitSolve.Skin[] SmoothedAtTheSeams(OutfitSolve.Skin[] bySide)
+        {
+            var made = (OutfitSolve.Skin[])bySide.Clone();
+            int n = bySide.Length;
+            // (The seams: a sleeve's point with a thread into the shirt's body, or the body's with one into a sleeve.)
+            var near = new float[n];
+            for (int i = 0; i < n; i++)
+            {
+                near[i] = float.MaxValue;
+            }
+
+            bool Sleeve(int i) => pieceOf[i].StartsWith("sleeve", StringComparison.Ordinal);
+            bool Body(int i) => pieceOf[i] == "shirt_front" || pieceOf[i] == "shirt_back";
+            for (int t = 0; t < threads.Length / 2; t++)
+            {
+                int a = threads[2 * t], b = threads[2 * t + 1];
+                if ((Sleeve(a) && Body(b)) || (Body(a) && Sleeve(b)))
+                {
+                    near[a] = near[b] = 0f;
+                }
+            }
+
+            for (int sweep = 0; sweep < 200; sweep++)
+            {
+                bool changed = false;
+                for (int t = 0; t < threads.Length / 2; t++)
+                {
+                    int a = threads[2 * t], b = threads[2 * t + 1];
+                    float l = threadRest[t];
+                    if (near[a] + l < near[b] - 1e-5f && near[a] + l < SeamBand) { near[b] = near[a] + l; changed = true; }
+                    if (near[b] + l < near[a] - 1e-5f && near[b] + l < SeamBand) { near[a] = near[b] + l; changed = true; }
+                }
+
+                if (!changed)
+                {
+                    break;
+                }
+            }
+
+            // (Each point's share of each part; smoothed over its neighbours in the band, the band's edge held.)
+            var share = new float[n, PartInfo.Count];
+            for (int i = 0; i < n; i++)
+            {
+                share[i, bySide[i].A] += 1f - bySide[i].W;
+                share[i, bySide[i].B] += bySide[i].W;
+            }
+
+            var sum = new float[n, PartInfo.Count];
+            var count = new int[n];
+            for (int round = 0; round < SeamSmoothing; round++)
+            {
+                System.Array.Clear(sum, 0, sum.Length);
+                System.Array.Clear(count, 0, n);
+                for (int t = 0; t < threads.Length / 2; t++)
+                {
+                    int a = threads[2 * t], b = threads[2 * t + 1];
+                    if (near[a] >= SeamBand && near[b] >= SeamBand)
+                    {
+                        continue;
+                    }
+
+                    for (int q = 0; q < PartInfo.Count; q++)
+                    {
+                        sum[a, q] += share[b, q];
+                        sum[b, q] += share[a, q];
+                    }
+
+                    count[a]++;
+                    count[b]++;
+                }
+
+                for (int i = 0; i < n; i++)
+                {
+                    if (near[i] >= SeamBand || count[i] == 0)
+                    {
+                        continue;
+                    }
+
+                    for (int q = 0; q < PartInfo.Count; q++)
+                    {
+                        share[i, q] = 0.5f * share[i, q] + 0.5f * sum[i, q] / count[i];
+                    }
+                }
+            }
+
+            // (The two largest shares carry it.)
+            for (int i = 0; i < n; i++)
+            {
+                if (near[i] >= SeamBand)
+                {
+                    continue;
+                }
+
+                int first = -1, second = -1;
+                for (int q = 0; q < PartInfo.Count; q++)
+                {
+                    if (first < 0 || share[i, q] > share[i, first])
+                    {
+                        second = first;
+                        first = q;
+                    }
+                    else if (second < 0 || share[i, q] > share[i, second])
+                    {
+                        second = q;
+                    }
+                }
+
+                float total = share[i, first] + share[i, second];
+                float w = total > 1e-6f ? share[i, second] / total : 0f;
+                var keep = made[i];
+                var sk = SkinFor(restX[i], (PartId)first, (PartId)second, w);
+                sk.NA = keep.NA; sk.Back = keep.Back; sk.Tuck = keep.Tuck; sk.Extra = keep.Extra;
+                made[i] = sk;
+            }
+
+            return made;
+        }
+
+        /// <summary>The skins the solver carries by, by <see cref="SeamsSmooth"/>: changed only when it changes.</summary>
+        private void ChooseSkins()
+        {
+            bool want = SeamsSmooth && skinsSmooth.Length == skins.Length;
+            if (want == seamsSmoothNow)
+            {
+                return;
+            }
+
+            seamsSmoothNow = want;
+            System.Array.Copy(want ? skinsSmooth : skinsBySide, skins, skins.Length);
+            SkinsVersion++;
+        }
+
         /// <summary>Every garment's points, threads and triangles taken from the file; each point given its parts; the solver's arrays made. Returns how far his rest pose is from the drape's (metres).</summary>
         private float Put()
         {
@@ -393,26 +766,7 @@ namespace PhysicsBattler.Locomotion
 
                     // (Smooth across a joint: half each where both parts are as near, none of the second BlendOver further on.)
                     float w = d2 < 9f ? 0.5f * Mathf.Clamp01(1f - (d2 - d1) / Mathf.Max(1e-4f, BlendOver)) : 0f;
-                    var sk = new OutfitSolve.Skin
-                    {
-                        A = (int)best, B = (int)next, W = w, J = -1,
-                        HA = Quaternion.Inverse(restRot[(int)best]) * (p - restPos[(int)best]),
-                        HB = Quaternion.Inverse(restRot[(int)next]) * (p - restPos[(int)next]),
-                    };
-                    // (Two parts that meet at a joint: carried round the joint at its own distance from it.)
-                    PartId joint = PartInfo.HasParent(next) && PartInfo.Parent(next) == best ? next
-                        : PartInfo.HasParent(best) && PartInfo.Parent(best) == next ? best : (PartId)(-1);
-                    if (w > 0f && (int)joint >= 0 && JointBalls)
-                    {
-                        Vector3 j = restPos[(int)joint];
-                        sk.J = (int)joint;
-                        sk.R = (p - j).magnitude;
-                        sk.OA = Quaternion.Inverse(restRot[(int)best]) * (p - j);
-                        sk.OB = Quaternion.Inverse(restRot[(int)next]) * (p - j);
-                    }
-
-                    sk.GA = Quaternion.Inverse(restRot[(int)best]) * Vector3.down;
-                    skins[at + i] = sk;
+                    skins[at + i] = SkinFor(p, best, next, w);
                 }
 
                 for (int t = 0; t < g.threads.Length; t++)
@@ -485,6 +839,39 @@ namespace PhysicsBattler.Locomotion
                 }
             }
 
+            // (Each point's leash: the held point nearest it along the cloth (the threads at their flat lengths), and how
+            // far that is.)
+            leashTo = new int[total];
+            leash = new float[total];
+            for (int i = 0; i < total; i++)
+            {
+                bool held = fence[i] <= 0f;
+                leashTo[i] = held ? i : -1;
+                leash[i] = held ? 0f : float.MaxValue;
+            }
+
+            for (int sweep = 0; sweep < 400; sweep++)
+            {
+                bool changed = false;
+                for (int t = 0; t < threads.Length / 2; t++)
+                {
+                    int a = threads[2 * t], b = threads[2 * t + 1];
+                    float l = threadRest[t];
+                    if (leashTo[a] >= 0 && leash[a] + l < leash[b] - 1e-5f) { leash[b] = leash[a] + l; leashTo[b] = leashTo[a]; changed = true; }
+                    if (leashTo[b] >= 0 && leash[b] + l < leash[a] - 1e-5f) { leash[a] = leash[b] + l; leashTo[a] = leashTo[b]; changed = true; }
+                }
+
+                if (!changed)
+                {
+                    break;
+                }
+            }
+
+            for (int i = 0; i < total; i++)
+            {
+                leash[i] = leashTo[i] >= 0 ? leash[i] : 0f;
+            }
+
             // (The hems and cuffs, for the measures: the points of each piece furthest along the cloth from where it is
             // held.)
             hemOf = new bool[total];
@@ -500,7 +887,17 @@ namespace PhysicsBattler.Locomotion
                 hemOf[i] = fence[i] > 0.1f && fence[i] >= 0.9f * mostReach[pieceOf[i]];
             }
 
+            // (The carry by side, and smoothed across the shoulder seams; each with its own way out and backstop.)
+            skinsBySide = (OutfitSolve.Skin[])skins.Clone();
+            skinsSmooth = SmoothedAtTheSeams(skinsBySide);
             Layers();
+            skinsBySide = (OutfitSolve.Skin[])skins.Clone();
+            System.Array.Copy(skinsSmooth, skins, skins.Length);
+            Layers();
+            skinsSmooth = (OutfitSolve.Skin[])skins.Clone();
+            System.Array.Copy(skinsBySide, skins, skins.Length);
+            seamsSmoothNow = false;
+            ChooseSkins();
 
             // (Each point's neighbours along its threads, for the smoothing.)
             adjStart = new int[total + 1];
@@ -522,6 +919,7 @@ namespace PhysicsBattler.Locomotion
                 adj[fill[threads[t + 1]]++] = threads[t];
             }
 
+            PrepareLooks();
             int cells = 0;
             foreach (var id in PartInfo.All)
             {
@@ -571,6 +969,7 @@ namespace PhysicsBattler.Locomotion
 
         private void FillFrames()
         {
+            RollLeftOutNow = 0f;
             foreach (var id in PartInfo.All)
             {
                 int p = (int)id;
@@ -578,8 +977,102 @@ namespace PhysicsBattler.Locomotion
                 bool there = f != null && Array.IndexOf(Outfit.Covered, id) >= 0 && !rig.IsSevered(id);
                 bc[p] = f != null ? fp[p] + fr[p] * (f.Centre * size) : fp[p];
                 br[p] = there ? f.Bound * size : -1f;
-                frames[p] = new OutfitSolve.Frame { P = fp[p], R = fr[p], I = fi[p], BC = bc[p], BR = br[p] };
+                frames[p] = new OutfitSolve.Frame { P = fp[p], R = fr[p], C = CarryTurn(id), I = fi[p], BC = bc[p], BR = br[p] };
             }
+        }
+
+        /// <summary>
+        /// Sleeves and trouser legs follow where the limb points, not how it rolls (Combat Feel "Sewn Sleeves Ignore The
+        /// Limb's Roll"; 22 November, the plan "clothes that slide", step 3; <c>FIGHT_SEWNROLL=1</c> for the old way). His
+        /// look at 20:11: as the arm lifted and turned, the cloth was pulled and pinched instead of moving under it. Each
+        /// point was carried by its part's whole turn, so when the forearm rolled, the sleeve rolled with it, and the
+        /// cloth between arm and chest was wrung. On: a limb's turn is taken as the drape's, carried by the part it
+        /// hangs from (his chest or hips, or the upper arm or thigh as carried), then swung the shortest way onto where
+        /// the limb points now; its roll about itself is left out (<see cref="CarryTurn"/>). Off: its whole turn, roll
+        /// and all.
+        /// </summary>
+        public static bool SleevesIgnoreTheRoll = true;
+
+        /// <summary>The limbs, each with the part it points toward and the part it hangs from (whose carry it starts from).</summary>
+        private static readonly (PartId limb, PartId toward, PartId from)[] Limbs =
+        {
+            (PartId.UpperArmL, PartId.ForearmL, PartId.Chest), (PartId.ForearmL, PartId.HandL, PartId.UpperArmL),
+            (PartId.UpperArmR, PartId.ForearmR, PartId.Chest), (PartId.ForearmR, PartId.HandR, PartId.UpperArmR),
+            (PartId.ThighL, PartId.ShinL, PartId.Pelvis), (PartId.ShinL, PartId.FootL, PartId.ThighL),
+            (PartId.ThighR, PartId.ShinR, PartId.Pelvis), (PartId.ShinR, PartId.FootR, PartId.ThighR),
+        };
+
+        /// <summary>Over a swing from the drape of this many degrees and more the roll is taken back in, wholly by the second (where the shortest swing would flip).</summary>
+        public const float RollBackFrom = 110f, RollBackBy = 150f;
+
+        /// <summary>The most a limb's roll was left out of its sleeve's carry at the last picture (degrees), and the most since the run began.</summary>
+        public float RollLeftOutNow { get; private set; }
+
+        public static float RollLeftOutMost;
+
+        public static string RollLeftOutWas = "";
+
+        /// <summary>The roll left out, summed over limbs and pictures, and how many (for the average).</summary>
+        public static double RollSum;
+
+        public static long RollCount;
+
+        private readonly Quaternion[] carry = new Quaternion[PartInfo.Count];
+
+        /// <summary>
+        /// A part's turn for carrying its cloth: a limb's as the drape had it against the part it hangs from (that part's
+        /// own carry: his chest or hips, or the upper arm or thigh as carried), swung the shortest way onto where the limb
+        /// points now, so its roll about itself is left out. Over a swing of <see cref="RollBackFrom"/> degrees from the
+        /// drape the roll is taken back in, wholly by <see cref="RollBackBy"/>, where the shortest swing would flip.
+        /// </summary>
+        private Quaternion CarryTurn(PartId id)
+        {
+            int p = (int)id;
+            carry[p] = fr[p];
+            if (!SleevesIgnoreTheRoll)
+            {
+                return fr[p];
+            }
+
+            foreach (var (limb, toward, from) in Limbs)
+            {
+                if (limb != id)
+                {
+                    continue;
+                }
+
+                int up = (int)from, c = (int)toward;
+                Vector3 along = restPos[c] - restPos[p];
+                if (along.sqrMagnitude < 1e-8f)
+                {
+                    return fr[p];
+                }
+
+                Vector3 axis = (Quaternion.Inverse(restRot[p]) * along).normalized;
+                Quaternion carried = carry[up] * Quaternion.Inverse(restRot[up]) * restRot[p];
+                Vector3 was = carried * axis, now = fr[p] * axis;
+                float swung = Vector3.Angle(was, now);
+                Quaternion turn = Quaternion.FromToRotation(was, now) * carried;
+                if (swung > RollBackFrom)
+                {
+                    turn = Quaternion.Slerp(turn, fr[p], Mathf.Clamp01((swung - RollBackFrom) / (RollBackBy - RollBackFrom)));
+                }
+
+                float left = Quaternion.Angle(turn, fr[p]);
+                RollLeftOutNow = Mathf.Max(RollLeftOutNow, left);
+                if (left > RollLeftOutMost)
+                {
+                    RollLeftOutMost = left;
+                    RollLeftOutWas = string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0}, swung {1:0} degrees from the drape against the {2}", id, swung, from);
+                }
+
+                RollSum += left;
+                RollCount++;
+                carry[p] = turn;
+                return turn;
+            }
+
+            return fr[p];
         }
 
         /// <summary>The settings of a picture for the solver (the pointers are filled in by whoever runs it).</summary>
@@ -591,6 +1084,8 @@ namespace PhysicsBattler.Locomotion
             Dynamic = Moves ? 1 : 0, Steps = Mathf.Clamp(Steps, 1, 16), Iters = Mathf.Clamp(Sweeps, 1, 8), Dt = dt, Reset = resetNext ? 1 : 0,
             Gravity = 9.81f * Mathf.Max(0f, Weight), Keep = Mathf.Clamp01(Air), Inertia = Mathf.Clamp01(Inertia), Squash = Mathf.Clamp01(Squash), BendK = Mathf.Clamp01(Bend),
             HoldShape = Mathf.Clamp01(HoldShape), Pluck = pluckNext, Backstop = Backstop ? 1 : 0, Tucked = TuckUnderShirt ? 1 : 0, CollideEvery = Mathf.Clamp(PushEvery, 1, 8), Longest = Mathf.Max(1f, LongestThread),
+            More = new OutfitSolve.MoreSet { JointReach = JointReach ? 1 : 0, FloorOn = FloorStops ? 1 : 0, LoneSpikes = LoneSpikesBack ? 1 : 0, FloorY = FloorY, Jolt = Mathf.Max(0f, JoltMost) },
+            Slide = new OutfitSolve.SlideSet { On = Slides ? 1 : 0, By = Mathf.Clamp(SlideBy, 0f, 0.2f), HoldShare = Mathf.Clamp01(SlideHold), Grip = Mathf.Clamp01(Grip), GripTrunk = Mathf.Clamp01(GripTrunk), Slack = Mathf.Clamp(LeashSlack, 0f, 1f) },
         };
 
         /// <summary>On (new, 19:30): no moving cloth point goes further in toward his body than his skin along its own way out, so a limb cannot come out through the far side of its sleeve or trouser leg. Off: only pushed out of him the nearest way.</summary>
@@ -623,6 +1118,40 @@ namespace PhysicsBattler.Locomotion
         }
 
         private float[] fenceNow = new float[0];
+        private int[] leashTo = new int[0];
+        private float[] leash = new float[0];
+
+        public int[] LeashToArray => leashTo;
+
+        public float[] LeashArray => leash;
+
+        /// <summary>
+        /// The cloth slides over him (Combat Feel "Sewn Cloth Slides Over Him"; 22 November, the plan "clothes that slide",
+        /// step 4; <c>FIGHT_SEWNSLIDE=0</c> for the old way). His look at 20:11: the arm pulled and pinched the cloth
+        /// instead of moving under it. On: each point is drawn back to where it is carried less along his body than away
+        /// from him (<see cref="SlideHold"/>), and may go <see cref="SlideBy"/> further along him than away; a leash to
+        /// the held point nearest along the cloth keeps it from sliding off or stretching away; where his body pushes it,
+        /// its grip on him (<see cref="Grip"/> on the arms and legs, <see cref="GripTrunk"/> on the trunk) holds back
+        /// part of its slide. Off: drawn back alike every way, and no leash.
+        /// </summary>
+        public static bool Slides = true;
+
+        /// <summary>
+        /// Elbows, knees and falls (22 November, the plan "clothes that slide", step 6; his pictures of 20:11: spikes when a
+        /// man falls, the elbow through). Four switches, each its own Combat Feel line: a point carried round a bent elbow
+        /// or knee is carried clear of the joint as drawn (<see cref="JointReach"/>; off: in "Shake him" it more than doubled
+        /// the spikes over three times their length, 19% of pictures to 40 to 48%); the floor is in the cloth's world
+        /// (<see cref="FloorStops"/>); a hard stop of his body (a landing) throws a point on by no more than
+        /// <see cref="JoltMost"/> a picture; a point the last word left as a lone spike is put back among its
+        /// neighbours (<see cref="LoneSpikesBack"/>).
+        /// </summary>
+        public static bool JointReach, FloorStops = true, LoneSpikesBack = true;
+
+        /// <summary>The most a hard stop of his body throws a point on in one picture (metres; 0: no limit); and the floor's height (world).</summary>
+        public static float JoltMost = 0.02f, FloorY = 0f;
+
+        /// <summary>How much further a point may go along his body than away from him (metres); the share of the pull back to the drape it keeps along his body; its grip on his arms and legs and on his trunk; how far its leash may stretch (a share).</summary>
+        public static float SlideBy = 0.04f, SlideHold = 0.25f, Grip = 0.1f, GripTrunk = 0.3f, LeashSlack = 0.05f;
         private bool[] hemOf = new bool[0];
         private Vector3[] restX = new Vector3[0];
         private float[] tuckW = new float[0];
@@ -825,6 +1354,8 @@ namespace PhysicsBattler.Locomotion
             fixed (float* trs = threadRest)
             fixed (float* brs = bendRest)
             fixed (float* fc = fenceNow)
+            fixed (int* lt = leashTo)
+            fixed (float* ls = leash)
             fixed (int* bds = bends)
             fixed (float* dn = dNear)
             fixed (byte* mv = moved)
@@ -834,7 +1365,7 @@ namespace PhysicsBattler.Locomotion
                 var d = Settings(measure);
                 d.Grid = g; d.Fields = pf; d.Frames = fr0; d.Skins = sk; d.Meshes = mp; d.Threads = th; d.Tris = tr; d.AdjStart = ast; d.Adj = ad;
                 d.X = xs; d.Home = hm; d.Shove = sv; d.DNear = dn;
-                d.R = rr; d.RPrev = rp; d.HomeWas = hw; d.HomeWas2 = hw2; d.ThreadRest = trs; d.BendRest = brs; d.Fence = fc; d.Bends = bds; d.Moved = mv; d.Inside = ins; d.Stats = st;
+                d.R = rr; d.RPrev = rp; d.HomeWas = hw; d.HomeWas2 = hw2; d.ThreadRest = trs; d.BendRest = brs; d.Fence = fc; d.Bends = bds; d.Moved = mv; d.Inside = ins; d.Stats = st; d.LeashTo = lt; d.Leash = ls;
                 for (int k = 0; k < meshes.Length; k++)
                 {
                     OutfitSolve.Mesh1(ref d, k);
@@ -916,6 +1447,7 @@ namespace PhysicsBattler.Locomotion
 
         private void Begin()
         {
+            ChooseSkins();
             FillFrames();
             if (fenceNow.Length != fence.Length)
             {
@@ -992,6 +1524,8 @@ namespace PhysicsBattler.Locomotion
                         inside.Add(i);
                     }
                 }
+
+                Look();
             }
 
             for (int k = 0; k < stats.Length; k++)
@@ -1487,8 +2021,8 @@ namespace PhysicsBattler.Locomotion
                 }
             }
 
-            return string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0}; from where it would be carried {1:0.0} cm, the hems and cuffs {2:0.0} cm; shiver {3:0.0} mm a picture; threads over 105%: {4} of {5}, the longest {6:0}%",
-                Moves ? "moving" : "carried (old)", 100f * mo.all, 100f * mo.ends, 1000f * mo.shiver, over, n, 100f * mo.stretch);
+            return string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0}; from where it would be carried {1:0.0} cm, the hems and cuffs {2:0.0} cm; shiver {3:0.0} mm a picture; threads over 105%: {4} of {5}, the longest {6:0}%; a spike that shows {7:0.0} times its length; the shoulder seam's ridge {8:0.0} cm; a limb's roll left out of its sleeve {9:0} degrees",
+                Moves ? "moving" : "carried (old)", 100f * mo.all, 100f * mo.ends, 1000f * mo.shiver, over, n, 100f * mo.stretch, SpikeNow, 100f * SeamRidgeNow, RollLeftOutNow);
         }
 
         /// <summary>The longest threads this picture against their flat lengths, as drawn and as carried, with their pieces and parts (for the headless trace).</summary>
@@ -1549,9 +2083,9 @@ namespace PhysicsBattler.Locomotion
 
             var mo = Motion();
             return string.Format(System.Globalization.CultureInfo.InvariantCulture,
-                "sewn, {0}; {1}; {2} points; from its places on him on average {3:0.0} cm, the most {4:0.0} cm; the hems and cuffs {5:0.0} cm, hanging {6:0.0} cm; shiver {7:0.0} mm a picture; the longest thread {8:0}% of its length; the last word pushed {9} times; inside at the last measure {10}; {11:0.00} ms",
+                "sewn, {0}; {1}; {2} points; from its places on him on average {3:0.0} cm, the most {4:0.0} cm; the hems and cuffs {5:0.0} cm, hanging {6:0.0} cm; shiver {7:0.0} mm a picture; the longest thread {8:0}% of its length; the last word pushed {9} times; inside at the last measure {10}; {11:0.00} ms; a spike that shows {12:0.0} times its length; the shoulder seam's ridge {13:0.0} cm",
                 Moves ? "moving" : "carried", RanOnOtherCores ? "other cores" : "main thread", x.Length, 100f * mo.all, 100f * Mathf.Sqrt(most), 100f * mo.ends, 100f * mo.hang,
-                1000f * mo.shiver, 100f * mo.stretch, pushed, inside.Count, LastMs);
+                1000f * mo.shiver, 100f * mo.stretch, pushed, inside.Count, LastMs, SpikeNow, 100f * SeamRidgeNow);
         }
 
         /// <summary>The whole cloth and the body's parts as drawn: SEWNPTS (each garment's points, in the file's order) and PARTFRAMES lines (Tools/Headless/sewn.py reads them).</summary>

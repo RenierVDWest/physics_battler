@@ -9566,3 +9566,91 @@ first; grip 0.1 on the limbs and 0.3 on shoulders and waist; how far it slides; 
 answers or says go.
 
 Its film (3b2b, made by Opus at medium effort; 7 scenes, 32 beats, about 4.75 minutes): https://claude.ai/artifact/LeWJakPgY8rMBwph6wZBHk
+
+## 22 November 2026, 22:40: clothes that slide, all six steps, and a shield that lets go (headless only, the job built blind)
+
+He said "go" at 20:48 to the plan "clothes that slide, and what still goes wrong" (every recommendation taken). All six
+steps are built, each behind its own Combat Feel switch with an old/new row in the duel lab. Nothing of it is seen in
+Unity yet; the Burst job's new fields are built blind.
+
+**1. Measures that see what he sees** (no change to how anything moves):
+- `OthersInShield` (in `SelfCrossings.cs`), `ClipFighter.MeasureOthersInShield`: a part of another man more than 2 cm
+  inside a shield, as seen; `shieldin` lines in his playtest log (who, which parts, how deep, how long, what each was
+  doing, how far the part and the board were from their poses); `SHIELDIN` headless; readout "In the other man's shield"
+  (duel lab, under "Stumble him:").
+- The cloth (`SewnOutfit.Look`, `Looked`; `SEWNLOOK` headless; two more figures on his log's `cloth` lines and on "The
+  cloth moving"): a spike that shows (a thread over twice its flat length with both ends and its middle outside him),
+  pinched threads (under 60% of their length) at the armpit, elbow, knee; the shoulder seam's ridge beyond the drape's.
+- His model: the grey elbow ball is the forearm mesh's own top (about 4 cm round, the elbow's point up to 4.3 cm off its
+  axis), not a mesh of its own, so the cloth already knows it.
+
+**2. The shield** (bodies and shields, not cloth). Read out of his log of 19:55 (`Tools/Headless/shieldin_log.py`, the
+board put back from his shield hand's place each step, approximate): the swordsman's chest inside the target's board
+9 cm deep for 1.12 s after a small bash at 67.7 s, and twice more for 0.3 to 0.7 s; the target's chest or hand in the
+swordsman's board up to 0.57 s. Step by step: a bash drove the board into his chest in under 0.05 s, and then it stayed
+at the same depth (8.6 to 8.9 cm, as deep as his chest is thick, so through its middle) while he stumbled 40 cm back:
+carried along with him, the shield hand 50 to 82 cm from its pose and unable to draw it out. A thin board cut through
+the middle of a round part has no side the engine pushes it out of. **Headless it could not be made**: put 0.6 to 0.9 m
+apart and bashed, the board went 8.6 cm into the chest and was pushed out in 0.03 s; a dance of 60 s measured 0.30 s
+in all, the longest 0.18 s (a thigh 5.6 cm in, as the shield's bearer stumbled), "Shake him" none.
+- **A shield lets go of a man stuck in it** (`ClipFighter.ShieldLetsGoOfTheStuck`; Combat Feel "A Shield Lets Go Of A
+  Man Stuck In It"; lab row "A man stuck in a shield:" let go (new) / held (old), and "Bash him close", a small bash from
+  0.75 m; `FIGHT_SHIELDLETSGO=0`): a part of him more than 3 cm in the board for a tenth of a second, and the board and
+  his body stop meeting until every part of him is 1 cm clear (2 s at most), so the arm draws the board back. A
+  `shieldletgo` line goes to his log each time. **Never triggered in the close bashes headless** (none lasted 0.1 s; the
+dance was not run again with it);
+  forced at a hundredth of a second it worked and they met again every time, but the board then drifted out of him over
+  up to 0.85 s, where headless the engine would have pushed it out at once: so it waits a tenth of a second.
+
+**3. Sleeves follow where the limb points, not its roll** (`SewnOutfit.SleevesIgnoreTheRoll`, `CarryTurn`, the frames'
+new carry turn `Frame.C`; Combat Feel "Sewn Sleeves Ignore The Limb's Roll"; lab "The limb's roll:"; `FIGHT_SEWNROLL=1`
+for the old way). A limb's turn is the drape's, carried by the part it hangs from (as carried), swung the shortest way to
+where it points; over a swing of 110 degrees the roll is taken back in, wholly by 150. Left out: 16 degrees on average,
+up to 180 (his sword upper arm, raised). Alone it gave the most of any step: points through 31,077 to 21,846, thread
+middles inside 658 to 279, the seam's worst ridge 16.6 to 7.9 cm.
+
+**4. The cloth slides over him** (`SewnOutfit.Slides`, `OutfitSolve.SlideSet`, the leash `LeashTo`/`Leash`; Combat Feel
+"Sewn Cloth Slides Over Him" and three levers; lab "Cloth on him:" slides (new) / glued (old), "Grip on his limbs" 0.1,
+"Grip on his trunk" 0.3, "Slides along him by" 4 cm; `FIGHT_SEWNSLIDE=0`): along his body a point is drawn back to its
+place a quarter as hard and may go 4 cm further; a leash to the held point nearest along the cloth (5% slack); where his
+body pushes it, its grip holds back that share of its slide. Alone: a little better (armpit pinch 2.5% to 2.0%, spikes
+over 3 times 19.1% to 17.6%), points through a little worse (31,077 to 34,514).
+
+**5. The shoulder seams carried smoothly** (`SewnOutfit.SeamsSmooth`, `SmoothedAtTheSeams`, `ChooseSkins`; the job copies
+the skins again when it changes; Combat Feel "Sewn Seams Carried Smoothly"; lab "The shoulder seams:"; `FIGHT_SEWNSEAMS=0`):
+within 7 cm of a shoulder seam along the cloth, each point's share of its parts smoothed over its neighbours, 12 rounds.
+With the rest on: the armpit pinch 1.9% to 1.0%, the ridge 0.9 to 0.7 cm on average, 7.6 to 6.0 at the worst.
+
+**6. Elbows, knees and falls** (`OutfitSolve.MoreSet`): the floor in the cloth's world (Combat Feel "Sewn Cloth Stops On The
+Floor"; lab "The floor:"; `FIGHT_SEWNFLOOR=0`); a hard stop of his body throws a point on 2 cm a picture at most (lever
+"A hard stop throws it"; `FIGHT_SEWNJOLT=0`); a lone spike put back among its neighbours (lab "Lone spikes:";
+`FIGHT_SEWNLONE=0`; no measurable effect in "Shake him"); and the joint's real reach (lab "At a bent joint:" clear (to try)
+/ as draped; `FIGHT_SEWNJOINTREACH=1`): **built and left off**: it took points inside him from 452 to 81 but more than
+doubled the spikes over three times their length (14.6% of pictures to 48%; 40% even faded across its band). "Kick him
+down": the existing "Hard kick" (Kick him:) knocks him down.
+
+**Headless, both men, old (every switch off) against new (the defaults):**
+
+| | "Shake him", 24 s, old | new | 3 hard-kick falls, 30 s, old | new |
+| --- | --- | --- | --- | --- |
+| Pictures with a spike that shows (over 2 times) | 97.7% | 84.2% | 98.5% | 85.5% |
+| Pictures with one over 3 times | 19.1% | 13.0% | 22.4% | 18.2% |
+| The worst spike that shows | 21.6 times | 19.1 | 25.3 | 26.3 |
+| Pinched threads at the armpit | 2.5% | 1.0% | 3.0% | 1.0% |
+| Pinched threads at the elbow | 4.3% | 4.4% | 4.1% | 4.3% |
+| The shoulder seam's ridge, average / worst | 0.9 / 16.6 cm | 0.7 / 6.0 | 1.2 / 16.5 | 0.8 / 9.6 |
+| Points through (a limb out through the cloth), of 27 and 32 million checks | 31,077 | 20,530 | 56,354 | 37,083 |
+| Thread middles inside him | 658 | 203 | 2,643 | 1,502 |
+| The deepest point inside | 23.7 mm | 58.5 mm | 45.8 | 60.4 |
+| A picture, both men (headless, one core) | 39.8 ms | 40.7 ms | 39.4 | 40.3 |
+
+The falls' run had the seams on and the joint reach off, as the defaults.
+
+**Pass marks of the plan:** the armpit pinch halved: met; the elbow pinch halved: **not met** (unchanged); spikes no worse:
+met; limbs through no worse: met (fewer); the seam's ridge: better, not measured in degrees; falls at most 1 picture in
+1,000 with a spike that shows: **not met** (85%; "a spike that shows" counts one thread over twice its length anywhere on
+either man, which may be more than he would call a spike); the shield's 0.1 s: met headless, unknowable headless for
+his case. **The deepest point inside got worse** (one point 5.9 cm in).
+
+**Not known:** how any of it looks or costs in his Unity. **His frames folders could not be removed** (the workspace's
+safety check refused the delete): they are still in the repository.
