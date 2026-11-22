@@ -787,6 +787,9 @@ tell me what is up next and what is the roadmap".** (16:15; README.)
     Burst job and the start-up check compile. `outfit.py` (own depth test), `coverage.py`, `FIGHT_CLOTHRACK`: Headless
     README. **matplotlib's 3D paints skin over cloth: never judge bare skin from it.**
   - Its film: https://claude.ai/artifact/Mmzde7X73orSrndiPmKXPd
+  - **His first look (11:31): no clothes drawn** (the start-up check: the bake matches his meshes, 0.1 mm). Likely the
+    job's settings held pointers, which Unity will not schedule; mended blind (11:35): plain numbers, and a fallback to
+    the main thread with one `[Clothes]` error if the job fails.
 - **What he was told is next (before tonight):** step 7 (more cuts, now built); combos in the six only when he says;
   then the kick at a man who is down (his kick pack), the stab at a downed man that looks odd, the spin combo's own
   sword through his own shield; then the older open things (get-up shield, stumble leftovers, absorbing a hit, the

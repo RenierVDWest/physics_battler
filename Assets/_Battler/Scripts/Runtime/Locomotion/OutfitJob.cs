@@ -25,11 +25,19 @@ namespace PhysicsBattler.Locomotion
         [NativeDisableParallelForRestriction] public NativeArray<byte> Moved;
         [NativeDisableParallelForRestriction] public NativeArray<byte> Inside;
         [NativeDisableParallelForRestriction] public NativeArray<OutfitSolve.Stats> Stats;
-        public OutfitSolve.Data Settings;
+        // (The settings as plain numbers: Unity refuses to schedule a job that holds a pointer, and the solver's Data
+        // holds its arrays as pointers. Sent whole, every picture threw before it began and nothing was drawn: his
+        // first look, 22 November, 11:31.)
+        public float Size, PointMargin, MiddleMargin, OtherMargin;
+        public int LastWord, Rounds, Measure, Smooth;
 
         public void Execute(int piece)
         {
-            var d = Settings;
+            var d = new OutfitSolve.Data
+            {
+                Size = Size, PointMargin = PointMargin, MiddleMargin = MiddleMargin, OtherMargin = OtherMargin,
+                LastWord = LastWord, Rounds = Rounds, Measure = Measure, Smooth = Smooth,
+            };
             d.Grid = (short*)NativeArrayUnsafeUtility.GetUnsafeReadOnlyPtr(Grid);
             d.Fields = (OutfitSolve.PartField*)NativeArrayUnsafeUtility.GetUnsafeReadOnlyPtr(Fields);
             d.Frames = (OutfitSolve.Frame*)NativeArrayUnsafeUtility.GetUnsafeReadOnlyPtr(Frames);
@@ -78,10 +86,13 @@ namespace PhysicsBattler.Locomotion
             }
 
             frames.CopyFrom(outfit.FrameArray);
+            var set = outfit.Settings(measure);
             var job = new OutfitJob
             {
                 Grid = grid, Fields = fields, Frames = frames, Anchors = anchors, Pieces = pieces,
-                X = x, DNear = dNear, Moved = moved, Inside = inside, Stats = stats, Settings = outfit.Settings(measure),
+                X = x, DNear = dNear, Moved = moved, Inside = inside, Stats = stats,
+                Size = set.Size, PointMargin = set.PointMargin, MiddleMargin = set.MiddleMargin, OtherMargin = set.OtherMargin,
+                LastWord = set.LastWord, Rounds = set.Rounds, Measure = set.Measure, Smooth = set.Smooth,
             };
             job.Schedule(pieces.Length, 1).Complete();
             x.CopyTo(outfit.PointArray);

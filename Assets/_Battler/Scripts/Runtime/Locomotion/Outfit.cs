@@ -497,6 +497,7 @@ namespace PhysicsBattler.Locomotion
         /// <summary>The fast measure is taken every this many pictures (1: every one; headless tests use 1).</summary>
         public static int MeasureEvery = 4;
         private int runs;
+        private bool jobFailed;
         /// <summary>Passes that smooth the trousers after the last word's first push (each followed by another push out): the
         /// crotch, where the two legs and the waist meet, crumpled. Not the shirt: smoothed, its sleeves' tops drew in off
         /// the shoulders (measured on the rack, 22 November).</summary>
@@ -688,10 +689,20 @@ namespace PhysicsBattler.Locomotion
             // (The measure costs about as much again as the cloth itself: in a game it is taken every few pictures.)
             bool measure = runs++ % Mathf.Max(1, MeasureEvery) == 0;
 #if !HEADLESS_STUB
-            threaded = OnOtherCores;
+            threaded = OnOtherCores && !jobFailed;
             if (threaded)
             {
-                job.Run(this, measure);
+                // (If the job cannot run, say so once and work it out here, so the clothes are still drawn.)
+                try
+                {
+                    job.Run(this, measure);
+                }
+                catch (System.Exception e)
+                {
+                    jobFailed = true;
+                    threaded = false;
+                    Debug.LogError("[Clothes] the job on other cores failed; worked out on the main thread from now on: " + e);
+                }
             }
 #endif
             if (!threaded)

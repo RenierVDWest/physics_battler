@@ -9144,3 +9144,14 @@ painted skin over cloth (it sorts whole faces); `outfit.py` now has a real depth
 `coverage.py`'s rays.
 
 Its film (3b2b, made by Opus at medium effort; 6 scenes, 24 beats, about 3 minutes): https://claude.ai/artifact/Mmzde7X73orSrndiPmKXPd
+
+### 22 November, 11:35: he could not see the clothes (mended blind)
+
+His picture at 11:31: no clothes on either man; the readout said "none worn" while the start-up check had run ("16 parts
+checked, the furthest off 0.1 mm (ThighR) - as baked": the bake matches his meshes). So the outfit was made but no
+picture of it ever finished. The likely cause: the Burst job was handed the solver's settings as one struct that also
+holds its arrays as pointers, and Unity refuses to schedule a job with a pointer field, so it threw every picture before
+anything was drawn (headless never compiles the job). Mended: the job gets its settings as plain numbers
+(`OutfitJob.cs`), and if the job ever fails, a `[Clothes] the job on other cores failed` error is logged once and the
+clothes are worked out on the main thread from then on, so they are drawn anyway (`Outfit.Run`). **Not confirmed: if
+they still do not show, the console's red lines are what I need.**
