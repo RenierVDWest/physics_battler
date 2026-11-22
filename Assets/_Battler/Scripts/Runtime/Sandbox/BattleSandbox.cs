@@ -1226,6 +1226,11 @@ namespace PhysicsBattler.Sandbox
 
                 EndRow();
                 BeginRow();
+                Words(new GUIContent("His own combo:", "Combat Feel \"His Own Combo Never Bears Him Down\". Never fells him (new): in a combo and for 0.4 s after it, his chest left behind his pose is his own cuts outrunning his body, and he stays up. Can fell him (old): a chest 28 cm behind for a tenth of a second felled him as if borne down."));
+                if (Press(feel.hisOwnComboNeverBearsHimDown ? "[never fells him]" : "never fells him", "He stays up.")) feel.hisOwnComboNeverBearsHimDown = true;
+                if (Press(!feel.hisOwnComboNeverBearsHimDown ? "[can fell him (old)]" : "can fell him (old)", "As it was.")) feel.hisOwnComboNeverBearsHimDown = false;
+                EndRow();
+                BeginRow();
                 Words(new GUIContent("In those, his shield:", "In a combo of three flat cuts or of high then low (Combat Feel \"In A Flat Or Low Combo His Shield Is Drawn Aside\"). Drawn aside (new): out to his shield side while the combo lasts, so the flat and low cuts do not pass through it. Held (old): in cover, and his own blade went through it."));
                 if (Press(feel.inAFlatOrLowComboHisShieldIsDrawnAside ? "[drawn aside]" : "drawn aside", "Out of his blade's way.")) feel.inAFlatOrLowComboHisShieldIsDrawnAside = true;
                 if (Press(!feel.inAFlatOrLowComboHisShieldIsDrawnAside ? "[held (old)]" : "held (old)", "In cover.")) feel.inAFlatOrLowComboHisShieldIsDrawnAside = false;

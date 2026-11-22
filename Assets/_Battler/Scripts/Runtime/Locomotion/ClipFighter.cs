@@ -6286,6 +6286,7 @@ namespace PhysicsBattler.Locomotion
         private void EndFlow(string why)
         {
             shieldAside = false;
+            flowOverAt = clock;
             var inv = System.Globalization.CultureInfo.InvariantCulture;
             if (why != null)
             {
@@ -7788,6 +7789,17 @@ namespace PhysicsBattler.Locomotion
         /// <summary>Times it was borne down (for the reports).</summary>
         public int BorneDown;
 
+        /// <summary>
+        /// On: his own combo never bears him down. In it and for 0.4 s after it, his chest held behind its pose is his
+        /// own cuts outrunning his body, and it does not fell him (Combat Feel "His Own Combo Never Bears Him Down").
+        /// </summary>
+        public static bool OwnComboNeverFellsHim = true;
+
+        /// <summary>Pictures in which his own combo would have borne him down and did not (for the reports).</summary>
+        public int OwnComboSpared;
+
+        private float flowOverAt = -10f;
+
         private Vector3 pressed;
         private float pressedOff, bornDownFor;
 
@@ -7799,7 +7811,16 @@ namespace PhysicsBattler.Locomotion
                 return;
             }
 
-            bornDownFor = BorneDownFrom > 0f && pressedOff > BorneDownFrom * Size ? bornDownFor + dt : 0f;
+            // (In his own combo, and for a moment after it, a chest left behind its pose is his own cuts outrunning his
+            // body, not something bearing him down: Renier's logs of 21 and 22 November, his own body borne down and
+            // felled after a combo's jump in 3 times in 26, 3 in 25, and in one of two in his last.)
+            bool ownCombo = OwnComboNeverFellsHim && (flowFirst != null || flowSecond != null || clock < flowOverAt + 0.4f);
+            if (ownCombo && pressedOff > BorneDownFrom * Size && bornDownFor + dt >= BorneDownAfter)
+            {
+                OwnComboSpared++;
+            }
+
+            bornDownFor = BorneDownFrom > 0f && pressedOff > BorneDownFrom * Size && !ownCombo ? bornDownFor + dt : 0f;
             if (bornDownFor >= BorneDownAfter && !Dead && !StaysDown)
             {
                 bornDownFor = 0f;

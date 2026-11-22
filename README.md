@@ -8960,3 +8960,27 @@ aside: they are a lab choice, not the default, until that is mended (the forehan
 
 **The night's films** (3b2b, made by Opus at medium effort): the clothes (6 scenes, 24 beats, about 3 minutes):
 https://claude.ai/artifact/GA5FrDmgSqaxDYsk5eLmMq ; combos step 7 (5 scenes, 20 beats, about 3 minutes): https://claude.ai/artifact/P6fPxWrGjvhqqv5RLAbwEH . The shock wave's is above.
+
+### 22 November, 07:25: his morning look; his own combo no longer fells him (headless can't show it)
+
+**His words (07:12):** "Something about the combos broke and now they seem to fail and cause the attacker to fall every
+time now." The shock wave "does what it was supposed to" but "looks very toy like now, instead of brutal. Lets think on
+it." The clothes "just look like they are wearing Victorian dresses": he wants "a single cloth that is pinned at the
+waist, open in front so that you can see the chest" (his drawing: a long robe from the shoulders to the ankles, open
+down the front, a sash at the waist, long sleeves); the cloth is stiff "like paper or thick rubber", does not stop the
+legs pushing through, and tanks the performance: "Is it possible to offload this to more cores?"
+
+**His logs (06:38, 06:41, 07:00):** the swordsman fell after his own combo 1 time in 4, 1 in 21 and 1 in 2 combos, each
+"borne down, its body pressed 32 to 40 cm from where it stood": in the last, the third blow of three flat cuts jumped
+in 41 cm and left his chest 40 cm behind its pose, which the game takes for a man borne down. **It was not new:** the
+same in 3 of 26 combos at 18:22 and 3 of 25 at 19:42 on the 21st; the new cuts, which swing his trunk further and
+faster, make it likelier. Frame rate: about 41 frames a second with the clothes (07:00) against 73 the evening before;
+the main thread about 5 ms longer a frame.
+
+**Mended:** in his own combo and for 0.4 s after it, his chest left behind its pose is his own cuts and jump outrunning
+his body, and it does not fell him (`ClipFighter.OwnComboNeverFellsHim`; Combat Feel "His Own Combo Never Bears Him
+Down"; lab row "His own combo:" never fells him / can fell him (old); `FIGHT_OWNCOMBOFELLS=1` headless for the old way;
+the report's `COMBOS so far` line counts the pictures it spared him). A man driven through by another in his combo is
+not felled either in that time: the price. **Headless never showed these falls**, so the mend is unconfirmed until his
+next log. The frames of the three logs were looked at (the 07:00 fall: the big flat forehand's jump, then flat on his
+back) and removed.

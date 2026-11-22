@@ -1235,6 +1235,9 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("On: in a combo of three flat cuts or of high then low, his shield is drawn aside, out to his shield side and a little back, while the combo lasts, so its flat and low cuts do not pass through it. Off: held in cover, as for any combo.")]
         public bool inAFlatOrLowComboHisShieldIsDrawnAside = true;
 
+        [Tooltip("On: his own combo never bears him down. In a combo and for 0.4 s after it, his chest left behind where the animation has it is his own cuts and his jump in outrunning his body, not something pressing on him, and it does not fell him. Off (as it was): a chest held 28 cm behind for a tenth of a second felled him as if borne down (in Renier's logs, 3 combos in 26, 3 in 25, and 1 in 2 on 22 November).")]
+        public bool hisOwnComboNeverBearsHimDown = true;
+
         [Tooltip("On: each blow of a combo has more behind it than the one before. The first is a quick light cut (it lands with \"A Combos First Blow Lands With\" of a plain blow), a linking blow is a plain one, and the last is the big one: it lands with \"A Combos Last Blow Lands With\", harder still for each blow landed before it, as the combo's showstopper (twice the knock, a longer freeze). Off: every blow a plain one, as step 2 had them.")]
         public bool aCombosBlowsGrow = true;
 
@@ -2258,6 +2261,7 @@ namespace PhysicsBattler.Locomotion
             FlowCombos.LastBlow = Mathf.Clamp(aCombosLastBlowIs, 0, 3);
             FlowCombos.Kind = Mathf.Clamp(aCombosCutsAre, 0, 2);
             ClipFighter.ShieldAsideInFlatCombos = inAFlatOrLowComboHisShieldIsDrawnAside;
+            ClipFighter.OwnComboNeverFellsHim = hisOwnComboNeverBearsHimDown;
             FlowCombos.Grow = aCombosBlowsGrow;
             FlowCombos.FirstPower = Mathf.Clamp(aCombosFirstBlowLandsWith, 0.3f, 1f);
             FlowCombos.LastPower = Mathf.Clamp(aCombosLastBlowLandsWith, 1f, 3f);

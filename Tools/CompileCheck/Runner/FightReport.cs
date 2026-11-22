@@ -1298,6 +1298,8 @@ internal static class FightReport
             PhysicsBattler.Locomotion.FlowCombos.Kind = comboKind == "flat" ? 1 : comboKind == "low" ? 2 : 0;
             // (FIGHT_SHIELDASIDE=0: his shield held in cover through a flat or low combo, as before step 7.)
             PhysicsBattler.Locomotion.ClipFighter.ShieldAsideInFlatCombos = Environment.GetEnvironmentVariable("FIGHT_SHIELDASIDE") != "0";
+            // (FIGHT_OWNCOMBOFELLS=1: his own combo can bear him down, as before 22 November.)
+            PhysicsBattler.Locomotion.ClipFighter.OwnComboNeverFellsHim = Environment.GetEnvironmentVariable("FIGHT_OWNCOMBOFELLS") != "1";
             // (A dance's combos grow as in Unity, FIGHT_COMBO or not.)
             PhysicsBattler.Locomotion.FlowCombos.Grow = (combo.Length > 0 || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("FIGHT_DANCE"))) && Environment.GetEnvironmentVariable("FIGHT_COMBOGROWS") != "0";
             // (FIGHT_BIGSWING=0: the big one swung as recorded, as at 11:43.)
@@ -2664,9 +2666,9 @@ internal static class FightReport
                         comboTold = duel.ComboTold;
                         Console.WriteLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "COMBO {0:0.00}: {1}", paceAt, duel.ComboTold));
                         var cf = duel.Mover.Clip;
-                        Console.WriteLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "COMBOS so far: {0} begun, {1} with a blow on his body ({2} blows on it in all), {3} floored him; {4} blows begun out of a bounce off his shield, {6} ended by a parry, his man's guard knocked open {7} times; the show: {8}; his own crossings: {5}",
+                        Console.WriteLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "COMBOS so far: {0} begun, {1} with a blow on his body ({2} blows on it in all), {3} floored him; {4} blows begun out of a bounce off his shield, {6} ended by a parry, his man's guard knocked open {7} times; his own combo would have borne him down in {9} pictures and did not, he was borne down {10} times; the show: {8}; his own crossings: {5}",
                             cf.CombosBegun, cf.CombosOnBody, cf.ComboBlowsOnBody, cf.CombosFloored, cf.FlowBounces, PhysicsBattler.Locomotion.SelfCrossings.Budget(), cf.FlowParried,
-                            duel.Other != null && duel.Other.Clip != null ? duel.Other.Clip.GuardsOpened : 0, PhysicsBattler.Locomotion.ComboShow.Counted));
+                            duel.Other != null && duel.Other.Clip != null ? duel.Other.Clip.GuardsOpened : 0, PhysicsBattler.Locomotion.ComboShow.Counted, cf.OwnComboSpared, cf.BorneDown));
                     }
 
                     // (Each pair of a flowing combo as it is closed, the fighter's own account; the old way, the lab's.)
