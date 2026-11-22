@@ -9654,3 +9654,8 @@ his case. **The deepest point inside got worse** (one point 5.9 cm in).
 
 **Not known:** how any of it looks or costs in his Unity. **His frames folders could not be removed** (the workspace's
 safety check refused the delete): they are still in the repository.
+
+**A dance of 60 s after the push (22:55, headless, the same seed as before):** a part of the other man in a shield 0.25 s
+in all (0.30 before), the longest 0.12 s (0.18 before; a thigh 5.6 cm in, as the bearer stumbled); the shield let go
+once. The dance's own crossings and tremble over their budgets, as the dance always was (0.72% and 13.5%; 0.85% and
+14.8% before).
