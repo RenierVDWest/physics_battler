@@ -786,6 +786,7 @@ tell me what is up next and what is the roadmap".** (16:15; README.)
   - **Not known:** the cost in Unity (headless optimised, one core, no Burst: 18 ms a fighter a picture); whether the
     Burst job and the start-up check compile. `outfit.py` (own depth test), `coverage.py`, `FIGHT_CLOTHRACK`: Headless
     README. **matplotlib's 3D paints skin over cloth: never judge bare skin from it.**
+  - Its film: https://claude.ai/artifact/Mmzde7X73orSrndiPmKXPd
 - **What he was told is next (before tonight):** step 7 (more cuts, now built); combos in the six only when he says;
   then the kick at a man who is down (his kick pack), the stab at a downed man that looks odd, the spin combo's own
   sword through his own shield; then the older open things (get-up shield, stumble leftovers, absorbing a hit, the

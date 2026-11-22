@@ -9142,3 +9142,5 @@ measured against the bake (step 1 asked for it); nothing is hidden under the clo
 no wobble yet (step 4); the pictures in `$S` are the headless renderer's, not Unity's. **A lesson:** matplotlib's 3D
 painted skin over cloth (it sorts whole faces); `outfit.py` now has a real depth test, and bare skin is judged by
 `coverage.py`'s rays.
+
+Its film (3b2b, made by Opus at medium effort; 6 scenes, 24 beats, about 3 minutes): https://claude.ai/artifact/Mmzde7X73orSrndiPmKXPd
