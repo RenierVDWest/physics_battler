@@ -9564,3 +9564,5 @@ https://claude.ai/artifact/QruYXVgHVVNgukoVt3jyUs ): six steps, each behind a sw
 The cost must stay at or under 8.2 ms of clothes in a 25.7 ms frame. **Four questions wait for him** (the shield
 first; grip 0.1 on the limbs and 0.3 on shoulders and waist; how far it slides; the order). Nothing is built until he
 answers or says go.
+
+Its film (3b2b, made by Opus at medium effort; 7 scenes, 32 beats, about 4.75 minutes): https://claude.ai/artifact/LeWJakPgY8rMBwph6wZBHk

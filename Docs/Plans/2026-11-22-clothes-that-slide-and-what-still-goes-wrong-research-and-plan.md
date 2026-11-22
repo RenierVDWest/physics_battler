@@ -1,7 +1,7 @@
 # Physics Battler: clothes that slide, and what still goes wrong (research and plan)
 
 22 November 2026, 20:15. Live version: https://claude.ai/artifact/QruYXVgHVVNgukoVt3jyUs (progress notes go there and
-here). Written after his look at 20:11; nothing in it is built yet.
+here). Written after his look at 20:11; nothing in it is built yet. Its film: https://claude.ai/artifact/LeWJakPgY8rMBwph6wZBHk
 
 ## Bottom line
 
