@@ -9659,3 +9659,5 @@ safety check refused the delete): they are still in the repository.
 in all (0.30 before), the longest 0.12 s (0.18 before; a thigh 5.6 cm in, as the bearer stumbled); the shield let go
 once. The dance's own crossings and tremble over their budgets, as the dance always was (0.72% and 13.5%; 0.85% and
 14.8% before).
+
+Its film (3b2b, made by Opus at medium effort; 7 scenes, 28 beats, about 4 minutes): https://claude.ai/artifact/CsxNWHwbksFJax1iWgxf25

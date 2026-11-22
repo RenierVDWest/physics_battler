@@ -191,3 +191,4 @@ The README's entry of 22:40 has the tables.
   (halved); elbow pinch 4.3% to 4.4% (not halved); the seam's worst ridge 16.6 to 6.0 cm; points through 31,077 to
   20,530. Three falls: spikes over 3 times 22.4% to 18.2%. The deepest point inside got worse (2.4 to 5.9 cm).
 - Not met: the elbow pinch halved; the falls' 1 in 1,000. Not known: how it looks or costs in Unity.
+- Its film: https://claude.ai/artifact/CsxNWHwbksFJax1iWgxf25

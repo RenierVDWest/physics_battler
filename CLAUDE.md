@@ -931,6 +931,7 @@ tell me what is up next and what is the roadmap".** (16:15; README.)
     and all together**: the joint's reach looked right alone in its intent and was the one that made the spikes.
   - **His frames folders could not be removed** (the workspace refused the delete twice): still in the repository.
   - **Next: his look and his log** (`shieldin`, `shieldletgo`, the `cloth` lines' new figures, `ms_Clothes`).
+  - Its film: https://claude.ai/artifact/CsxNWHwbksFJax1iWgxf25
 - **What he was told is next (before tonight):** step 7 (more cuts, now built); combos in the six only when he says;
   then the kick at a man who is down (his kick pack), the stab at a downed man that looks odd, the spin combo's own
   sword through his own shield; then the older open things (get-up shield, stumble leftovers, absorbing a hit, the
