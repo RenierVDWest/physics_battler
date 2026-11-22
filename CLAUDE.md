@@ -177,9 +177,10 @@ The five in hand:
   robe (22 November, 08:46): a shirt and trousers that never go into the body.** Steps 1 to 4 built as tubes; at 12:15
   he said tubes are not cloth: replaced by the next plan, whose baked body, last word and checks it keeps.
 - `2026-11-22-clothes-cut-and-sewn-like-real-clothes-research-and-plan.md`: **the clothes cut from real patterns,
-  sewn and draped, then real cloth (22 November, 12:30). The work in hand.** His go at 12:56; steps 1 and 2 built
+  sewn and draped, then real cloth (22 November, 12:30).** His go at 12:56; steps 1 and 2 built
   (14:05, headless); step 3 (carried on the moving body) built (15:55, headless); step 4 (the cloth moves by
-  itself) built (18:20, headless, waiting for his look); step 5 (cloth through cloth, layers, cost) next.
+  itself) built (18:20) and mended after his look (19:45); he looked again at 20:11. What is left of it now goes by
+  the plan above; its step 5 (layers, cost) is partly done (the tuck, both men at once).
 - `2026-11-21-cloth-that-moves-samurai-clothes-research-and-plan.md`: **real moving cloth on the fighters (21
   November, 20:47).** Steps 1 to 3 and a first piece of step 4 built that night, waiting for his eye.
 - `2026-11-21-shock-waves-through-the-body-research-and-plan.md`: **a faked wave through the body on a hit (21
