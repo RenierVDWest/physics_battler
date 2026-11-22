@@ -370,6 +370,8 @@ front hem crumples over the crotch; a thin line of skin may show in a crease. Re
 
 **Next: his look in Unity, then step 4** (real cloth on the moving body), its cost gated on his log.
 
+Its film: https://claude.ai/artifact/CjdYxDWwby67VTxTNvr28r
+
 ## Sources
 
 - [Making a sweater with Marvelous Designer](https://dev.epicgames.com/documentation/en-us/uefn/making-a-sweater-with-marvelous-designer-in-unreal-editor-for-fortnite), Epic Games

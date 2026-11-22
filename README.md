@@ -9353,3 +9353,5 @@ lying) and `…-sewn-shake-close.png` (the elbows in a wind-up).
 - In a crease (an elbow bent shut, the armpit, the crotch) the cloth dips under the skin; there may be a thin line of
   skin there.
 - Cloth through cloth (the shirt's hem through the trousers) is not checked (step 5).
+
+Its film (3b2b, made by Opus at medium effort; 6 scenes, 24 beats, about 3.7 minutes): https://claude.ai/artifact/CjdYxDWwby67VTxTNvr28r

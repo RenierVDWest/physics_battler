@@ -849,6 +849,7 @@ tell me what is up next and what is the roadmap".** (16:15; README.)
     crumples over the crotch; a thin line of skin may show in a crease. Step 4 (real cloth) is the answer.
   - **Next: his look in Unity (and his log's `ms_Clothes` and `[Clothes]` lines: does the job compile and run?), then
     step 4.**
+  - Its film: https://claude.ai/artifact/CjdYxDWwby67VTxTNvr28r
 - **What he was told is next (before tonight):** step 7 (more cuts, now built); combos in the six only when he says;
   then the kick at a man who is down (his kick pack), the stab at a downed man that looks odd, the spin combo's own
   sword through his own shield; then the older open things (get-up shield, stumble leftovers, absorbing a hit, the
