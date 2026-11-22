@@ -3,7 +3,7 @@
 22 November 2026, 12:30. Live version: https://claude.ai/artifact/XtzrHrFgNy756LuoBHAsht (progress notes go there and
 here). Written after his look at 12:15 and his word at 12:17: "the planning phase is super important. Make sure to do
 the planning really well". His answers before it: plan and film first; the shirt untucked over the sash; a round neck
-up to the neck.
+up to the neck. Its film: https://claude.ai/artifact/HpZYewCLF56HgLEup9Z8eU
 
 ## Bottom line
 
@@ -121,7 +121,7 @@ drapes on.
 The first draft of the flat pieces, drawn from the code (`Tools/Cloth/pattern_draft.py`, centimetres). Step 1 refines
 it.
 
-**Shirt, 6 pieces:** front and back, each 60 cm wide and 66 cm long, straight from the chest to the hem (no waist
+**Shirt, 5 pieces:** front and back, each 60 cm wide and 66 cm long, straight from the chest to the hem (no waist
 shaping, so it hangs). Two set-in sleeves with a low cap (9 cm), as casual shirts have. A round neck: 8 cm deep at the
 front, 2 cm at the back, with a 40 × 3 cm band in a stiffer fabric, sitting at the base of the neck. The sash gathers
 it at the waist.

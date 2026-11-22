@@ -9207,7 +9207,7 @@ flaps. Every fault he showed has one cause: tubes kept a set distance off the sk
 **The plan** (`Docs/Plans/2026-11-22-clothes-cut-and-sewn-like-real-clothes-research-and-plan.md`, live
 https://claude.ai/artifact/XtzrHrFgNy756LuoBHAsht ): flat pieces drafted by code from real pattern rules and the
 Medium's measures (`Tools/Cloth/measure_body.py`: chest 96 cm, hips 80, neck base 34, arm 57, crotch 82 cm up; the
-arms 16 degrees out in the rest pose); a first draft drawn (`Tools/Cloth/pattern_draft.py`; shirt 6 pieces: front and
+arms 16 degrees out in the rest pose); a first draft drawn (`Tools/Cloth/pattern_draft.py`; shirt 5 pieces: front and
 back 60 x 66 cm straight, set-in sleeves with a 9 cm cap, a 40 x 3 cm neck band; trousers 5 pieces: loose straight legs,
 rise 25/30 cm, inseam 79 cm, drawstring waistband). Sewn and draped once headless (arrange, seam pairs pulled together,
 gravity, the baked drawn body, damping, weld, save), as Marvelous Designer, GarmentCode and NVIDIA's Bolt do. In the game
@@ -9217,3 +9217,5 @@ the cloth's motion kept relative to the body so a job can run through a picture 
 points a fighter at 2 cm. Cost is the main unknown: a gate in step 4 on his Unity numbers (`ms_Clothes`). Six steps;
 he looks after 1, 2 and 4. Five questions: our solver or Magica Cloth 2; the fabric; the fit; the budget; the detail.
 Unity Cloth is out (spheres and capsules only).
+
+Its film (3b2b, made by Opus at medium effort; 8 scenes, 34 beats, about 5 minutes): https://claude.ai/artifact/HpZYewCLF56HgLEup9Z8eU (it found the plan said 6 shirt pieces where its picture has 5; corrected to 5)

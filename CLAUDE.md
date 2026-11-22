@@ -804,6 +804,7 @@ tell me what is up next and what is the roadmap".** (16:15; README.)
   https://claude.ai/artifact/XtzrHrFgNy756LuoBHAsht ): patterns drafted by code from the Medium's measures, sewn and
   draped once headless, then real cloth (XPBD) on the drawn body with max distance, tethers and the last word. His
   answers already: untucked, round neck, plan and film first. **Five questions wait; build only after he says go.**
+  Its film: https://claude.ai/artifact/HpZYewCLF56HgLEup9Z8eU
 - **What he was told is next (before tonight):** step 7 (more cuts, now built); combos in the six only when he says;
   then the kick at a man who is down (his kick pack), the stab at a downed man that looks odd, the spin combo's own
   sword through his own shield; then the older open things (get-up shield, stumble leftovers, absorbing a hit, the
