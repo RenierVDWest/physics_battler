@@ -9519,3 +9519,5 @@ the kick: the new switches off on the left, on on the right).
 - A man lying with his knees bent can still throw a trouser point out as a spike for a moment.
 - Shirt through trousers is not measured; only drawn.
 - The shoulder seam's jagged look in his second picture was not looked into.
+
+Its film (3b2b, made by Opus at medium effort; 6 scenes, 24 beats, about 3.5 minutes): https://claude.ai/artifact/Pp4t1jY2nnTjPUbG9AJ4iG

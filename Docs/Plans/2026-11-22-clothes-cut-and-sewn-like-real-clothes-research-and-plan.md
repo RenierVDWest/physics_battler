@@ -429,6 +429,8 @@ the frame 24.7 to 40.1 ms.
 
 **Next: his look and his log's `ms_Clothes`; then step 5 (layers, cost).**
 
+Its film: https://claude.ai/artifact/Pp4t1jY2nnTjPUbG9AJ4iG
+
 ## Sources
 
 - [Making a sweater with Marvelous Designer](https://dev.epicgames.com/documentation/en-us/uefn/making-a-sweater-with-marvelous-designer-in-unreal-editor-for-fortnite), Epic Games

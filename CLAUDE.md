@@ -891,6 +891,7 @@ tell me what is up next and what is the roadmap".** (16:15; README.)
   - **Not right:** a man lying with knees bent still throws a trouser point as a spike for a moment; shirt through
     trousers not measured; the shoulder seam's jagged look (his second picture) not looked into; the main thread still
     fills the meshes and their normals. **Next: his look and `ms_Clothes`; then step 5.**
+  - Its film: https://claude.ai/artifact/Pp4t1jY2nnTjPUbG9AJ4iG
 - **What he was told is next (before tonight):** step 7 (more cuts, now built); combos in the six only when he says;
   then the kick at a man who is down (his kick pack), the stab at a downed man that looks odd, the spin combo's own
   sword through his own shield; then the older open things (get-up shield, stumble leftovers, absorbing a hit, the
