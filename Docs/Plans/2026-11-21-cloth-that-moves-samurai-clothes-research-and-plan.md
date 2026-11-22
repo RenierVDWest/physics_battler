@@ -215,3 +215,5 @@ points); two guards against tearing; the sums moved into a Burst job, one pictur
 back to hanging, a thread at twice its length in 2.4% of pictures; on the main thread, without the sums, 0.9 ms a fighter.
 **The Burst job is first compiled in his Unity; the frame rate is not known until he runs it.** The build log's entry of
 22 November, 08:20 has the tables.
+
+The film of this build (3b2b): https://claude.ai/artifact/4dFNQateNkfj5hViL6oZda

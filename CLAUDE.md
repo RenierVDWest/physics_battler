@@ -757,7 +757,7 @@ tell me what is up next and what is the roadmap".** (16:15; README.)
   - **The jolt** (`ShockWave.Jolt`, on; Combat Feel "The Shock Wave Is A Jolt" and five levers; lab row "Its kind:";
     `FIGHT_JOLT=0`): one hard knock and a small kick back, still in 0.25 s, at 14 m/s, the grip holds, a heavy one kicks
     the camera (`ShockWave.Jolted` → `OrbitCamera.Kick`). Not built: a squash of the struck part.
-  - Its film: (made after the push)
+  - Its film: https://claude.ai/artifact/4dFNQateNkfj5hViL6oZda
 - **What he was told is next (before tonight):** step 7 (more cuts, now built); combos in the six only when he says;
   then the kick at a man who is down (his kick pack), the stab at a downed man that looks odd, the spin combo's own
   sword through his own shield; then the older open things (get-up shield, stumble leftovers, absorbing a hit, the

@@ -9048,3 +9048,8 @@ camera (`ShockWave.Jolted`, heard by `OrbitCamera.Kick`). Headless, a ring at th
 | Sword's point / shield's rim | 18.2 / 10.4 cm | 12.0 / 4.5 cm |
 
 Not built of the jolt's plan: a squash of the struck part. The camera kick is not seen headless.
+
+**The fight of six after the robe and the jolt** (seed 5, 40 s): crossings 0.07%, tremble 4.8%, as the baseline; none of it
+reaches the six.
+
+**Its film** (3b2b, made by Opus at medium effort; 6 scenes, 24 beats, about 3 minutes): https://claude.ai/artifact/4dFNQateNkfj5hViL6oZda
