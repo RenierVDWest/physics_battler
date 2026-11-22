@@ -390,17 +390,29 @@ namespace PhysicsBattler.Locomotion
         [Range(0f, 1f)] public float joltKicksTheCamera = ShockWave.DefaultJoltCamera;
 
         [Header("Clothes (22 November, after his look at the robe: a shirt and trousers that never go into the body): the labs and the dance only")]
-        [Tooltip("What the fighters in the labs and the dance wear. 1 (new): a long-sleeved shirt to the wrists and trousers to the ankles, with a sash, cut by code from the drawn body and carried on it, so they never go into the body: every cloth point has a home on a body part, a set gap off its drawn skin, moved with the part as it is drawn each picture; and a last word pushes any point, thread middle or face centre still inside the drawn body back out. No wobble yet: they move exactly with him. 2 (old): this morning's open robe. 0: nothing. Not in the fight of six yet.")]
+        [Tooltip("What the fighters in the labs and the dance wear. 1 (new): a long-sleeved shirt to the wrists and trousers to the ankles, with a sash, cut by code from the drawn body and carried on it, so they never go into the body: every cloth point has a home on a body part, a set gap off its drawn skin, moved with the part as it is drawn each picture; within a fence round that home it swings and hangs (the wobble); and a last word pushes any point, thread middle or face centre still inside the drawn body back out. 2 (old): this morning's open robe. 0: nothing. Not in the fight of six yet.")]
         [Range(0, 2)] public int whatTheFightersWear = 1;
 
-        [Tooltip("The shirt and trousers: how far the trousers and sleeves are cut off the drawn skin (metres).")]
-        [Range(0.004f, 0.04f)] public float clothesSitOffTheSkin = Outfit.DefaultGap;
+        [Tooltip("The shirt and trousers: how far the trousers and sleeves are cut off the drawn skin (metres). 2 cm since his look at 11:42 (\"so tight that I cant see any cloth like deformation\"; it was 1.2 cm). They are cut again when it changes.")]
+        [Range(0.004f, 0.06f)] public float clothesSitLooselyOffTheSkin = Outfit.DefaultGap;
 
-        [Tooltip("The shirt and trousers: how far the shirt's body is cut off the drawn skin (metres); a little more than the trousers, so it lies over their waist.")]
-        [Range(0.006f, 0.05f)] public float shirtSitsOffTheSkin = Outfit.DefaultShirtGap;
+        [Tooltip("The shirt and trousers: how far the shirt's body is cut off the drawn skin (metres); a little more than the trousers, so it lies over their waist. 3 cm since 11:42 (was 1.8).")]
+        [Range(0.006f, 0.08f)] public float shirtSitsLooselyOffTheSkin = Outfit.DefaultShirtGap;
 
-        [Tooltip("The shirt and trousers: the slack at the cuffs and the bottoms of the trousers. 1: as cut (1.5 cm at the cuffs, 3.5 cm at the trouser bottoms); 0: tight everywhere; 2: twice as loose. Takes effect when they are put on again (switch the clothes off and on).")]
-        [Range(0f, 2f)] public float clothesLooseAtTheEnds = Outfit.DefaultLoose;
+        [Tooltip("The shirt and trousers: the slack at the cuffs and the bottoms of the trousers. 1: 1.5 cm at the cuffs, 3.5 cm at the trouser bottoms; 0: tight everywhere; 1.6 since 11:42 (was 1).")]
+        [Range(0f, 3f)] public float clothesLooserAtTheEnds = Outfit.DefaultLoose;
+
+        [Tooltip("The shirt and trousers' wobble (the plan's step 4, 22 November). On (new): every cloth point swings with its own speed and hangs by its weight, its threads kept near their cut length, but never further from its home on the body than a fence: none at the collar, shoulders, waist and sash, the most at the cuffs and trouser bottoms. The last word still keeps it out of the body. Off (old): carried exactly with him.")]
+        public bool clothesWobble = true;
+
+        [Tooltip("The wobble: how far a point may stray from its home at most, at the cuffs and trouser bottoms (metres); less toward the shoulders and hips.")]
+        [Range(0f, 0.15f)] public float clothesWobbleReaches = Outfit.DefaultWobble;
+
+        [Tooltip("The wobble: the cloth's weight. 1: about cotton. More: it hangs lower and swings slower.")]
+        [Range(0f, 3f)] public float clothesWeigh = Outfit.DefaultWeight;
+
+        [Tooltip("The wobble: how much of the way home a point is drawn each picture. More: it keeps its cut shape; less: it swings and hangs more freely.")]
+        [Range(0.01f, 0.5f)] public float clothesHoldTheirShape = Outfit.DefaultHold;
 
         [Tooltip("The shirt and trousers: on, the last word pushes any cloth point, thread middle or face centre still inside the drawn body back out, every picture. Off: the homes alone, to see what the last word does.")]
         public bool clothesLastWordKeepsThemOut = true;
@@ -2090,9 +2102,13 @@ namespace PhysicsBattler.Locomotion
             ShockWave.JoltGrip = Mathf.Clamp01(joltHisGripHolds);
             ShockWave.JoltCamera = Mathf.Clamp01(joltKicksTheCamera);
             Clothes.Kind = Mathf.Clamp(whatTheFightersWear, 0, 2);
-            Outfit.Gap = Mathf.Clamp(clothesSitOffTheSkin, 0.002f, 0.06f);
-            Outfit.ShirtGap = Mathf.Clamp(shirtSitsOffTheSkin, 0.004f, 0.08f);
-            Outfit.Loose = Mathf.Clamp(clothesLooseAtTheEnds, 0f, 3f);
+            Outfit.Gap = Mathf.Clamp(clothesSitLooselyOffTheSkin, 0.002f, 0.08f);
+            Outfit.ShirtGap = Mathf.Clamp(shirtSitsLooselyOffTheSkin, 0.004f, 0.1f);
+            Outfit.Loose = Mathf.Clamp(clothesLooserAtTheEnds, 0f, 3f);
+            Outfit.WobbleOn = clothesWobble;
+            Outfit.Wobble = Mathf.Clamp(clothesWobbleReaches, 0f, 0.3f);
+            Outfit.Weight = Mathf.Clamp(clothesWeigh, 0f, 5f);
+            Outfit.Hold = Mathf.Clamp(clothesHoldTheirShape, 0.005f, 1f);
             Outfit.LastWordOn = clothesLastWordKeepsThemOut;
             Outfit.XRay = clothesXRay;
             Clothes.OnOtherCores = theRobeIsWorkedOutOnOtherCores;

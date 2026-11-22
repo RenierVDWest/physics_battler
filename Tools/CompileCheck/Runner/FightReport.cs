@@ -2713,7 +2713,7 @@ internal static class FightReport
                                     }
 
                                     Console.WriteLine(FormattableString.Invariant($"PARTFRAMES {paceAt:0.00} {whoName} {sbFrames}"));
-                                    Console.WriteLine(FormattableString.Invariant($"OUTFITNOW {paceAt:0.00} {whoName}: {who.Clothes.Outfit.InsideNow} points inside; {who.Clothes.Outfit.Check}"));
+                                    Console.WriteLine(FormattableString.Invariant($"OUTFITNOW {paceAt:0.00} {whoName}: {who.Clothes.Outfit.InsideNow} points inside; {who.Clothes.Outfit.Report()}; {who.Clothes.Outfit.Check}"));
                                     continue;
                                 }
 

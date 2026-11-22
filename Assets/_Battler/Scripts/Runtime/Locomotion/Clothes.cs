@@ -129,6 +129,7 @@ namespace PhysicsBattler.Locomotion
         private Garment robe;
         private Outfit outfit;
         private bool outfitTried;
+        private Vector3 outfitFit;
 
         /// <summary>His shirt and trousers, if he wears them.</summary>
         public Outfit Outfit => outfit;
@@ -136,7 +137,59 @@ namespace PhysicsBattler.Locomotion
         /// <summary>The shirt and trousers put on the body as it is drawn this picture (Unity: LateUpdate).</summary>
         public void Place()
         {
-            outfit?.Place();
+            if (outfit == null)
+            {
+                return;
+            }
+
+            using (PhysicsBattler.Diagnostics.Perf.Begin(PhysicsBattler.Diagnostics.PerfSection.Clothes))
+            {
+                outfit.Place(Time.deltaTime);
+            }
+
+            Trace();
+        }
+
+        private PhysicsBattler.Units.UnitController traceUnit;
+        private float traceNext, dumpNext;
+        private int dumpsSeen;
+
+        /// <summary>
+        /// What the cloth is doing, into his playtest log: a "cloth" line twice a second; and the whole cloth with the body
+        /// as drawn ("clothdump" lines, the headless dump's format) every so often while "Shake him" runs, and once when
+        /// "Log the cloth now" is pressed. `Tools/Headless/unitylog_outfit.sh` turns them into pictures.
+        /// </summary>
+        private void Trace()
+        {
+            if (traceUnit == null && owner != null)
+            {
+                traceUnit = owner.GetComponent<PhysicsBattler.Units.UnitController>();
+            }
+
+            if (traceUnit == null)
+            {
+                return;
+            }
+
+            float now = Time.time;
+            if (now >= traceNext)
+            {
+                traceNext = now + 0.5f;
+                PhysicsBattler.Diagnostics.PlaytestTrace.Note(traceUnit, "cloth", outfit.Report());
+            }
+
+            bool asked = Outfit.DumpRequests != dumpsSeen;
+            bool timed = Outfit.DumpEvery > 0f && now >= dumpNext;
+            if (asked || timed)
+            {
+                dumpsSeen = Outfit.DumpRequests;
+                dumpNext = now + Mathf.Max(0.2f, Outfit.DumpEvery);
+                string who = owner.name.Replace(' ', '_');
+                foreach (var line in outfit.DumpLines(now.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture), who))
+                {
+                    PhysicsBattler.Diagnostics.PlaytestTrace.Note(traceUnit, "clothdump", line);
+                }
+            }
         }
         private readonly UnitRig rig;
         private readonly ShockWave wave;
@@ -186,6 +239,16 @@ namespace PhysicsBattler.Locomotion
 
             // (The shirt and trousers: carried on the body; placed as the picture is drawn (Place), or here headless.)
             bool wantOutfit = allowed && Kind == 1;
+            // (Its fit changed (the lab's sliders): cut again.)
+            var fit = new Vector3(Outfit.Gap, Outfit.ShirtGap, Outfit.Loose);
+            if (outfit != null && fit != outfitFit)
+            {
+                outfit.Release();
+                outfit = null;
+                outfitTried = false;
+            }
+
+            outfitFit = fit;
             if (wantOutfit && outfit == null && !outfitTried)
             {
                 outfitTried = true;
@@ -209,7 +272,7 @@ namespace PhysicsBattler.Locomotion
 
 #if HEADLESS_STUB
             // (Headless there is no LateUpdate: placed here, after the step, on the body as it stands.)
-            outfit?.Place();
+            outfit?.Place(dt);
 #endif
 
             bool want = allowed && Wear;

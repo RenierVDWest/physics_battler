@@ -191,16 +191,18 @@ namespace PhysicsBattler.Locomotion
         /// part. A large one means Unity places the meshes differently from what the bake assumed (X mirrored, nothing
         /// else).
         /// </summary>
-        public string CheckAgainst(UnitRig rig, float size)
+        public string CheckAgainst(UnitRig rig, float size, PartId[] only = null)
         {
             float worst = 0f;
             string where = "none checked";
             int checkedParts = 0;
             foreach (var id in PartInfo.All)
             {
+                // (Only the parts the clothes cover: a hand's first mesh may be the sword it holds, 788 mm "off" in his
+                // log of 11:43.)
                 var f = Of(id);
                 var part = rig != null ? rig.Part(id) : null;
-                if (f == null || part == null)
+                if (f == null || part == null || (only != null && System.Array.IndexOf(only, id) < 0))
                 {
                     continue;
                 }

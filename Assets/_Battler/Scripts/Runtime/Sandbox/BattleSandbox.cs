@@ -1664,6 +1664,7 @@ namespace PhysicsBattler.Sandbox
                 if (t > 20f)
                 {
                     shakeFrom = -1f;
+                    PhysicsBattler.Locomotion.Outfit.DumpEvery = 0f;
                     message = "Shake him: done.";
                 }
 
@@ -4392,22 +4393,20 @@ namespace PhysicsBattler.Sandbox
         // Names are matched whole, without a chosen button's square brackets; capitals do not matter.
 
         /// <summary>Names this push's list. Change it with every push that needs his eye: his "highlights off" is kept by tag, so a new list is shown again.</summary>
-        private const string LookTag = "22 November, late morning: a shirt and trousers that never go into the body (built blind)";
+        private const string LookTag = "22 November, noon: the clothes looser and swinging (the wobble), logged for me (built blind)";
 
         /// <summary>What he is asked to do, in order.</summary>
         private static readonly string[] LookSteps =
         {
-            "1. Go to \"Duel\", the heading \"Clothes\". Both men wear a long-sleeved shirt, trousers to the feet and a sash (\"Clothes:\" shirt and trousers). Nothing is hidden: the whole body is still drawn under the cloth. Press \"Shake him\" (about 18 seconds: walk, leaps, blow, combo, bash, kick down, get-up). Look for any skin or limb poking through the cloth, above all at the knees, elbows, shoulders and hips.",
-            "2. \"X-ray:\" on draws any cloth point that is inside the drawn body as a red cross, through everything, so a fault cannot hide. \"Cloth inside the body\" counts them (the goal is 0; headless it is about 0).",
-            "3. \"The last word:\" off shows the cloth without its last push out of the body: you should see it go into him at bends. Turn it back on.",
-            "4. Try \"Off the skin\", \"Shirt off the skin\" (how far it sits off him) and \"Loose at the ends\" (how wide the cuffs and trouser legs are). Watch the frame rate with \"Clothes:\" none and with the clothes.",
-            "5. In the Unity console, find the line \"[Clothes] the baked body against the meshes Unity loaded\": it says whether the baked body matches the meshes in your project. Push your log afterwards.",
+            "1. Go to \"Duel\", the heading \"Clothes\". The shirt and trousers now sit looser (2 cm off the skin, the shirt 3 cm, wider at the ends) and swing: \"The wobble:\" on (new) / off (old). Press \"Shake him\": do the cuffs and trouser bottoms swing and settle like cloth? Does anything come through?",
+            "2. Try \"Wobble reaches\" (how far it may swing), \"Cloth weight\" and \"Holds its shape\" (less: freer). \"Off the skin\", \"Shirt off the skin\" and \"Loose at the ends\" now cut the clothes again as you drag them.",
+            "3. \"Shake him\" writes the whole cloth into the playtest log every 1.5 s; \"Log the cloth now\" does it once. Push the log afterwards: I can draw what Unity did from it. \"Cloth inside the body\" shows what the cloth is doing now.",
         };
 
         /// <summary>The names of what he is to press and watch.</summary>
         private static readonly string[] LookHere =
         {
-            "Duel", "Clothes", "Clothes:", "Shake him:", "X-ray:", "The last word:", "Off the skin", "Shirt off the skin", "Loose at the ends", "Cloth inside the body",
+            "Duel", "Clothes", "The wobble:", "Shake him:", "Wobble reaches", "Cloth weight", "Holds its shape", "Off the skin", "Shirt off the skin", "Loose at the ends", "Log the cloth:", "Cloth inside the body",
         };
 
         /// <summary>For the panel check (headless): the names of <see cref="LookHere"/> that were really drawn, and every section taken as open while it looks.</summary>
@@ -5467,6 +5466,7 @@ namespace PhysicsBattler.Sandbox
             {
                 shakeFrom = Time.time;
                 shakeNext = 0;
+                PhysicsBattler.Locomotion.Outfit.DumpEvery = 1.5f;
                 message = "Shake him: begun.";
             }
 
@@ -5483,11 +5483,23 @@ namespace PhysicsBattler.Sandbox
                 if (Press(feel.clothesLastWordKeepsThemOut ? "[on]" : "on", "Pushed out every picture.")) feel.clothesLastWordKeepsThemOut = true;
                 if (Press(!feel.clothesLastWordKeepsThemOut ? "[off]" : "off", "The homes alone.")) feel.clothesLastWordKeepsThemOut = false;
                 EndRow();
-                feel.clothesSitOffTheSkin = Lever("Off the skin", feel.clothesSitOffTheSkin, 0.004f, 0.04f, "How far the trousers and sleeves are cut off the drawn skin (metres). Takes effect when they are put on again.");
-                feel.shirtSitsOffTheSkin = Lever("Shirt off the skin", feel.shirtSitsOffTheSkin, 0.006f, 0.05f, "How far the shirt's body is cut off the drawn skin (metres). Takes effect when they are put on again.");
-                feel.clothesLooseAtTheEnds = Lever("Loose at the ends", feel.clothesLooseAtTheEnds, 0f, 2f, "The slack at the cuffs and the trouser bottoms (1: as cut). Takes effect when they are put on again.");
+                feel.clothesSitLooselyOffTheSkin = Lever("Off the skin", feel.clothesSitLooselyOffTheSkin, 0.004f, 0.06f, "How far the trousers and sleeves are cut off the drawn skin (metres; 0.02 now, 0.012 at first). They are cut again when it changes.");
+                feel.shirtSitsLooselyOffTheSkin = Lever("Shirt off the skin", feel.shirtSitsLooselyOffTheSkin, 0.006f, 0.08f, "How far the shirt's body is cut off the drawn skin (metres; 0.03 now, 0.018 at first). Cut again when it changes.");
+                feel.clothesLooserAtTheEnds = Lever("Loose at the ends", feel.clothesLooserAtTheEnds, 0f, 3f, "The slack at the cuffs and the trouser bottoms (1.6 now, 1 at first). Cut again when it changes.");
+                BeginRow();
+                Words(new GUIContent("The wobble:", "Combat Feel \"Clothes Wobble\" (the plan's step 4). On (new): the cloth swings with its own speed and hangs by its weight, never further from its place on the body than a fence: none at the collar, shoulders, waist and sash, the most at the cuffs and trouser bottoms; the last word still keeps it out of the body. Off (old): carried exactly with him."));
+                if (Press(feel.clothesWobble ? "[on]" : "on", "The cloth swings and hangs.")) feel.clothesWobble = true;
+                if (Press(!feel.clothesWobble ? "[off]" : "off", "Carried exactly.")) feel.clothesWobble = false;
+                EndRow();
+                feel.clothesWobbleReaches = Lever("Wobble reaches", feel.clothesWobbleReaches, 0f, 0.15f, "How far a point may stray from its place at most, at the cuffs and trouser bottoms (metres; less toward the shoulders and hips).");
+                feel.clothesWeigh = Lever("Cloth weight", feel.clothesWeigh, 0f, 3f, "1: about cotton. More: it hangs lower and swings slower.");
+                feel.clothesHoldTheirShape = Lever("Holds its shape", feel.clothesHoldTheirShape, 0.01f, 0.5f, "How much of the way back to its place a point is drawn each picture. Less: it swings and hangs more freely.");
+                BeginRow();
+                Words(new GUIContent("Log the cloth:", "Writes the whole cloth of both men and their bodies as drawn into the playtest log, once (\"clothdump\" lines), so it can be drawn and checked afterwards. \"Shake him\" does it every 1.5 seconds by itself. A \"cloth\" line goes to the log twice a second all the time."));
+                if (Press("Log the cloth now", "Both men's cloth into the playtest log, once.")) { PhysicsBattler.Locomotion.Outfit.DumpRequests++; message = "The cloth is in the playtest log."; }
+                EndRow();
                 var other = Duel.Other != null ? Duel.Other.Clothes : null;
-                string now = other != null && other.Outfit != null ? $" This picture, the other: {other.Outfit.InsideNow} points inside. {other.Outfit.Check}." : "";
+                string now = other != null && other.Outfit != null ? $" This picture, the other: {other.Outfit.InsideNow} points inside; {other.Outfit.Report()}. {other.Outfit.Check}." : "";
                 Readout(new GUIContent("Cloth inside the body: " + PhysicsBattler.Locomotion.Outfit.Counted() + "." + now, "Every picture of both men's shirt and trousers since the scene began, measured against the drawn body (the baked meshes, not the physics shapes): cloth points, thread middles and face centres inside it (the goal is 0), the deepest, how often the last word had to push, and the cost. The line at the end is the start-up check: the baked body against the meshes Unity loaded."), 4);
                 return;
             }

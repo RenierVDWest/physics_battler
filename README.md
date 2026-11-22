@@ -9155,3 +9155,37 @@ anything was drawn (headless never compiles the job). Mended: the job gets its s
 (`OutfitJob.cs`), and if the job ever fails, a `[Clothes] the job on other cores failed` error is logged once and the
 clothes are worked out on the main thread from then on, so they are drawn anyway (`Outfit.Run`). **Not confirmed: if
 they still do not show, the console's red lines are what I need.**
+
+### 22 November, 12:05: the clothes looser and swinging (the wobble, step 4), and logged for me (headless only, built blind)
+
+**His logs of 11:30 to 11:43 (Unity):** the first had `InvalidOperationException: OutfitJob.Settings.Grid uses unsafe
+Pointers` every picture: the cause of no clothes, as guessed; the 11:35 mend works (no exceptions at 11:43, the job on
+other cores). Frame time with the clothes on, both men: median 18.5 ms, 90% under 26 ms (a whole frame, everything).
+The swordsman's start-up check said "788 mm off (HandR) - NOT AS BAKED": its first mesh under the hand is the sword.
+Now only the parts the clothes cover are checked.
+
+**His word at 11:42:** "the cloth is so tight that I cant see any cloth like deformation. Can you make it sit a bit more
+loosely". And at 11:45: "add some debug data so that you can get an idea of what the cloth is doing".
+
+**Looser** (new Combat Feel names, as defaults changed): off the skin 2 cm (was 1.2), the shirt 3 cm (1.8), loose at the
+ends 1.6 (1). Changing any of them in the lab now cuts the clothes again at once (`Clothes.Step` watches the fit).
+
+**The wobble** (the plan's step 4; `OutfitSolve.Wobble`; Combat Feel "Clothes Wobble", "Clothes Wobble Reaches" 5 cm,
+"Clothes Weigh" 1, "Clothes Hold Their Shape" 0.1; lab "The wobble:", "Wobble reaches", "Cloth weight", "Holds its
+shape"): each point keeps where it was last picture and the one before (Verlet), falls by its weight, is drawn a share of
+the way home, its threads kept near their cut length (stretched: all the way; crumpled: a tenth), and never further from
+home than its fence: the reach times its sway (0 at the collar, shoulders, waist and sash; 0.5 just above the sash; up to
+1 at the cuffs and trouser bottoms). Thrown more than 30 cm in one picture: put home. The last word comes after it, as
+before. Headless (Shake him, hold 0.06): points away from home 2 cm on average, 3 to 4.5 cm at the cuffs and trouser
+bottoms, hanging about 2.5 cm; points inside 0 of 14.9 million, thread middles 65 of 29 million, exact check 0 of 1.5
+million. At hold 0.06 two thirds of the free points sat at their fence (hanging there), so the default is 0.1. The
+pull home is per picture, so it is a little stiffer at a lower frame rate.
+
+**What it logs** (`Clothes.Trace`): a `cloth` line per man twice a second (wobble on/off, other cores or main thread,
+how far from home on average, the most and in which piece, at the cuffs and trouser bottoms, how far they hang, how many
+at their fence, what the last word pushed, inside now, the main thread's ms, the fit and wobble settings); `clothdump`
+lines (every point of every piece and every part as drawn, the headless dump's format) every 1.5 s while "Shake him"
+runs and once on "Log the cloth now". `Tools/Headless/unitylog_outfit.sh <log folder> <Swordsman|Target> [Part]` draws
+them with the real meshes. A perf column `ms_Clothes` (the placing, with the wait for the job).
+
+**Not known:** how it looks or costs in Unity.

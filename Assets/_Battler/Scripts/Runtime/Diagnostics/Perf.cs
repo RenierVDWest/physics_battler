@@ -51,6 +51,9 @@ namespace PhysicsBattler.Diagnostics
         /// <summary>The recorder's picture: encoded and saved (JPEG).</summary>
         CaptureSave,
 
+        /// <summary>The shirt and trousers placed for the picture (LateUpdate; the job on other cores is waited for inside it).</summary>
+        Clothes,
+
         Count,
     }
 

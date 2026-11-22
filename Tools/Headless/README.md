@@ -260,3 +260,7 @@ with `FIGHT_FILM="$S/name.json,3,8.5,medium"`.
 - The body is baked by `python3 -I Tools/Cloth/bake_body.py medium` into
   `Assets/_Battler/Resources/Locomotion/BodyFields_Medium.json` (no `.meta`: he makes it in Unity). Each limb's field is
   joined with a ball at its joint: the limb meshes' tops are hollow sockets, and cloth slipped into them unseen.
+- **From his Unity logs:** `Tools/Headless/unitylog_outfit.sh PlaytestLogs/<folder> Swordsman [Part] [every]` draws the
+  `clothdump` lines ("Shake him" writes one every 1.5 s, "Log the cloth now" one) with the real meshes into
+  `$S/unity_Swordsman.outfit.png`. The `cloth` lines (twice a second) say what it is doing; `ms_Clothes` in perf.csv.
+  Headless the same report is in the `OUTFITNOW` line.

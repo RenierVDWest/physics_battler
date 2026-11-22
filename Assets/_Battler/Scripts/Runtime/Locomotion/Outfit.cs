@@ -23,7 +23,28 @@ namespace PhysicsBattler.Locomotion
     {
         // ---- Settings (Combat Feel pushes them) ---------------------------------------------------------------------
 
-        public const float DefaultGap = 0.012f, DefaultShirtGap = 0.018f, DefaultLoose = 1f;
+        // (Looser since his look at 11:42, "so tight that I cant see any cloth like deformation": 1.2 cm, 1.8 cm and 1
+        // were the first cut.)
+        public const float DefaultGap = 0.02f, DefaultShirtGap = 0.03f, DefaultLoose = 1.6f;
+        public const float DefaultWobble = 0.05f, DefaultWeight = 1f, DefaultHold = 0.1f;
+
+        /// <summary>The wobble (the plan's step 4): on, the cloth swings and hangs within a fence round its home; off (old): carried exactly.</summary>
+        public static bool WobbleOn = true;
+
+        /// <summary>How far a point may stray from its home at most (metres, at the cuffs and the trouser bottoms; less toward the shoulders and hips, none at the collar, waist and sash).</summary>
+        public static float Wobble = DefaultWobble;
+
+        /// <summary>The cloth's weight (1: about cotton): how much it hangs.</summary>
+        public static float Weight = DefaultWeight;
+
+        /// <summary>How much of the way home a point is drawn each picture (more: it keeps its shape; less: it swings and hangs freely).</summary>
+        public static float Hold = DefaultHold;
+
+        /// <summary>How much of its speed a point loses each picture.</summary>
+        public static float Damp = 0.05f;
+
+        /// <summary>Passes over the threads each picture.</summary>
+        public static int ThreadPasses = 4;
 
         /// <summary>How far the trousers and sleeves are cut off the drawn skin (metres, at a Medium's size).</summary>
         public static float Gap = DefaultGap;
@@ -112,6 +133,12 @@ namespace PhysicsBattler.Locomotion
 
         private readonly List<Tube> tubes = new List<Tube>();
         private Vector3[] x = new Vector3[0];
+        // (The wobble's: each point's home this picture, where it was the picture before, its sway, and its threads'
+        // cut lengths to the next point round (U) and along (V), at scale 1.)
+        private Vector3[] home = new Vector3[0], prev = new Vector3[0];
+        private float[] sway = new float[0], restU = new float[0], restV = new float[0];
+        private readonly List<float> swayAll = new List<float>();
+        private bool still = true;
         private OutfitSolve.Anchor[] anchors = new OutfitSolve.Anchor[0];
         private readonly UnitRig rig;
         private readonly ShockWave wave;
@@ -159,7 +186,7 @@ namespace PhysicsBattler.Locomotion
 
             var made = new Outfit(rig, wave, fields, size, side, owner);
             made.Cut();
-            made.Check = fields.CheckAgainst(rig, made.size);
+            made.Check = fields.CheckAgainst(rig, made.size, Covered);
             return made;
         }
 
@@ -251,6 +278,7 @@ namespace PhysicsBattler.Locomotion
             public PartId A, B;
             public float W;
             public bool Midline;
+            public float Sway;
         }
 
         private void Cut()
@@ -259,6 +287,7 @@ namespace PhysicsBattler.Locomotion
             var all = new List<Vector3>();
             var anchorList = new List<OutfitSolve.Anchor>();
             tubes.Clear();
+            swayAll.Clear();
 
             // (The shirt's body: up the trunk from a little below the waist to the base of the neck; finer over the
             // shoulders' tops, where the rings close in fast.)
@@ -286,6 +315,9 @@ namespace PhysicsBattler.Locomotion
                 else if (y < chestY + 0.05f) { s.Joint = 1; s.A = PartId.Spine; s.B = PartId.Chest; s.W = (y - (chestY - 0.05f)) / 0.10f; }
                 else { s.A = PartId.Chest; }
 
+                // (The shirt sways a little: none under the sash and at the collar and shoulders, most just above the
+                // sash, where it blouses.)
+                s.Sway = y < 0.12f || y > 0.47f ? 0f : y < 0.2f ? 0.5f : Mathf.Lerp(0.5f, 0.15f, Mathf.Clamp01((y - 0.2f) / 0.2f));
                 trunk.Add(s);
             }
 
@@ -315,6 +347,25 @@ namespace PhysicsBattler.Locomotion
             AddTube("sash", sash, 40, false, new[] { PartId.Pelvis, PartId.Spine }, all, anchorList);
             tubes[tubes.Count - 1].IsSash = true;
             x = all.ToArray();
+            sway = swayAll.ToArray();
+            home = new Vector3[x.Length];
+            prev = new Vector3[x.Length];
+            restU = new float[x.Length];
+            restV = new float[x.Length];
+            foreach (var tb in tubes)
+            {
+                for (int r = 0; r < tb.Rings; r++)
+                {
+                    for (int c = 0; c < tb.Cols; c++)
+                    {
+                        int a = tb.Start + r * tb.Cols + c;
+                        restU[a] = (x[tb.Start + r * tb.Cols + (c + 1) % tb.Cols] - x[a]).magnitude;
+                        restV[a] = r + 1 < tb.Rings ? (x[a + tb.Cols] - x[a]).magnitude : 0f;
+                    }
+                }
+            }
+
+            still = true;
             anchors = anchorList.ToArray();
             tubeOf = new int[x.Length];
             for (int k = 0; k < tubes.Count; k++)
@@ -399,6 +450,10 @@ namespace PhysicsBattler.Locomotion
                     st.A = lower;
                 }
 
+                // (A limb's cloth sways more toward its end: none over the joint with the trunk, all of it at the cuff or
+                // the trouser bottom.)
+                float swayFrom = trousers ? 0.10f : 0.06f;
+                st.Sway = Mathf.Pow(Mathf.Clamp01((t - swayFrom) / (total - swayFrom)), trousers ? 1.3f : 1.1f);
                 list.Add(st);
             }
 
@@ -426,6 +481,7 @@ namespace PhysicsBattler.Locomotion
                     float r = RayOut(st.C, dir, st.CutBy, st.Gap, st.Midline) + st.Slack * Loose;
                     Vector3 p = st.C + dir * r;
                     all.Add(p);
+                    swayAll.Add(st.Sway);
                     var an = new OutfitSolve.Anchor { Joint = st.Joint, A = (int)st.A, B = (int)st.B, W = st.W };
                     if (st.Joint == 0)
                     {
@@ -584,13 +640,18 @@ namespace PhysicsBattler.Locomotion
             fixed (OutfitSolve.Anchor* an = anchors)
             fixed (OutfitSolve.Piece* pc = pieces)
             fixed (Vector3* xs = x)
+            fixed (Vector3* hm = home)
+            fixed (Vector3* pv = prev)
+            fixed (float* sw = sway)
+            fixed (float* ru = restU)
+            fixed (float* rv = restV)
             fixed (float* dn = dNear)
             fixed (byte* mv = moved)
             fixed (byte* ins = insideFlags)
             fixed (OutfitSolve.Stats* st = stats)
             {
                 var d = Settings(measure);
-                d.Grid = g; d.Fields = pf; d.Frames = fr0; d.Anchors = an; d.Pieces = pc; d.X = xs; d.DNear = dn; d.Moved = mv; d.Inside = ins; d.Stats = st;
+                d.Grid = g; d.Fields = pf; d.Frames = fr0; d.Anchors = an; d.Pieces = pc; d.X = xs; d.Home = hm; d.Prev = pv; d.Sway = sw; d.RestU = ru; d.RestV = rv; d.DNear = dn; d.Moved = mv; d.Inside = ins; d.Stats = st;
                 for (int t = 0; t < pieces.Length; t++)
                 {
                     OutfitSolve.Piece1(ref d, t);
@@ -603,7 +664,11 @@ namespace PhysicsBattler.Locomotion
         {
             Size = size, PointMargin = PointMargin, MiddleMargin = MiddleMargin, OtherMargin = OtherMargin,
             LastWord = LastWordOn ? 1 : 0, Rounds = Mathf.Max(0, Rounds), Measure = measure ? 1 : 0, Smooth = Mathf.Max(0, Smooth),
+            WobbleOn = WobbleOn ? 1 : 0, Iters = Mathf.Max(0, ThreadPasses), Reset = still ? 1 : 0, Dt = dt,
+            Wobble = Mathf.Max(0f, Wobble), Weight = Mathf.Max(0f, Weight), Hold = Mathf.Clamp01(Hold), Damp = Mathf.Clamp01(Damp),
         };
+
+        private float dt = 1f / 60f;
 
         // (For the job: the arrays as they are.)
         public short[] GridArray => grid;
@@ -612,6 +677,11 @@ namespace PhysicsBattler.Locomotion
         public OutfitSolve.Anchor[] AnchorArray => anchors;
         public OutfitSolve.Piece[] PieceArray => pieces;
         public Vector3[] PointArray => x;
+        public Vector3[] HomeArray => home;
+        public Vector3[] PrevArray => prev;
+        public float[] SwayArray => sway;
+        public float[] RestUArray => restU;
+        public float[] RestVArray => restV;
         public OutfitSolve.Stats[] StatsArray => stats;
         public byte[] InsideArray => insideFlags;
 
@@ -620,7 +690,7 @@ namespace PhysicsBattler.Locomotion
         /// drawing. In Unity it is called as the picture is about to be drawn (LateUpdate), so it sees the body exactly as
         /// drawn; headless after each step.
         /// </summary>
-        public void Place()
+        public void Place(float dt)
         {
             if (x.Length == 0)
             {
@@ -628,8 +698,10 @@ namespace PhysicsBattler.Locomotion
             }
 
             var clock = System.Diagnostics.Stopwatch.StartNew();
+            this.dt = dt > 0f ? dt : 1f / 60f;
             Frames();
             Run(clock);
+            still = false;
         }
 
         /// <summary>
@@ -651,7 +723,9 @@ namespace PhysicsBattler.Locomotion
                 fi[p] = Quaternion.Inverse(rot[p]);
             }
 
+            still = true; // (a pose by hand, unrelated to the last: no wobble carried over)
             Run(clock);
+            still = true;
         }
 
         /// <summary>
@@ -737,6 +811,8 @@ namespace PhysicsBattler.Locomotion
             }
 
             ExactCheck();
+            RanOnOtherCores = threaded;
+            LastMs = (float)clock.Elapsed.TotalMilliseconds;
             CostMs += (float)clock.Elapsed.TotalMilliseconds;
             Pictures++;
             Draw();
@@ -1039,5 +1115,89 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>The parts as drawn this picture (for the same picture): place and turn.</summary>
         public (Vector3, Quaternion) PartFrame(PartId p) => (fp[(int)p], fr[(int)p]);
+
+        // ---- What the cloth is doing, for his playtest log (22 November, his ask at 11:45) -------------------------
+
+        /// <summary>While above 0 (Shake him sets it), a full picture of the cloth goes to the log this often (seconds).</summary>
+        public static float DumpEvery;
+
+        /// <summary>Set by the lab's "Log the cloth now": one full picture of each man's cloth at the next picture.</summary>
+        public static int DumpRequests;
+
+        /// <summary>Did the last picture run on other cores (true), or here?</summary>
+        public bool RanOnOtherCores { get; private set; }
+
+        /// <summary>The main thread's time for the last picture (ms).</summary>
+        public float LastMs { get; private set; }
+
+        /// <summary>
+        /// One line on what the cloth is doing this picture: how far its points are from their homes (all, and at the
+        /// cuffs and trouser bottoms), how far the ends hang, how many are at their fence, what the last word pushed,
+        /// what is inside, and the cost.
+        /// </summary>
+        public string Report()
+        {
+            if (x.Length == 0)
+            {
+                return "no cloth";
+            }
+
+            double sumAll = 0, sumEnds = 0, hang = 0;
+            int nAll = 0, nEnds = 0, atFence = 0;
+            float most = 0f;
+            string mostIn = "";
+            foreach (var t in tubes)
+            {
+                for (int i = t.Start; i < t.Start + t.Rings * t.Cols; i++)
+                {
+                    if (sway[i] <= 0f)
+                    {
+                        continue;
+                    }
+
+                    Vector3 off = x[i] - home[i];
+                    float m = off.magnitude;
+                    sumAll += m; nAll++;
+                    if (m > most) { most = m; mostIn = t.Name; }
+                    if (sway[i] > 0.8f) { sumEnds += m; hang += -off.y; nEnds++; }
+                    float fence = Wobble * sway[i] * size;
+                    if (fence > 0f && m >= fence * 0.97f) { atFence++; }
+                }
+            }
+
+            long pushed = 0;
+            foreach (var st in stats) { pushed += st.Pushed; }
+
+            return string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                "wobble {0}; {1}; {2} points, {3} free to sway; from home: on average {4:0.0} cm, the most {5:0.0} cm ({6}); at the cuffs and trouser bottoms {7:0.0} cm, hanging {8:0.0} cm; at their fence {9}; the last word pushed {10} times; inside now {11}; {12:0.00} ms; fit {13:0.000}/{14:0.000}/{15:0.0}, reach {16:0.000}, weight {17:0.0}, hold {18:0.00}",
+                WobbleOn ? "on" : "off", RanOnOtherCores ? "other cores" : "main thread", x.Length, nAll,
+                nAll > 0 ? 100.0 * sumAll / nAll : 0.0, 100f * most, mostIn, nEnds > 0 ? 100.0 * sumEnds / nEnds : 0.0, nEnds > 0 ? 100.0 * hang / nEnds : 0.0,
+                atFence, pushed, inside.Count, LastMs, Gap, ShirtGap, Loose, Wobble, Weight, Hold);
+        }
+
+        /// <summary>The whole cloth and the body's parts as drawn, as the headless dump's lines (outfit.py and coverage.py read them).</summary>
+        public IEnumerable<string> DumpLines(string at, string who)
+        {
+            var inv = System.Globalization.CultureInfo.InvariantCulture;
+            foreach (var (tubeName, rings, cols, pts) in Tubes())
+            {
+                var sb = new System.Text.StringBuilder();
+                foreach (var p in pts)
+                {
+                    sb.Append(p.x.ToString("0.0000", inv)).Append(':').Append(p.y.ToString("0.0000", inv)).Append(':').Append(p.z.ToString("0.0000", inv)).Append(' ');
+                }
+
+                yield return $"OUTFITTUBE {at} {who} {tubeName.Replace(' ', '_').Replace("'", "")} {rings} {cols} {sb}";
+            }
+
+            var sf = new System.Text.StringBuilder();
+            foreach (var id in PartInfo.All)
+            {
+                var (p, q) = PartFrame(id);
+                sf.Append(string.Format(inv, "{0}:{1:0.0000}:{2:0.0000}:{3:0.0000}:{4:0.00000}:{5:0.00000}:{6:0.00000}:{7:0.00000} ", id, p.x, p.y, p.z, q.x, q.y, q.z, q.w));
+            }
+
+            yield return $"PARTFRAMES {at} {who} {sf}";
+        }
     }
 }

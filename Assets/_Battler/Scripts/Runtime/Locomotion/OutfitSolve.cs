@@ -58,12 +58,17 @@ namespace PhysicsBattler.Locomotion
             public Frame* Frames;
             public Anchor* Anchors;
             public Piece* Pieces;
-            public Vector3* X;
-            public float* DNear;
+            public Vector3* X, Home, Prev;
+            public float* DNear, Sway, RestU, RestV;
             public byte* Moved, Inside;
             public Stats* Stats;
             public float Size, PointMargin, MiddleMargin, OtherMargin;
             public int LastWord, Rounds, Measure, Smooth;
+            // (The wobble: on, the picture's time, how far a point may stray from its home at most (times its own
+            // sway), its weight, how much of the way home it is drawn each picture, how much of its speed it loses,
+            // the thread passes, and Reset: every point put home and stilled.)
+            public int WobbleOn, Iters, Reset;
+            public float Dt, Wobble, Weight, Hold, Damp;
         }
 
         // ---- The body's fields -------------------------------------------------------------------------------------
@@ -304,6 +309,104 @@ namespace PhysicsBattler.Locomotion
             return true;
         }
 
+        /// <summary>
+        /// Every point to its home on the body as drawn; with the wobble on, carried on from where it was by its own speed
+        /// and its weight, drawn part of the way home, its threads kept near their cut length (stretched hard, crumpled
+        /// easily), and never further from home than its fence (the plan's step 4: a fenced wobble, as NVIDIA's, Unity's
+        /// and Unreal's cloth do with max distance). The last word comes after it.
+        /// </summary>
+        private static void Wobble(ref Data d, Piece* pc, int n, int s0)
+        {
+            Vector3* x = d.X, h = d.Home, pv = d.Prev;
+            bool on = d.WobbleOn != 0 && d.Wobble > 0f;
+            for (int i = s0; i < s0 + n; i++)
+            {
+                h[i] = Home(ref d, i);
+            }
+
+            if (!on || d.Reset != 0)
+            {
+                for (int i = s0; i < s0 + n; i++)
+                {
+                    x[i] = h[i];
+                    pv[i] = h[i];
+                }
+
+                return;
+            }
+
+            float dt = d.Dt < 1f / 240f ? 1f / 240f : d.Dt > 1f / 30f ? 1f / 30f : d.Dt;
+            Vector3 fall = new Vector3(0f, -9.81f * d.Weight * dt * dt, 0f);
+            for (int i = s0; i < s0 + n; i++)
+            {
+                float fence = d.Wobble * d.Sway[i] * d.Size;
+                Vector3 p = x[i];
+                Vector3 off = p - h[i];
+                // (No sway here, or thrown far in one picture (set out, a teleport): home, still.)
+                if (fence <= 1e-5f || off.x * off.x + off.y * off.y + off.z * off.z > 0.09f)
+                {
+                    x[i] = h[i];
+                    pv[i] = h[i];
+                    continue;
+                }
+
+                Vector3 v = (p - pv[i]) * (1f - d.Damp);
+                pv[i] = p;
+                p += v + fall;
+                p += (h[i] - p) * d.Hold;
+                x[i] = p;
+            }
+
+            for (int it = 0; it < d.Iters; it++)
+            {
+                for (int r = 0; r < pc->Rings; r++)
+                {
+                    for (int c = 0; c < pc->Cols; c++)
+                    {
+                        int a = s0 + r * pc->Cols + c;
+                        Thread(ref d, a, s0 + r * pc->Cols + (c + 1) % pc->Cols, d.RestU[a] * d.Size);
+                        if (r + 1 < pc->Rings)
+                        {
+                            Thread(ref d, a, a + pc->Cols, d.RestV[a] * d.Size);
+                        }
+                    }
+                }
+            }
+
+            for (int i = s0; i < s0 + n; i++)
+            {
+                float fence = d.Wobble * d.Sway[i] * d.Size;
+                Vector3 off = x[i] - h[i];
+                float m = Mathf.Sqrt(off.x * off.x + off.y * off.y + off.z * off.z);
+                if (m > fence)
+                {
+                    x[i] = m > 1e-6f ? h[i] + off * (fence / m) : h[i];
+                }
+            }
+        }
+
+        /// <summary>A thread between two points brought toward its cut length: all the way if stretched, a little if crumpled. A point with no sway does not move.</summary>
+        private static void Thread(ref Data d, int a, int b, float rest)
+        {
+            float wa = d.Sway[a] > 0f ? 1f : 0f, wb = d.Sway[b] > 0f ? 1f : 0f;
+            if (wa + wb <= 0f)
+            {
+                return;
+            }
+
+            Vector3 e = d.X[b] - d.X[a];
+            float len = Mathf.Sqrt(e.x * e.x + e.y * e.y + e.z * e.z);
+            if (len < 1e-6f)
+            {
+                return;
+            }
+
+            float k = len > rest ? 1f : 0.1f;
+            Vector3 fix = e * ((len - rest) / len * k / (wa + wb));
+            d.X[a] += fix * wa;
+            d.X[b] -= fix * wb;
+        }
+
         /// <summary>One piece's picture: homes, the last word, the measure. Writes only its own points and its own stats.</summary>
         public static void Piece1(ref Data d, int t)
         {
@@ -312,10 +415,7 @@ namespace PhysicsBattler.Locomotion
             *st = default;
             st->LastInPart = -1;
             int n = pc->Rings * pc->Cols, s0 = pc->Start;
-            for (int i = s0; i < s0 + n; i++)
-            {
-                d.X[i] = Home(ref d, i);
-            }
+            Wobble(ref d, pc, n, s0);
 
             if (d.LastWord != 0)
             {
