@@ -407,6 +407,8 @@ trousers through each other (step 5); the cost in Unity.
 
 **Next: his look in Unity and his log's cost; if over budget, the cheaper settings first ("Small Steps" 2, "Sweeps" 2).**
 
+Its film: https://claude.ai/artifact/Td3BUcKw15jKQTBFDVzSqE
+
 ## Sources
 
 - [Making a sweater with Marvelous Designer](https://dev.epicgames.com/documentation/en-us/uefn/making-a-sweater-with-marvelous-designer-in-unreal-editor-for-fortnite), Epic Games

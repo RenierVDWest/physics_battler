@@ -874,6 +874,7 @@ tell me what is up next and what is the roadmap".** (16:15; README.)
     `SEWNLONG`), `FIGHT_LASTWORD=0`, `Tools/Headless/sewnsum.py`.
   - **Not right:** the bent shield elbow can show a spot of skin in a leap; the shirt and trousers through each
     other (step 5). **Next: his look and his log's cost; if over budget, "Small Steps" 2 and "Sweeps" 2 first.**
+  - Its film: https://claude.ai/artifact/Td3BUcKw15jKQTBFDVzSqE
 - **What he was told is next (before tonight):** step 7 (more cuts, now built); combos in the six only when he says;
   then the kick at a man who is down (his kick pack), the stab at a downed man that looks odd, the spin combo's own
   sword through his own shield; then the older open things (get-up shield, stumble leftovers, absorbing a hit, the

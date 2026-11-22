@@ -9446,3 +9446,5 @@ below).
 - Threads stretch: 7.7% over 105% standing, the worst at the bent elbow, where one point is folded into the crease
   and its neighbour outside.
 - One run is a direction: "Shake him" was measured once on this build.
+
+Its film (3b2b, made by Opus at medium effort; 6 scenes, 24 beats, about 3.7 minutes): https://claude.ai/artifact/Td3BUcKw15jKQTBFDVzSqE
