@@ -9080,3 +9080,5 @@ the distance to the body, after OGC 2025); a last word on this picture's drawn b
 triangle centres out; threads ≤ 2.5 cm on the limbs (a 2.5 cm thread over a 3 cm radius sags 2.7 mm). Budget: zero
 inside, by two independent checks (baked fields every picture; exact mesh test on samples), on a torture rack of
 10,000 poses, "Shake him", dances. Six steps; four questions wait for him. Not built.
+
+Its film (3b2b, made by Opus at medium effort; 8 scenes, 33 beats, about 5 minutes): https://claude.ai/artifact/TSXxiad3ARayFmDX7qFWNS

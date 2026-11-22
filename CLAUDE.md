@@ -768,7 +768,7 @@ tell me what is up next and what is the roadmap".** (16:15; README.)
   `Docs/Plans/2026-11-22-clothes-that-never-go-into-the-body-research-and-plan.md` (live
   https://claude.ai/artifact/NcFgFLd75rj2ZDECPKUVp1 ): baked distance fields of the drawn pieces, a carried shell, a
   fenced wobble (max distance, backstop), a last word on this picture's drawn body, budget zero by two checks.
-  **Four questions wait for him; build only after he answers or says go.**
+  **Four questions wait for him; build only after he answers or says go.** Its film: https://claude.ai/artifact/TSXxiad3ARayFmDX7qFWNS
 - **What he was told is next (before tonight):** step 7 (more cuts, now built); combos in the six only when he says;
   then the kick at a man who is down (his kick pack), the stab at a downed man that looks odd, the spin combo's own
   sword through his own shield; then the older open things (get-up shield, stumble leftovers, absorbing a hit, the

@@ -182,3 +182,5 @@ distance; Open 3D Engine NVIDIA Cloth constraints; 80.lv on cloth in games; Reme
 loose-fitting clothing paper (arXiv 2404.16896); Bridson, Fedkiw, Anderson 2002; Li et al. IPC 2020 and C-IPC 2021;
 Chen et al. OGC 2025; Macklin et al. Small Steps 2019; Akar et al. shallow SDFs 2024; Kavan et al. dual quaternions;
 Disney Research optimized centers of rotation; EA SEED Swish. Links in the live document.
+
+Its film (3b2b, made by Opus at medium effort; 8 scenes, 33 beats, about 5 minutes): https://claude.ai/artifact/TSXxiad3ARayFmDX7qFWNS
