@@ -9053,3 +9053,30 @@ Not built of the jolt's plan: a squash of the struck part. The camera kick is no
 reaches the six.
 
 **Its film** (3b2b, made by Opus at medium effort; 6 scenes, 24 beats, about 3 minutes): https://claude.ai/artifact/4dFNQateNkfj5hViL6oZda
+
+### 22 November, 08:55: the cloth is still not working; why, and a new plan (nothing built)
+
+**His words (08:46, with a picture of the robe):** the cloth is still not working; instead of a robe, a long-sleeved
+shirt and trousers to the feet; back to the drawing board with research on how others do it; "Cloth that does not
+intersect with the body ever ... Spare no expense"; hiding covered parts may come later, but the solution should be so
+robust that it is not needed. His picture: the swordsman's knee and thigh through his robe, his collar low across his
+chest, the target's robe slid round with a front panel over one shoulder.
+
+**Found: the cloth was kept out of the physics body, not the drawn one.** `Tools/Cloth/drawn_vs_physics.py` (with
+`Tools/Cloth/fbxread.py`, a small binary FBX reader) measures each Medium part's drawn mesh against its physics shape
+in `medium_rig.json`, in the part's own space, X mirrored as Unity imports it. 80 to 90% of the drawn surface of every
+part but the hands and feet stands more than 5 mm outside its physics shape; the middle of the range 2.4 to 4.8 cm
+(thigh 4.6, upper arm 3.9, chest 3.2), the far ends 6 to 16 cm (the joint pieces and mesh ends that overlap the next
+part). The cloth was held 2 cm off the physics shapes, so mostly 1 to 3 cm inside what he sees. The 0.05% "inside"
+the robe measured this morning was against the physics shapes and meant nothing for what is seen. Also: the cloth is
+taken up a picture late since this morning's Burst job (a limb at 5 to 10 m/s moves 8 to 17 cm a picture); threads
+were kept out of capsules but not boxes; the open robe is three panels held only at collar and sash.
+
+**The plan** (`Docs/Plans/2026-11-22-clothes-that-never-go-into-the-body-research-and-plan.md`, live
+https://claude.ai/artifact/NcFgFLd75rj2ZDECPKUVp1 ): bake each rigid piece's distance field from its mesh; every cloth
+point has a home on a part 1.2 cm outside its drawn surface (over a joint, on the joint ball), carried with it the same
+picture; a fenced wobble (max distance and backstop, as NVIDIA, Unity and Unreal cloth do; no small step longer than
+the distance to the body, after OGC 2025); a last word on this picture's drawn body pushing points, thread middles and
+triangle centres out; threads ≤ 2.5 cm on the limbs (a 2.5 cm thread over a 3 cm radius sags 2.7 mm). Budget: zero
+inside, by two independent checks (baked fields every picture; exact mesh test on samples), on a torture rack of
+10,000 poses, "Shake him", dances. Six steps; four questions wait for him. Not built.

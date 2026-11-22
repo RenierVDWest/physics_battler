@@ -6,11 +6,12 @@ have my permission to push to that branch.
 1. Attach the repository with push access and clone it. (On 19 November the first ask for push access was refused
    and went through when asked again after I said "you may push" in the chat. If it is refused, tell me at once and
    carry on reading.) Read `CLAUDE.md` at its top first and follow it: it is the briefing, and it is up to date as
-   of 22 November 2026, 08:20 (newer than the rest of this prompt: where the two disagree, CLAUDE.md and the
-   README's last entries are right). On the morning of 22 November, after my look, three things were built blind,
-   headless only, and wait for my look: my own combo no longer fells me (README "### 22 November, 07:20"), the
-   clothes rebuilt as one open robe whose sums run on other cores in a Burst job, and the shock wave's jolt beside the
-   jelly (both "### 22 November, 08:20"). **`ClothJob.cs` (the Burst job) has never been compiled headless: if my
+   of 22 November 2026, 08:55 (newer than the rest of this prompt: where the two disagree, CLAUDE.md and the
+   README's last entries are right). At 08:46 on 22 November I said the robe still does not work; I want a
+   long-sleeved shirt and trousers to the feet and cloth that never goes into the body. The cause was found (the
+   cloth was kept out of the physics shapes; the drawn meshes are 2 to 5 cm fatter) and a new plan written:
+   `Docs/Plans/2026-11-22-clothes-that-never-go-into-the-body-research-and-plan.md` (README "### 22 November, 08:55").
+   Its four questions wait for my answer. **`ClothJob.cs` (the Burst job) has never been compiled headless: if my
    Unity reports a compile error, mend that first.** `README.md` is
    the build log (over 9,000 lines: search it, never read it whole, and add entries at its end, never write over
    it).
