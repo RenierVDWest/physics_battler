@@ -202,3 +202,5 @@ single hard knock along the blow (peaking 0.03 s after the wave arrives) with on
 it runs at 14 m/s; his grip holds (hands 0.35 of it); a heavy one kicks the camera. Ringing the chest: the chest 8.9 cm,
 1 swing, still at 0.25 s (the jelly: 7.7 cm, 6 swings, 0.82 s); the sword's point 12 cm (18). Not built: a squash of
 the struck part. The build log's entry of 22 November, 08:20 has the table.
+
+The film of this build (3b2b): https://claude.ai/artifact/4dFNQateNkfj5hViL6oZda
