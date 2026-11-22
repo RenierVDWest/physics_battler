@@ -292,6 +292,16 @@ with `FIGHT_FILM="$S/name.json,3,8.5,medium"`.
 - `python3 -I Tools/Headless/sewn.py name [mover|other|rack] [neck|armpit|waist|arm|hem|elbows]`: the dumps drawn on
   the real body meshes, posed, true depth, five sides, a row a moment, into `$S/name.<who>.sewn.png`. It reads a Unity
   log's `clothdump` lines the same way (give the log's path as the name).
+- **The moving sewn cloth (step 4, 22 November evening):** `FIGHT_SEWNMOVES=0` carried as in step 3. Levers:
+  `FIGHT_SEWNWEIGHT`, `FIGHT_SEWNAIR`, `FIGHT_SEWNINERTIA`, `FIGHT_SEWNSQUASH`, `FIGHT_SEWNBEND`, `FIGHT_SEWNSWING`
+  (metres), `FIGHT_SEWNREACH` (per metre), `FIGHT_SEWNHOLD`, `FIGHT_SEWNSTEPS`, `FIGHT_SEWNSWEEPS`.
+  `FIGHT_SEWNPLUCK=2`: both men's cloth thrown forward at 2 s (`SEWNPLUCK` line). `FIGHT_LASTWORD=0`: no last word.
+  `FIGHT_SEWNTRACE=1`: `SEWNTRACE t who hips x:y:z off cm ends cm hang cm shiver mm stretch % ms` every 0.1 s (`2`:
+  every picture), and once a second `SEWNLONG`: threads over 105% and 120%, then the five longest, as drawn and as
+  carried, with their parts, reach, distance from carried and depth (negative: inside). `python3
+  Tools/Headless/sewnsum.py log...` sums a run (standing 2 to 4 s, the leap in 6.0 to 6.8 s, the leap out 8.2 to 9.0
+  s, the thread counts). **`b.sh` builds Debug; these runs use `bin/Tests/Release`: build that with `dotnet build
+  Tests.csproj -c Release` first.**
 - `FIGHT_SEWNBALLS=0` (two parts' points blended straight, not carried round the joint), `FIGHT_SEWNTHIGHS=0` (the
   shirt's hem on his hips alone), `FIGHT_SEWNROUNDS=n` (rounds of middles, 6), `FIGHT_SEWNFOLDS=0` (cloth in a crease pushed out
   of it: flaps), `FIGHT_SEWNSMOOTH=n`, `FIGHT_SEWNKEEPMOST=1`, `FIGHT_SEWNRADIAL=1` (ways tried and left off).

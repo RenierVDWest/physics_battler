@@ -372,6 +372,41 @@ front hem crumples over the crotch; a thin line of skin may show in a crease. Re
 
 Its film: https://claude.ai/artifact/CjdYxDWwby67VTxTNvr28r
 
+## Progress, 22 November, 18:20: step 4 built (headless only; the Burst job built blind)
+
+His word at 16:51: "Ok I think its coming along well. pushed the logs. lets see the next step".
+
+The shirt and trousers move by themselves (Combat Feel "Sewn Cloth Moves", on; duel lab "Cloth:" moves (new) /
+carried (old), "Pluck the cloth:", the readout "The cloth moving"). Each point is its carried place plus an offset that
+moves: 4 small steps a picture, gravity as the change from the drape's down, his change of speed felt in part, a light
+pull back to the drape; 4 sweeps over the threads and bends; out of the drawn body, cloth in a true crease left folded;
+a fence that grows 20 cm a metre along the cloth from where it is held, at most 10 cm. Then the last word as in step 3.
+
+Measured headless (both men, one core, no Burst), against the pass marks:
+
+| Mark | Measured | |
+| --- | --- | --- |
+| Moves like cloth: settled within 1 s | after a pluck, under 1 mm a picture in 0.5 s, back where it hung in 1 s | yes |
+| Moves like cloth: shiver under 1 mm when still | 0.23 mm | yes |
+| Moves like cloth: swing 3 to 10 cm | the hems 3.5 cm more in the leap in (4.9 cm from carried) | yes, the low end |
+| Cloth does not stretch: none over 105% | 7.7% of threads standing (carried: 13%); over 120% 1.2% (carried 8%) | **no** |
+| Never inside | "Shake him": points 88 of 14.3 million, middles 2,002 of 42.5 million, deepest 2.8 mm (carried: 0, 34, 0.0 mm) | **no** |
+| Folds of 1 cm at bent joints | | not measured |
+| Cost | 52 ms a fighter a picture (carried 33) | not known in Unity |
+
+![The mover in Shake him, moving](2026-11-22-clothes-moving-shake.png)
+
+![The leap in: carried above, moving below](2026-11-22-clothes-moving-vs-carried.png)
+
+Seen in the pictures: the shirt's back below the sash hangs straight down (the lobes are gone). Found in them, not in
+the counts: the old fold rule left cloth pulled tight over a bent knee or elbow inside the body, and the knees showed
+through in a leap; now only a true crease (the two parts' ways out facing each other) stays folded.
+
+Not right yet: the bent shield elbow can show a spot of skin in a leap; threads stretch at that elbow; the shirt and
+trousers through each other (step 5); the cost in Unity.
+
+**Next: his look in Unity and his log's cost; if over budget, the cheaper settings first ("Small Steps" 2, "Sweeps" 2).**
+
 ## Sources
 
 - [Making a sweater with Marvelous Designer](https://dev.epicgames.com/documentation/en-us/uefn/making-a-sweater-with-marvelous-designer-in-unreal-editor-for-fortnite), Epic Games

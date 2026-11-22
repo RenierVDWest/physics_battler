@@ -1206,6 +1206,23 @@ internal static class FightReport
         if (Environment.GetEnvironmentVariable("FIGHT_SEWNRADIAL") == "1") PhysicsBattler.Locomotion.SewnOutfit.RadialOut = true;
         if (int.TryParse(Environment.GetEnvironmentVariable("FIGHT_SEWNSMOOTH"), out int sewnSmooth)) PhysicsBattler.Locomotion.SewnOutfit.Smooths = sewnSmooth;
         if (Environment.GetEnvironmentVariable("FIGHT_SEWNFOLDS") == "0") PhysicsBattler.Locomotion.SewnOutfit.FoldsStay = false;
+        // (The moving cloth, step 4: FIGHT_SEWNMOVES=0 carried as in step 3; its levers.)
+        if (Environment.GetEnvironmentVariable("FIGHT_SEWNMOVES") == "0") PhysicsBattler.Locomotion.SewnOutfit.Moves = false;
+        float SewnLever(string name, float was) => float.TryParse(Environment.GetEnvironmentVariable(name), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float v) ? v : was;
+        PhysicsBattler.Locomotion.SewnOutfit.Weight = SewnLever("FIGHT_SEWNWEIGHT", PhysicsBattler.Locomotion.SewnOutfit.Weight);
+        PhysicsBattler.Locomotion.SewnOutfit.Air = SewnLever("FIGHT_SEWNAIR", PhysicsBattler.Locomotion.SewnOutfit.Air);
+        PhysicsBattler.Locomotion.SewnOutfit.Inertia = SewnLever("FIGHT_SEWNINERTIA", PhysicsBattler.Locomotion.SewnOutfit.Inertia);
+        PhysicsBattler.Locomotion.SewnOutfit.Squash = SewnLever("FIGHT_SEWNSQUASH", PhysicsBattler.Locomotion.SewnOutfit.Squash);
+        PhysicsBattler.Locomotion.SewnOutfit.Bend = SewnLever("FIGHT_SEWNBEND", PhysicsBattler.Locomotion.SewnOutfit.Bend);
+        PhysicsBattler.Locomotion.SewnOutfit.HemsSwing = SewnLever("FIGHT_SEWNSWING", PhysicsBattler.Locomotion.SewnOutfit.HemsSwing);
+        PhysicsBattler.Locomotion.SewnOutfit.Steps = (int)SewnLever("FIGHT_SEWNSTEPS", PhysicsBattler.Locomotion.SewnOutfit.Steps);
+        PhysicsBattler.Locomotion.SewnOutfit.Sweeps = (int)SewnLever("FIGHT_SEWNSWEEPS", PhysicsBattler.Locomotion.SewnOutfit.Sweeps);
+        PhysicsBattler.Locomotion.SewnOutfit.HoldShape = SewnLever("FIGHT_SEWNHOLD", PhysicsBattler.Locomotion.SewnOutfit.HoldShape);
+        if (Environment.GetEnvironmentVariable("FIGHT_LASTWORD") == "0")
+        {
+            PhysicsBattler.Locomotion.Outfit.LastWordOn = false;
+        }
+        PhysicsBattler.Locomotion.SewnOutfit.FencePerMetre = SewnLever("FIGHT_SEWNREACH", PhysicsBattler.Locomotion.SewnOutfit.FencePerMetre);
         PhysicsBattler.Locomotion.ShockWave.On = Environment.GetEnvironmentVariable("FIGHT_WAVE") != "0";
         // (FIGHT_JOLT=0: the jelly wave (old) instead of the jolt.)
         PhysicsBattler.Locomotion.ShockWave.Jolt = Environment.GetEnvironmentVariable("FIGHT_JOLT") != "0";
@@ -2717,6 +2734,36 @@ internal static class FightReport
                         }
 
                         Environment.Exit(0);
+                    }
+
+                    // (FIGHT_SEWNPLUCK=2: both men's moving clothes thrown forward at that second, to see them settle.)
+                    if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_SEWNPLUCK"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float pluckAt) && paceAt >= pluckAt && paceAt - dt < pluckAt)
+                    {
+                        foreach (var who in new[] { duel.Mover, duel.Other })
+                        {
+                            who.Clothes?.Sewn?.Pluck();
+                        }
+
+                        Console.WriteLine(FormattableString.Invariant($"SEWNPLUCK {paceAt:0.00}"));
+                    }
+
+                    // (FIGHT_SEWNTRACE=1: the moving sewn clothes in numbers every 0.1 s, both men: SEWNTRACE lines.)
+                    string sewnTrace = Environment.GetEnvironmentVariable("FIGHT_SEWNTRACE");
+                    if ((sewnTrace == "1" && Mathf.FloorToInt(paceAt * 10f) != Mathf.FloorToInt((paceAt - dt) * 10f)) || sewnTrace == "2")
+                    {
+                        foreach (var who in new[] { duel.Mover, duel.Other })
+                        {
+                            if (who.Clothes != null && who.Clothes.Sewn != null)
+                            {
+                                var mo = who.Clothes.Sewn.Motion();
+                                var hipsAt = who.Rig.Part(PartId.Pelvis).transform.position;
+                                Console.WriteLine(FormattableString.Invariant($"SEWNTRACE {paceAt:0.00} {(who == duel.Mover ? "mover" : "other")} hips {hipsAt.x:0.000}:{hipsAt.y:0.000}:{hipsAt.z:0.000} off {100f * mo.all:0.00} ends {100f * mo.ends:0.00} hang {100f * mo.hang:0.00} shiver {1000f * mo.shiver:0.00} stretch {100f * mo.stretch:0} ms {who.Clothes.Sewn.LastMs:0.00}"));
+                                if (Mathf.FloorToInt(paceAt) != Mathf.FloorToInt(paceAt - dt))
+                                {
+                                    Console.WriteLine($"SEWNLONG {paceAt:0.00} {(who == duel.Mover ? "mover" : "other")} {who.Clothes.Sewn.LongestThreads(5)}");
+                                }
+                            }
+                        }
                     }
 
                     // (FIGHT_CLOTHDUMP="4,9.5": every point of both men's clothes at those seconds, CLOTHPTS lines, for a picture.)

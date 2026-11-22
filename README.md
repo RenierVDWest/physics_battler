@@ -9355,3 +9355,94 @@ lying) and `…-sewn-shake-close.png` (the elbows in a wind-up).
 - Cloth through cloth (the shirt's hem through the trousers) is not checked (step 5).
 
 Its film (3b2b, made by Opus at medium effort; 6 scenes, 24 beats, about 3.7 minutes): https://claude.ai/artifact/CjdYxDWwby67VTxTNvr28r
+
+### 22 November, 18:20: clothes cut and sewn, step 4: the cloth moves by itself (headless only; the Burst job built blind)
+
+He said at 16:51: "Ok I think its coming along well. pushed the logs. lets see the next step". Step 4 of the plan
+(real cloth) is built. **Bottom line:** the shirt and trousers now hang by their weight, swing when he leaps and
+settle within a second, and stand still when he stands. The shirt's back below the sash hangs straight down (the two
+lobes over his seat are gone). But more cloth slips into the body than when it was carried, a bent shield elbow can
+still show a spot of skin in a leap, threads stretch more than the plan allows, and it costs about half as much again.
+None of it has been seen in Unity.
+
+**How it works (`OutfitSolve.Move`, called from `Mesh1` before the last word):** every cloth point is its carried
+place (step 3) plus an offset of its own that moves: Verlet on the offset, at 4 small steps a picture; gravity as
+the difference between down now and down as it was in the drape for that point's part (standing as draped, nothing;
+bent over or lying, the cloth hangs anew); his change of speed felt in part (a leap leaves the hems behind); a little
+drawn back each picture to the drape's shape. Then 4 sweeps over the threads (a stretched thread taken back whole, a
+squashed one a fifth) and the bends; then out of the drawn body (cloth in a true crease stays folded in). A fence:
+each point may stray from where it is carried by 20 cm for every metre along the cloth from where the garment is held
+(collar, shoulder seams, waistband, the band under the sash), at most 10 cm; held points do not move. The threads
+may pull past the fence, the body's push keeps only half its push as the cloth's own speed, nothing is faster than
+3 m/s against him, nothing strays more than half again its fence and 2 cm, and a last pass draws in any thread over
+150% (spikes). Then the last word as in step 3.
+
+**What it took (each measured in "Shake him"):**
+
+| Change | Why |
+| --- | --- |
+| Gravity as the difference from the drape's down | The drape already hangs by its weight; full gravity again sagged every hem 6 to 7 cm. |
+| A light pull back to the drape (3% a picture) | Without it the hems sat where they were last thrown. |
+| Reach grows along the cloth from every hold, not only the collar or waistband | A point just below the sash could hang 30 cm. |
+| The fence before the threads; held points do not move | His body carried the cloth stretched (the crotch with legs apart: threads at 575%), and the fence after the threads held it so. Threads over 120% standing: 1,560 to 450. |
+| 4 sweeps (was 2), reach 20 cm a metre (was 12) | Threads over 120% standing: 450 to about 230; cost 45 to 64 ms. |
+| Speed limit, half a push kept, a cap on straying, spikes drawn in | A fast arm flung a cuff 14 to 17 cm off. |
+| **Only a true crease stays folded** (`InACrease`: the two parts' ways out face each other) | **Seen in the pictures, not in the counts:** the old fold rule took the point of a bent knee and elbow for a crease, so cloth pulled tight over them was left inside and his knees showed through in a leap. The counts did not show it because folds are counted apart. |
+| Points clear of him are not pushed | 64 to 52 ms a picture. |
+
+A pluck for the lab and headless (`SewnOutfit.Pluck`; `FIGHT_SEWNPLUCK=2`): every free point thrown forward at once,
+as if he stopped short.
+
+**Measured (headless, a Release build, both men, one core, no Burst):**
+
+| | Carried (old, step 3) | Moving (new) |
+| --- | --- | --- |
+| Off where it is carried, standing (all / hems and cuffs) | 0 / 0 | 1.7 / 1.4 cm |
+| The hems in the leap in | | 4.9 cm off (3.5 more than standing) |
+| Shiver standing | 0 | 0.23 mm a picture |
+| After a pluck (hems thrown 1.6 cm more) | | under 1 mm a picture in 0.5 s; back where they hung within 1 s |
+| Threads over 105%, standing | 2,630 of 19,690 (13%) | 1,515 (7.7%) |
+| Threads over 120%, standing | 1,560 (8%) | about 230 (1.2%) |
+| The longest thread, standing | 575% (the crotch, legs apart) | 230 to 245% (the bent shield elbow) |
+| The longest at moments in "Shake him" | 17 times | 16 times |
+| Points inside the drawn body | 0 of 14.3 million | 88 of 14.3 million |
+| Thread middles / triangle centres inside | 34 of 42.5 million / 23 of 28.2 million | 2,002 / 1,151 |
+| The deepest | 0.0 mm | 2.8 mm |
+| Exact check | 1 of 2.1 million | 15 of 2.1 million |
+| Counted apart as folds | 118,525 (the old rule) | 26,269 (true creases only) |
+| Cost a picture, one fighter | 33 ms (step 3) | 52 ms |
+
+The rack of 1,000 random poses (each pose a fresh start, so carried and one moving picture): points 275 of 6.6
+million, middles 7,127 of 19.7 million, centres 4,267 of 13.1 million, deepest 9.6 mm, exact 168 of 2.0 million
+(step 3: 40, 2,829, 1,915, 10.5 mm, 71). Part of that is the stricter crease rule, which counts what the old one
+let pass.
+
+**Against the plan's pass marks:** settled within 1 s, yes; shiver under 1 mm, yes; swing 3 to 10 cm, the mean of
+the hems 3.5 cm more in a leap, yes at the low end; threads at most 105%, **no**; never inside (a few in a million,
+under 1 mm), **no** (middles 47 in a million, 2.8 mm deep); folds of 1 cm at bent joints, **not measured**; cost,
+**not known in Unity**.
+
+**In the game:** Combat Feel "Sewn Cloth Moves" (on) and its levers, all new fields: "Sewn Cloth Weighs",
+"Stiffness", "Bends", "Air", "Sewn Hems May Swing", "Reach Per Metre", "Feels His Movement", "Returns To Its Drape",
+"Small Steps", "Sweeps". Duel lab, "Clothes", for sewn clothes: "Cloth:" moves (new) / carried (old), "Pluck the
+cloth:" (Pluck), and the readout "The cloth moving" (how far from carried, shiver, threads over 105%). The look
+list is set (the panel test: 7 of 7 drawn). The Burst job (`SewnJob`) carries the new arrays and settings; **never
+compiled here.** Cheaper if Unity is over budget: "Small Steps" 2, "Sweeps" 2.
+
+**Headless:** `FIGHT_SEWNMOVES=0` carried; `FIGHT_SEWNWEIGHT`, `AIR`, `INERTIA`, `SQUASH`, `BEND`, `SWING`, `REACH`,
+`HOLD`, `STEPS`, `SWEEPS`; `FIGHT_SEWNPLUCK=t`; `FIGHT_LASTWORD=0`; `FIGHT_SEWNTRACE=1` (every 0.1 s, `2` every
+picture: `SEWNTRACE` lines, and `SEWNLONG` once a second: the longest threads, carried and as drawn, with their
+parts and depths); `Tools/Headless/sewnsum.py log` sums a run.
+
+**Pictures:** `Docs/Plans/2026-11-22-clothes-moving-shake.png` (the mover in "Shake him": standing, the leap in, the
+leap out, the combo, after the bash, the kick) and `…-moving-vs-carried.png` (the leap in, carried above, moving
+below).
+
+**Not right yet, not known:**
+- The cost in Unity. Headless 52 ms a fighter against 33 carried; the job in Unity was 3 to 4 ms a fighter at step 3.
+- The bent shield elbow can show a spot of skin from behind in a leap; a flap at that elbow.
+- The shirt crumples where it meets the trousers, and the trousers show through the shirt's back in one picture:
+  cloth through cloth is step 5.
+- Threads stretch: 7.7% over 105% standing, the worst at the bent elbow, where one point is folded into the crease
+  and its neighbour outside.
+- One run is a direction: "Shake him" was measured once on this build.

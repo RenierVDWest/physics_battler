@@ -151,7 +151,7 @@ namespace PhysicsBattler.Locomotion
             using (PhysicsBattler.Diagnostics.Perf.Begin(PhysicsBattler.Diagnostics.PerfSection.Clothes))
             {
                 outfit?.Place(Time.deltaTime);
-                sewn?.Place();
+                sewn?.Place(Time.deltaTime);
             }
 
             Trace();
@@ -303,7 +303,7 @@ namespace PhysicsBattler.Locomotion
 #if HEADLESS_STUB
             // (Headless there is no LateUpdate: placed here, after the step, on the body as it stands.)
             outfit?.Place(dt);
-            sewn?.Place();
+            sewn?.Place(dt);
 #endif
 
             bool want = allowed && Wear;

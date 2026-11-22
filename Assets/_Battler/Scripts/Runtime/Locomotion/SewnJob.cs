@@ -21,14 +21,17 @@ namespace PhysicsBattler.Locomotion
         [ReadOnly] public NativeArray<OutfitSolve.Frame> Frames;
         [ReadOnly] public NativeArray<OutfitSolve.Skin> Skins;
         [ReadOnly] public NativeArray<OutfitSolve.MeshPiece> Meshes;
-        [ReadOnly] public NativeArray<int> Threads, Tris, AdjStart, Adj;
-        [NativeDisableParallelForRestriction] public NativeArray<Vector3> X, Home, Shove;
+        [ReadOnly] public NativeArray<int> Threads, Tris, AdjStart, Adj, Bends;
+        [ReadOnly] public NativeArray<float> ThreadRest, BendRest, Fence;
+        [NativeDisableParallelForRestriction] public NativeArray<Vector3> X, Home, Shove, R, RPrev, HomeWas, HomeWas2;
         [NativeDisableParallelForRestriction] public NativeArray<float> DNear;
         [NativeDisableParallelForRestriction] public NativeArray<byte> Moved;
         [NativeDisableParallelForRestriction] public NativeArray<byte> Inside;
         [NativeDisableParallelForRestriction] public NativeArray<OutfitSolve.Stats> Stats;
         public float Size, PointMargin, MiddleMargin, OtherMargin;
-        public int LastWord, Rounds, Measure, KeepMost, RadialOut, Smooth, FoldsStay;
+        public int LastWord, Rounds, Measure, KeepMost, RadialOut, Smooth, FoldsStay, Dynamic, Steps, Iters, Reset;
+        public float Dt, Gravity, Keep, Inertia, Squash, BendK, HoldShape;
+        public Vector3 Pluck;
 
         public void Execute(int garment)
         {
@@ -36,6 +39,7 @@ namespace PhysicsBattler.Locomotion
             {
                 Size = Size, PointMargin = PointMargin, MiddleMargin = MiddleMargin, OtherMargin = OtherMargin,
                 LastWord = LastWord, Rounds = Rounds, Measure = Measure, KeepMost = KeepMost, RadialOut = RadialOut, Smooth = Smooth, FoldsStay = FoldsStay,
+                Dynamic = Dynamic, Steps = Steps, Iters = Iters, Reset = Reset, Dt = Dt, Gravity = Gravity, Keep = Keep, Inertia = Inertia, Squash = Squash, BendK = BendK, HoldShape = HoldShape, Pluck = Pluck,
             };
             d.Grid = (short*)NativeArrayUnsafeUtility.GetUnsafeReadOnlyPtr(Grid);
             d.Fields = (OutfitSolve.PartField*)NativeArrayUnsafeUtility.GetUnsafeReadOnlyPtr(Fields);
@@ -46,6 +50,14 @@ namespace PhysicsBattler.Locomotion
             d.Tris = (int*)NativeArrayUnsafeUtility.GetUnsafeReadOnlyPtr(Tris);
             d.AdjStart = (int*)NativeArrayUnsafeUtility.GetUnsafeReadOnlyPtr(AdjStart);
             d.Adj = (int*)NativeArrayUnsafeUtility.GetUnsafeReadOnlyPtr(Adj);
+            d.Bends = (int*)NativeArrayUnsafeUtility.GetUnsafeReadOnlyPtr(Bends);
+            d.ThreadRest = (float*)NativeArrayUnsafeUtility.GetUnsafeReadOnlyPtr(ThreadRest);
+            d.BendRest = (float*)NativeArrayUnsafeUtility.GetUnsafeReadOnlyPtr(BendRest);
+            d.Fence = (float*)NativeArrayUnsafeUtility.GetUnsafeReadOnlyPtr(Fence);
+            d.R = (Vector3*)NativeArrayUnsafeUtility.GetUnsafePtr(R);
+            d.RPrev = (Vector3*)NativeArrayUnsafeUtility.GetUnsafePtr(RPrev);
+            d.HomeWas = (Vector3*)NativeArrayUnsafeUtility.GetUnsafePtr(HomeWas);
+            d.HomeWas2 = (Vector3*)NativeArrayUnsafeUtility.GetUnsafePtr(HomeWas2);
             d.X = (Vector3*)NativeArrayUnsafeUtility.GetUnsafePtr(X);
             d.Home = (Vector3*)NativeArrayUnsafeUtility.GetUnsafePtr(Home);
             d.Shove = (Vector3*)NativeArrayUnsafeUtility.GetUnsafePtr(Shove);
@@ -65,7 +77,9 @@ namespace PhysicsBattler.Locomotion
         private NativeArray<OutfitSolve.Frame> frames;
         private NativeArray<OutfitSolve.Skin> skins;
         private NativeArray<OutfitSolve.MeshPiece> meshes;
-        private NativeArray<int> threads, tris, adjStart, adj;
+        private NativeArray<int> threads, tris, adjStart, adj, bends;
+        private NativeArray<float> threadRest, bendRest, fence;
+        private NativeArray<Vector3> r, rPrev, homeWas, homeWas2;
         private NativeArray<Vector3> x, home, shove;
         private NativeArray<float> dNear;
         private NativeArray<byte> moved, inside;
@@ -86,10 +100,18 @@ namespace PhysicsBattler.Locomotion
                 tris = new NativeArray<int>(outfit.TriArray, Allocator.Persistent);
                 adjStart = new NativeArray<int>(outfit.AdjStartArray, Allocator.Persistent);
                 adj = new NativeArray<int>(outfit.AdjArray, Allocator.Persistent);
+                bends = new NativeArray<int>(outfit.BendArray, Allocator.Persistent);
+                threadRest = new NativeArray<float>(outfit.ThreadRestArray, Allocator.Persistent);
+                bendRest = new NativeArray<float>(outfit.BendRestArray, Allocator.Persistent);
+                fence = new NativeArray<float>(outfit.FenceArray.Length, Allocator.Persistent);
                 int n = outfit.PointArray.Length;
                 x = new NativeArray<Vector3>(n, Allocator.Persistent);
                 home = new NativeArray<Vector3>(n, Allocator.Persistent);
                 shove = new NativeArray<Vector3>(n, Allocator.Persistent);
+                r = new NativeArray<Vector3>(n, Allocator.Persistent);
+                rPrev = new NativeArray<Vector3>(n, Allocator.Persistent);
+                homeWas = new NativeArray<Vector3>(n, Allocator.Persistent);
+                homeWas2 = new NativeArray<Vector3>(n, Allocator.Persistent);
                 dNear = new NativeArray<float>(n, Allocator.Persistent);
                 moved = new NativeArray<byte>(n, Allocator.Persistent);
                 inside = new NativeArray<byte>(n, Allocator.Persistent);
@@ -98,13 +120,16 @@ namespace PhysicsBattler.Locomotion
             }
 
             frames.CopyFrom(outfit.FrameArray);
+            fence.CopyFrom(outfit.FenceArray);
             var set = outfit.Settings(measure);
             var job = new SewnJob
             {
-                Grid = grid, Fields = fields, Frames = frames, Skins = skins, Meshes = meshes, Threads = threads, Tris = tris, AdjStart = adjStart, Adj = adj,
+                Grid = grid, Fields = fields, Frames = frames, Skins = skins, Meshes = meshes, Threads = threads, Tris = tris, AdjStart = adjStart, Adj = adj, Bends = bends, ThreadRest = threadRest, BendRest = bendRest, Fence = fence,
+                R = r, RPrev = rPrev, HomeWas = homeWas, HomeWas2 = homeWas2,
                 X = x, Home = home, Shove = shove, DNear = dNear, Moved = moved, Inside = inside, Stats = stats,
                 Size = set.Size, PointMargin = set.PointMargin, MiddleMargin = set.MiddleMargin, OtherMargin = set.OtherMargin,
                 LastWord = set.LastWord, Rounds = set.Rounds, Measure = set.Measure, KeepMost = set.KeepMost, RadialOut = set.RadialOut, Smooth = set.Smooth, FoldsStay = set.FoldsStay,
+                Dynamic = set.Dynamic, Steps = set.Steps, Iters = set.Iters, Reset = set.Reset, Dt = set.Dt, Gravity = set.Gravity, Keep = set.Keep, Inertia = set.Inertia, Squash = set.Squash, BendK = set.BendK, HoldShape = set.HoldShape, Pluck = set.Pluck,
             };
             job.Schedule(meshes.Length, 1).Complete();
             x.CopyTo(outfit.PointArray);
@@ -121,7 +146,8 @@ namespace PhysicsBattler.Locomotion
                 return;
             }
 
-            grid.Dispose(); fields.Dispose(); frames.Dispose(); skins.Dispose(); meshes.Dispose(); threads.Dispose(); tris.Dispose(); adjStart.Dispose(); adj.Dispose();
+            grid.Dispose(); fields.Dispose(); frames.Dispose(); skins.Dispose(); meshes.Dispose(); threads.Dispose(); tris.Dispose(); adjStart.Dispose(); adj.Dispose(); bends.Dispose(); threadRest.Dispose(); bendRest.Dispose(); fence.Dispose();
+            r.Dispose(); rPrev.Dispose(); homeWas.Dispose(); homeWas2.Dispose();
             x.Dispose(); home.Dispose(); shove.Dispose(); dNear.Dispose(); moved.Dispose(); inside.Dispose(); stats.Dispose();
             made = false;
         }

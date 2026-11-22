@@ -4393,20 +4393,23 @@ namespace PhysicsBattler.Sandbox
         // Names are matched whole, without a chosen button's square brackets; capitals do not matter.
 
         /// <summary>Names this push's list. Change it with every push that needs his eye: his "highlights off" is kept by tag, so a new list is shown again.</summary>
-        private const string LookTag = "22 November, afternoon: the shirt and trousers cut and sewn, carried on him (step 3)";
+        private float movingNext;
+        private string movingText = "";
+
+        private const string LookTag = "22 November, evening: the sewn shirt and trousers move by themselves (step 4)";
 
         /// <summary>What he is asked to do, in order.</summary>
         private static readonly string[] LookSteps =
         {
-            "1. Go to \"Duel\", the heading \"Clothes\". \"Clothes:\" is \"sewn (new)\": both men wear the shirt and trousers cut from pattern pieces and draped, with the sash. Look round them: up to the neck, no dip at the waist, the folds of the drape. \"tubes (old)\" is the morning's.",
-            "2. Press \"Shake him\" and watch both men: the clothes go with every move, smooth over the elbows, knees and shoulders. Does anything of the body come through? \"X-ray:\" on draws a red cross wherever cloth is inside him.",
-            "3. The cloth does not swing yet: that is the next step. \"Cloth inside the body\" shows what was counted and the cost a picture. \"Shake him\" writes the cloth into the playtest log; push the log afterwards.",
+            "1. Go to \"Duel\", the heading \"Clothes\". \"Clothes:\" is \"sewn (new)\" and \"Cloth:\" is \"moves (new)\". Watch both men stand: the cloth hangs and keeps still.",
+            "2. Press \"Pluck\" (\"Pluck the cloth:\"): both men's clothes are thrown forward once. They should swing a few centimetres and settle within about a second.",
+            "3. Press \"Shake him\": watch the hems in the leaps, and the elbows and knees as they bend. \"carried (old)\" is the last step's, to compare. \"The cloth moving\" gives the numbers. Push the playtest log afterwards.",
         };
 
         /// <summary>The names of what he is to press and watch.</summary>
         private static readonly string[] LookHere =
         {
-            "Duel", "Clothes", "Clothes:", "Shake him:", "X-ray:", "Cloth inside the body",
+            "Duel", "Clothes", "Clothes:", "Cloth:", "Pluck the cloth:", "Shake him:", "The cloth moving",
         };
 
         /// <summary>For the panel check (headless): the names of <see cref="LookHere"/> that were really drawn, and every section taken as open while it looks.</summary>
@@ -5473,6 +5476,32 @@ namespace PhysicsBattler.Sandbox
             EndRow();
             if (feel.theFightersWear == 3)
             {
+                BeginRow();
+                Words(new GUIContent("Cloth:", "Combat Feel \"Sewn Cloth Moves\". Moves (new, step 4): the shirt and trousers move by themselves on him: they hang by their weight, swing when he leaps or turns and settle, never far from where they are carried, every thread held to its length on the flat pattern, his drawn body pushing them out. Carried (old, step 3): exactly as the drape left them, riding his body."));
+                if (Press(feel.sewnClothMoves ? "[moves (new)]" : "moves (new)", "The cloth moves by itself.")) feel.sewnClothMoves = true;
+                if (Press(!feel.sewnClothMoves ? "[carried (old)]" : "carried (old)", "Carried exactly, as in step 3.")) feel.sewnClothMoves = false;
+                EndRow();
+                BeginRow();
+                Words(new GUIContent("Pluck the cloth:", "Both men's moving clothes are thrown forward once, as if each had stopped short, so you can see them swing and settle (within about a second) without waiting for a leap. Only with \"Cloth:\" on \"moves (new)\"."));
+                if (Press("Pluck", "Throw both men's cloth forward once."))
+                {
+                    foreach (var man in new[] { Duel.Mover, Duel.Other })
+                    {
+                        man?.Clothes?.Sewn?.Pluck();
+                    }
+
+                    message = feel.sewnClothMoves ? "Plucked: watch the hems swing and settle." : "The cloth is carried (old): nothing to pluck.";
+                }
+
+                EndRow();
+                if (Time.unscaledTime >= movingNext)
+                {
+                    movingNext = Time.unscaledTime + 0.5f;
+                    var o = Duel.Other != null && Duel.Other.Clothes != null ? Duel.Other.Clothes.Sewn : null;
+                    movingText = o != null ? o.MovingReport() : "no sewn clothes";
+                }
+
+                Readout(new GUIContent("The cloth moving: " + movingText, "The other man's sewn clothes this half second: how far the cloth is from where it would be carried (all of it, and the hems and cuffs), how much it shivers a picture (under 1 mm when he stands still), and how many threads are longer than their length on the flat pattern (the goal: none over 105%)."), 2);
                 BeginRow();
                 Words(new GUIContent("X-ray:", "Combat Feel \"Clothes X Ray\". On: any cloth point inside the drawn body is drawn as a red cross through everything, so a fault cannot hide. Off: nothing drawn."));
                 if (Press(feel.clothesXRay ? "[on]" : "on", "Red crosses where cloth is inside the body.")) feel.clothesXRay = true;

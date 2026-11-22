@@ -393,6 +393,39 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("What the fighters in the labs and the dance wear. 3 (new, 22 November afternoon): a shirt and trousers cut from flat pattern pieces, sewn and draped once on the drawn body like real clothes (Marvelous Designer's way), with a sash; carried on the body as drawn, each cloth point by its one or two nearest parts, smooth across the joints, so it keeps the drape's folds; a last word pushes any point, thread middle or triangle centre still inside the drawn body back out. No cloth moves by itself yet. 1 (old): the shirt and trousers as tubes a set gap off the skin, with the wobble. 2 (old): the morning's open robe. 0: nothing. Not in the fight of six yet.")]
         [Range(0, 3)] public int theFightersWear = 3;
 
+        [Tooltip("The sewn shirt and trousers (\"The Fighters Wear\" 3). On (new, 22 November evening, step 4): the cloth moves by itself on him: it hangs by its weight, swings when he leaps or turns, and settles, while staying near where it is carried; every thread is held to its length on the flat pattern, and his drawn body pushes it out. Off (old, step 3): carried exactly, as the drape left it.")]
+        public bool sewnClothMoves = true;
+
+        [Tooltip("The moving sewn cloth: how heavy it hangs (1: about cotton). More hangs and swings lower; 0 floats.")]
+        [Range(0f, 3f)] public float sewnClothWeighs = PhysicsBattler.Locomotion.SewnOutfit.DefaultWeight;
+
+        [Tooltip("The moving sewn cloth's stiffness: how hard a thread resists being squashed (stretching is always taken back whole). Less, and spare cloth folds more readily; 1, it stands out like card.")]
+        [Range(0f, 1f)] public float sewnClothStiffness = PhysicsBattler.Locomotion.SewnOutfit.DefaultSquash;
+
+        [Tooltip("The moving sewn cloth: how hard it resists folding. 0 folds anywhere; more makes rounder, fewer folds.")]
+        [Range(0f, 1f)] public float sewnClothBends = PhysicsBattler.Locomotion.SewnOutfit.DefaultBend;
+
+        [Tooltip("The moving sewn cloth: the share of its own swing it keeps each picture (at 60 a second). Less is calmer and settles sooner; more swings on longer, like silk.")]
+        [Range(0.5f, 1f)] public float sewnClothAir = PhysicsBattler.Locomotion.SewnOutfit.DefaultAir;
+
+        [Tooltip("The moving sewn cloth: the furthest the hems and cuffs may swing from where they are carried (metres). The cloth near the collar, the shoulders, the waistband and the sash may swing less: its reach grows with how far along the cloth it is from where it is held.")]
+        [Range(0f, 0.25f)] public float sewnHemsMaySwing = PhysicsBattler.Locomotion.SewnOutfit.DefaultHemsSwing;
+
+        [Tooltip("The moving sewn cloth: how much the reach grows for every metre along the cloth from where it is held (0.2: 20 cm a metre, up to \"Sewn Hems May Swing\").")]
+        [Range(0.02f, 0.6f)] public float sewnClothReachPerMetre = PhysicsBattler.Locomotion.SewnOutfit.DefaultFencePerMetre;
+
+        [Tooltip("The moving sewn cloth: how much of his own movement it feels. 0: carried with him, nothing left behind; 1: all of it, as loose cloth would. A leap leaves the hems behind for a moment.")]
+        [Range(0f, 1f)] public float sewnClothFeelsHisMovement = PhysicsBattler.Locomotion.SewnOutfit.DefaultInertia;
+
+        [Tooltip("The moving sewn cloth: how much of the way back to the drape's shape it is drawn each picture. More holds the drape; less lets it lie where it was thrown.")]
+        [Range(0f, 0.3f)] public float sewnClothReturnsToItsDrape = PhysicsBattler.Locomotion.SewnOutfit.DefaultHold;
+
+        [Tooltip("The moving sewn cloth: small steps a picture, and sweeps over the threads each small step. More is truer and costs more.")]
+        [Range(1, 8)] public int sewnClothSmallSteps = PhysicsBattler.Locomotion.SewnOutfit.DefaultSteps;
+
+        [Tooltip("The moving sewn cloth: sweeps over the threads each small step (see \"Sewn Cloth Small Steps\"). More holds each thread nearer its length and costs more.")]
+        [Range(1, 8)] public int sewnClothSweeps = PhysicsBattler.Locomotion.SewnOutfit.DefaultSweeps;
+
         [Tooltip("The shirt and trousers: how far the trousers and sleeves are cut off the drawn skin (metres). 2 cm since his look at 11:42 (\"so tight that I cant see any cloth like deformation\"; it was 1.2 cm). They are cut again when it changes.")]
         [Range(0.004f, 0.06f)] public float clothesSitLooselyOffTheSkin = Outfit.DefaultGap;
 
@@ -2102,6 +2135,17 @@ namespace PhysicsBattler.Locomotion
             ShockWave.JoltGrip = Mathf.Clamp01(joltHisGripHolds);
             ShockWave.JoltCamera = Mathf.Clamp01(joltKicksTheCamera);
             Clothes.Kind = Mathf.Clamp(theFightersWear, 0, 3);
+            PhysicsBattler.Locomotion.SewnOutfit.Moves = sewnClothMoves;
+            PhysicsBattler.Locomotion.SewnOutfit.Weight = Mathf.Clamp(sewnClothWeighs, 0f, 3f);
+            PhysicsBattler.Locomotion.SewnOutfit.Squash = Mathf.Clamp01(sewnClothStiffness);
+            PhysicsBattler.Locomotion.SewnOutfit.Bend = Mathf.Clamp01(sewnClothBends);
+            PhysicsBattler.Locomotion.SewnOutfit.Air = Mathf.Clamp(sewnClothAir, 0f, 1f);
+            PhysicsBattler.Locomotion.SewnOutfit.HemsSwing = Mathf.Clamp(sewnHemsMaySwing, 0f, 0.3f);
+            PhysicsBattler.Locomotion.SewnOutfit.FencePerMetre = Mathf.Clamp(sewnClothReachPerMetre, 0f, 1f);
+            PhysicsBattler.Locomotion.SewnOutfit.Inertia = Mathf.Clamp01(sewnClothFeelsHisMovement);
+            PhysicsBattler.Locomotion.SewnOutfit.HoldShape = Mathf.Clamp(sewnClothReturnsToItsDrape, 0f, 1f);
+            PhysicsBattler.Locomotion.SewnOutfit.Steps = Mathf.Clamp(sewnClothSmallSteps, 1, 16);
+            PhysicsBattler.Locomotion.SewnOutfit.Sweeps = Mathf.Clamp(sewnClothSweeps, 1, 8);
             Outfit.Gap = Mathf.Clamp(clothesSitLooselyOffTheSkin, 0.002f, 0.08f);
             Outfit.ShirtGap = Mathf.Clamp(shirtSitsLooselyOffTheSkin, 0.004f, 0.1f);
             Outfit.Loose = Mathf.Clamp(clothesLooserAtTheEnds, 0f, 3f);

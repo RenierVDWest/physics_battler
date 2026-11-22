@@ -22,7 +22,7 @@ namespace PhysicsBattler.Locomotion
         // ---- The file --------------------------------------------------------------------------------------------
 
         [Serializable] private class SashData { public float lo, hi, a, b, cz; }
-        [Serializable] private class GarmentData { public string name; public string[] pieces; public float[] x; public int[] piece; public int[] tris; public int[] threads; public float[] threadLength; public float[] heldFrom; }
+        [Serializable] private class GarmentData { public string name; public string[] pieces; public float[] x; public int[] piece; public int[] tris; public int[] threads; public float[] threadLength; public int[] bends; public float[] bendLength; public float[] heldFrom; }
         [Serializable] private class RestPart { public string name; public float[] at; }
         [Serializable] private class FileData { public string body; public float pelvisY; public SashData sash; public RestPart[] restParts; public GarmentData[] garments; }
 
@@ -75,6 +75,42 @@ namespace PhysicsBattler.Locomotion
         /// <summary>On (new): the shirt below the sash rides the thighs it hangs over as well as his hips (a lifted knee lifts the hem). Off: his hips alone, and a thigh comes through the hem for the last word to push out.</summary>
         public static bool ShirtRidesThighs = true;
 
+        // ---- The moving cloth (step 4; Combat Feel pushes these) --------------------------------------------------
+
+        public const float DefaultWeight = 1f, DefaultAir = 0.93f, DefaultInertia = 0.5f, DefaultSquash = 0.2f, DefaultBend = 0.05f;
+        public const float DefaultHemsSwing = 0.10f, DefaultFencePerMetre = 0.20f, DefaultHold = 0.03f;
+        public const int DefaultSteps = 4, DefaultSweeps = 4;
+
+        /// <summary>How much of the way back to the drape's shape the cloth is drawn each picture: more holds it, less lets it swing and lie where it was thrown.</summary>
+        public static float HoldShape = DefaultHold;
+
+        /// <summary>On (new): the cloth moves by itself on the body (swings, hangs, folds). Off (old): carried exactly (step 3).</summary>
+        public static bool Moves = true;
+
+        /// <summary>How heavy the cloth hangs: 1 about cotton (gravity times this).</summary>
+        public static float Weight = DefaultWeight;
+
+        /// <summary>The share of its own speed (against his body) the cloth keeps each picture (at 60 a second): less is calmer, more swings on longer.</summary>
+        public static float Air = DefaultAir;
+
+        /// <summary>How much of his own movement the cloth feels (0: carried along with him; 1: all of it, as loose cloth would): a leap leaves the hems behind for a moment.</summary>
+        public static float Inertia = DefaultInertia;
+
+        /// <summary>How hard a thread resists being squashed (a share of the way back to its length each sweep; stretching is always taken back whole): less, and spare cloth folds more readily.</summary>
+        public static float Squash = DefaultSquash;
+
+        /// <summary>How hard the cloth resists folding (the bends' share each sweep).</summary>
+        public static float Bend = DefaultBend;
+
+        /// <summary>The most any point may be from its carried place (metres): the hems and cuffs, the furthest along the cloth from where it is held.</summary>
+        public static float HemsSwing = DefaultHemsSwing;
+
+        /// <summary>Each point's reach grows by this much for every metre along the cloth from where it is held (the collar and shoulder seams; the waistband), up to <see cref="HemsSwing"/>.</summary>
+        public static float FencePerMetre = DefaultFencePerMetre;
+
+        /// <summary>Small steps a picture, and sweeps over the threads each small step.</summary>
+        public static int Steps = DefaultSteps, Sweeps = DefaultSweeps;
+
         public static string Counted() => Pictures == 0 ? "none worn" : string.Format(System.Globalization.CultureInfo.InvariantCulture,
             "{0} pictures; points inside {1} of {2}; thread middles {3} of {4}; triangle centres {5} of {6}; deepest {7:0.0} mm; pushed {8}, still in after the push {9}; folds (body pressed into itself) {10}; exact check {11} of {12} ({13} pictures, folds {14}); {15:0.00} ms a picture{16}",
             Pictures, PointsIn, PointsChecked, MiddlesIn, MiddlesChecked, CentresIn, CentresChecked, 1000f * Deepest, Pushed, StillIn, Folded,
@@ -126,6 +162,11 @@ namespace PhysicsBattler.Locomotion
         private OutfitSolve.Stats[] stats = new OutfitSolve.Stats[0];
         private int[] threads = new int[0], tris = new int[0], adjStart = new int[1], adj = new int[0];
         private Vector3[] x = new Vector3[0], home = new Vector3[0], shove = new Vector3[0];
+        private Vector3[] r = new Vector3[0], rPrev = new Vector3[0], homeWas = new Vector3[0], homeWas2 = new Vector3[0];
+        private float[] threadRest = new float[0], bendRest = new float[0], fence = new float[0];
+        private int[] bends = new int[0];
+        private bool resetNext = true, movedLast;
+        private float dt = 1f / 60f;
         private float[] dNear = new float[0];
         private byte[] moved = new byte[0], insideFlags = new byte[0];
         private readonly List<int> inside = new List<int>();
@@ -272,13 +313,24 @@ namespace PhysicsBattler.Locomotion
                 }
             }
 
-            int total = 0, totalThreads = 0, totalTris = 0;
+            int total = 0, totalThreads = 0, totalTris = 0, totalBends = 0;
             foreach (var g in file.garments)
             {
                 total += g.x.Length / 3;
                 totalThreads += g.threads.Length / 2;
                 totalTris += g.tris.Length / 3;
+                totalBends += g.bends != null ? g.bends.Length / 2 : 0;
             }
+
+            r = new Vector3[total];
+            rPrev = new Vector3[total];
+            homeWas = new Vector3[total];
+            homeWas2 = new Vector3[total];
+            fence = new float[total];
+            threadRest = new float[totalThreads];
+            bends = new int[2 * totalBends];
+            bendRest = new float[totalBends];
+            int atBend = 0;
 
             x = new Vector3[total];
             home = new Vector3[total];
@@ -353,12 +405,40 @@ namespace PhysicsBattler.Locomotion
                         sk.OB = Quaternion.Inverse(restRot[(int)next]) * (p - j);
                     }
 
+                    sk.GA = Quaternion.Inverse(restRot[(int)best]) * Vector3.down;
                     skins[at + i] = sk;
                 }
 
                 for (int t = 0; t < g.threads.Length; t++)
                 {
                     threads[2 * atThread + t] = at + g.threads[t];
+                }
+
+                for (int t = 0; t < g.threads.Length / 2; t++)
+                {
+                    threadRest[atThread + t] = g.threadLength != null && t < g.threadLength.Length ? g.threadLength[t] : 0.02f;
+                }
+
+                int nb = g.bends != null ? g.bends.Length / 2 : 0;
+                for (int t = 0; t < 2 * nb; t++)
+                {
+                    bends[2 * atBend + t] = at + g.bends[t];
+                }
+
+                for (int t = 0; t < nb; t++)
+                {
+                    bendRest[atBend + t] = g.bendLength != null && t < g.bendLength.Length ? g.bendLength[t] : 0.03f;
+                }
+
+                // (Each point's reach: by how far along the cloth it is from where the garment is held; none in the
+                // band the sash gathers.)
+                for (int i = 0; i < n; i++)
+                {
+                    string piece = g.pieces[g.piece[i]];
+                    float held = g.heldFrom != null && i < g.heldFrom.Length ? g.heldFrom[i] : 0f;
+                    float y = g.x[3 * i + 1];
+                    bool underSash = file.sash != null && piece.StartsWith("shirt_", StringComparison.Ordinal) && y > file.sash.lo - 0.01f && y < file.sash.hi + 0.01f;
+                    fence[at + i] = underSash ? 0f : held;
                 }
 
                 for (int t = 0; t < g.tris.Length; t++)
@@ -369,14 +449,51 @@ namespace PhysicsBattler.Locomotion
                 meshes[k] = new OutfitSolve.MeshPiece
                 {
                     Start = at, Count = n, ThreadStart = atThread, ThreadCount = g.threads.Length / 2, TriStart = atTri, TriCount = g.tris.Length / 3, Own = own,
+                    BendStart = atBend, BendCount = nb,
                 };
                 garments.Add(made);
                 at += n;
                 atThread += g.threads.Length / 2;
                 atTri += g.tris.Length / 3;
+                atBend += nb;
             }
 
             stats = new OutfitSolve.Stats[meshes.Length];
+            // (Each point's distance along the cloth from the nearest point that is held (reach 0: the neck band, the
+            // shoulder seams, the waistband, the band under the sash), along the threads at their flat lengths, so the
+            // reach grows smoothly away from every hold: a point just below the sash may not hang far from it.)
+            for (int sweep = 0; sweep < 400; sweep++)
+            {
+                bool changed = false;
+                for (int t = 0; t < threads.Length / 2; t++)
+                {
+                    int a = threads[2 * t], b = threads[2 * t + 1];
+                    float l = threadRest[t];
+                    if (fence[a] + l < fence[b] - 1e-5f) { fence[b] = fence[a] + l; changed = true; }
+                    if (fence[b] + l < fence[a] - 1e-5f) { fence[a] = fence[b] + l; changed = true; }
+                }
+
+                if (!changed)
+                {
+                    break;
+                }
+            }
+
+            // (The hems and cuffs, for the measures: the points of each piece furthest along the cloth from where it is
+            // held.)
+            hemOf = new bool[total];
+            var mostReach = new Dictionary<string, float>();
+            for (int i = 0; i < total; i++)
+            {
+                mostReach.TryGetValue(pieceOf[i], out float m);
+                mostReach[pieceOf[i]] = Mathf.Max(m, fence[i]);
+            }
+
+            for (int i = 0; i < total; i++)
+            {
+                hemOf[i] = fence[i] > 0.1f && fence[i] >= 0.9f * mostReach[pieceOf[i]];
+            }
+
             // (Each point's neighbours along its threads, for the smoothing.)
             adjStart = new int[total + 1];
             for (int t = 0; t < threads.Length; t++)
@@ -463,7 +580,30 @@ namespace PhysicsBattler.Locomotion
             Size = size, PointMargin = Outfit.PointMargin, MiddleMargin = Outfit.MiddleMargin, OtherMargin = Outfit.OtherMargin,
             LastWord = Outfit.LastWordOn ? 1 : 0, Rounds = Mathf.Max(0, Rounds), Measure = measure ? 1 : 0,
             KeepMost = KeepMost ? 1 : 0, RadialOut = RadialOut ? 1 : 0, Smooth = Mathf.Max(0, Smooths), FoldsStay = FoldsStay ? 1 : 0,
+            Dynamic = Moves ? 1 : 0, Steps = Mathf.Clamp(Steps, 1, 16), Iters = Mathf.Clamp(Sweeps, 1, 8), Dt = dt, Reset = resetNext ? 1 : 0,
+            Gravity = 9.81f * Mathf.Max(0f, Weight), Keep = Mathf.Clamp01(Air), Inertia = Mathf.Clamp01(Inertia), Squash = Mathf.Clamp01(Squash), BendK = Mathf.Clamp01(Bend),
+            HoldShape = Mathf.Clamp01(HoldShape), Pluck = pluckNext,
         };
+
+        private Vector3 pluckNext;
+
+        /// <summary>Throws every free point of the clothes forward of his hips (as far as its fence allows) in the next picture, to see how the cloth swings and settles ("Pluck the cloth" in the lab).</summary>
+        public void Pluck()
+        {
+            pluckNext = frames[(int)PartId.Pelvis].R * Vector3.forward * 0.8f;
+        }
+
+        /// <summary>Each point's reach this picture (metres at scale 1): its distance from where it is held times <see cref="FencePerMetre"/>, at most <see cref="HemsSwing"/>.</summary>
+        private void Fences()
+        {
+            for (int i = 0; i < fence.Length; i++)
+            {
+                fenceNow[i] = Mathf.Min(Mathf.Max(0f, HemsSwing), fence[i] * Mathf.Max(0f, FencePerMetre));
+            }
+        }
+
+        private float[] fenceNow = new float[0];
+        private bool[] hemOf = new bool[0];
 
         /// <summary>On: cloth inside a crease where his body is pressed into itself (inside one part and within 1 cm of another: an elbow bent shut) stays there, folded in, and is counted as a fold; off: pushed out of it, which made flaps.</summary>
         public static bool FoldsStay = true;
@@ -486,6 +626,10 @@ namespace PhysicsBattler.Locomotion
         public int[] ThreadArray => threads;
         public int[] TriArray => tris;
         public int[] AdjStartArray => adjStart;
+        public int[] BendArray => bends;
+        public float[] ThreadRestArray => threadRest;
+        public float[] BendRestArray => bendRest;
+        public float[] FenceArray => fenceNow;
         public int[] AdjArray => adj;
         public Vector3[] PointArray => x;
         public Vector3[] HomeArray => home;
@@ -507,6 +651,14 @@ namespace PhysicsBattler.Locomotion
             fixed (Vector3* xs = x)
             fixed (Vector3* hm = home)
             fixed (Vector3* sv = shove)
+            fixed (Vector3* rr = r)
+            fixed (Vector3* rp = rPrev)
+            fixed (Vector3* hw = homeWas)
+            fixed (Vector3* hw2 = homeWas2)
+            fixed (float* trs = threadRest)
+            fixed (float* brs = bendRest)
+            fixed (float* fc = fenceNow)
+            fixed (int* bds = bends)
             fixed (float* dn = dNear)
             fixed (byte* mv = moved)
             fixed (byte* ins = insideFlags)
@@ -514,7 +666,8 @@ namespace PhysicsBattler.Locomotion
             {
                 var d = Settings(measure);
                 d.Grid = g; d.Fields = pf; d.Frames = fr0; d.Skins = sk; d.Meshes = mp; d.Threads = th; d.Tris = tr; d.AdjStart = ast; d.Adj = ad;
-                d.X = xs; d.Home = hm; d.Shove = sv; d.DNear = dn; d.Moved = mv; d.Inside = ins; d.Stats = st;
+                d.X = xs; d.Home = hm; d.Shove = sv; d.DNear = dn;
+                d.R = rr; d.RPrev = rp; d.HomeWas = hw; d.HomeWas2 = hw2; d.ThreadRest = trs; d.BendRest = brs; d.Fence = fc; d.Bends = bds; d.Moved = mv; d.Inside = ins; d.Stats = st;
                 for (int k = 0; k < meshes.Length; k++)
                 {
                     OutfitSolve.Mesh1(ref d, k);
@@ -526,7 +679,7 @@ namespace PhysicsBattler.Locomotion
         /// The picture: every point to its home on the body as drawn now; then the last word; then the checks; then the
         /// drawing. In Unity it is called as the picture is about to be drawn (LateUpdate); headless after each step.
         /// </summary>
-        public void Place()
+        public void Place(float dt)
         {
             if (x.Length == 0)
             {
@@ -534,6 +687,7 @@ namespace PhysicsBattler.Locomotion
             }
 
             var clock = System.Diagnostics.Stopwatch.StartNew();
+            this.dt = Mathf.Clamp(dt > 0f ? dt : 1f / 60f, 1f / 240f, 1f / 15f);
             Frames();
             Run(clock);
         }
@@ -554,12 +708,26 @@ namespace PhysicsBattler.Locomotion
                 fi[p] = Quaternion.Inverse(rot[p]);
             }
 
+            resetNext = true; // (a pose by hand, unrelated to the last: nothing carried over)
             Run(clock);
+            resetNext = true;
         }
 
         private void Run(System.Diagnostics.Stopwatch clock)
         {
             FillFrames();
+            if (fenceNow.Length != fence.Length)
+            {
+                fenceNow = new float[fence.Length];
+            }
+
+            Fences();
+            if (Moves != movedLast)
+            {
+                resetNext = true;
+                movedLast = Moves;
+            }
+
             bool measure = runs++ % Mathf.Max(1, MeasureEvery) == 0;
             bool threaded = false;
 #if !HEADLESS_STUB
@@ -608,6 +776,9 @@ namespace PhysicsBattler.Locomotion
                 }
             }
 
+            resetNext = false;
+            pluckNext = Vector3.zero;
+            Shivers();
             ExactCheck();
             RanOnOtherCores = threaded;
             LastMs = (float)clock.Elapsed.TotalMilliseconds;
@@ -1004,6 +1175,123 @@ namespace PhysicsBattler.Locomotion
             return sb.ToString();
         }
 
+        private Vector3[] offWas = new Vector3[0];
+
+        /// <summary>How far the cloth moved against his body this picture, on average (metres): under a millimetre when he stands still, or it shivers.</summary>
+        public float Shiver { get; private set; }
+
+        private void Shivers()
+        {
+            if (offWas.Length != x.Length)
+            {
+                offWas = new Vector3[x.Length];
+            }
+
+            double sum = 0;
+            for (int i = 0; i < x.Length; i++)
+            {
+                Vector3 off = x[i] - home[i];
+                sum += (off - offWas[i]).magnitude;
+                offWas[i] = off;
+            }
+
+            Shiver = x.Length > 0 ? (float)(sum / x.Length) : 0f;
+        }
+
+        /// <summary>
+        /// What the moving cloth is doing now, in numbers: how far its points are from their carried places (all; and the
+        /// hems and cuffs, those whose reach is 8 cm or more, with how far they hang below them), the shiver, and the most
+        /// stretched thread against its flat length.
+        /// </summary>
+        public (float all, float ends, float hang, float shiver, float stretch) Motion()
+        {
+            double sumAll = 0, sumEnds = 0, hang = 0;
+            int nEnds = 0;
+            for (int i = 0; i < x.Length; i++)
+            {
+                Vector3 off = x[i] - home[i];
+                sumAll += off.magnitude;
+                if (hemOf.Length == x.Length && hemOf[i])
+                {
+                    sumEnds += off.magnitude;
+                    hang += -off.y;
+                    nEnds++;
+                }
+            }
+
+            float most = 0f;
+            for (int k = 0; k < threadRest.Length; k++)
+            {
+                float rest = threadRest[k] * size;
+                if (rest > 1e-5f)
+                {
+                    most = Mathf.Max(most, (x[threads[2 * k + 1]] - x[threads[2 * k]]).magnitude / rest);
+                }
+            }
+
+            return ((float)(x.Length > 0 ? sumAll / x.Length : 0), (float)(nEnds > 0 ? sumEnds / nEnds : 0), (float)(nEnds > 0 ? hang / nEnds : 0), Shiver, most);
+        }
+
+        /// <summary>For the lab: the cloth's distance from where it would be carried, its shiver, and its threads against their flat lengths, this picture.</summary>
+        public string MovingReport()
+        {
+            if (x.Length == 0)
+            {
+                return "no cloth";
+            }
+
+            var mo = Motion();
+            int over = 0, n = 0;
+            for (int k = 0; k < threadRest.Length; k++)
+            {
+                float rest = threadRest[k] * size;
+                if (rest > 1e-5f)
+                {
+                    n++;
+                    over += (x[threads[2 * k + 1]] - x[threads[2 * k]]).sqrMagnitude > 1.1025f * rest * rest ? 1 : 0;
+                }
+            }
+
+            return string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0}; from where it would be carried {1:0.0} cm, the hems and cuffs {2:0.0} cm; shiver {3:0.0} mm a picture; threads over 105%: {4} of {5}, the longest {6:0}%",
+                Moves ? "moving" : "carried (old)", 100f * mo.all, 100f * mo.ends, 1000f * mo.shiver, over, n, 100f * mo.stretch);
+        }
+
+        /// <summary>The longest threads this picture against their flat lengths, as drawn and as carried, with their pieces and parts (for the headless trace).</summary>
+        public string LongestThreads(int count)
+        {
+            var order = new List<(float, int)>();
+            for (int k = 0; k < threadRest.Length; k++)
+            {
+                float rest = threadRest[k] * size;
+                if (rest > 1e-5f)
+                {
+                    order.Add(((x[threads[2 * k + 1]] - x[threads[2 * k]]).magnitude / rest, k));
+                }
+            }
+
+            order.Sort((p, q) => q.Item1.CompareTo(p.Item1));
+            int over5 = 0, over20 = 0;
+            foreach (var o in order)
+            {
+                over5 += o.Item1 > 1.05f ? 1 : 0;
+                over20 += o.Item1 > 1.2f ? 1 : 0;
+            }
+
+            var sb = new System.Text.StringBuilder();
+            sb.Append(string.Format(System.Globalization.CultureInfo.InvariantCulture, "over 105%: {0} of {1}, over 120%: {2}; ", over5, order.Count, over20));
+            for (int j = 0; j < Mathf.Min(count, order.Count); j++)
+            {
+                int k = order[j].Item2, a = threads[2 * k], b = threads[2 * k + 1];
+                float rest = threadRest[k] * size;
+                sb.Append(string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0}-{1} {2:0}% (carried {3:0}%, {4:0.0} cm flat; parts {5}/{6}w{7:0.00} and {8}/{9}w{10:0.00}, reach {11:0.00}/{12:0.00}; off home {13:0.0}/{14:0.0} cm, depth {15:0.0}/{16:0.0} cm); ",
+                    pieceOf[a], pieceOf[b], 100f * order[j].Item1, 100f * (home[b] - home[a]).magnitude / rest, 100f * rest,
+                    (PartId)skins[a].A, (PartId)skins[a].B, skins[a].W, (PartId)skins[b].A, (PartId)skins[b].B, skins[b].W, fence[a], fence[b],
+                    100f * (x[a] - home[a]).magnitude, 100f * (x[b] - home[b]).magnitude, dNear.Length > a ? 100f * dNear[a] : 0f, dNear.Length > b ? 100f * dNear[b] : 0f));
+            }
+
+            return sb.ToString();
+        }
+
         /// <summary>One line on what the clothes are doing this picture.</summary>
         public string Report()
         {
@@ -1024,9 +1312,11 @@ namespace PhysicsBattler.Locomotion
                 most = Mathf.Max(most, (x[i] - home[i]).sqrMagnitude);
             }
 
+            var mo = Motion();
             return string.Format(System.Globalization.CultureInfo.InvariantCulture,
-                "sewn, carried; {0}; {1} points; the last word pushed {2} times, the most {3:0.0} cm off its place on him; inside at the last measure {4}; {5:0.00} ms",
-                RanOnOtherCores ? "other cores" : "main thread", x.Length, pushed, 100f * Mathf.Sqrt(most), inside.Count, LastMs);
+                "sewn, {0}; {1}; {2} points; from its places on him on average {3:0.0} cm, the most {4:0.0} cm; the hems and cuffs {5:0.0} cm, hanging {6:0.0} cm; shiver {7:0.0} mm a picture; the longest thread {8:0}% of its length; the last word pushed {9} times; inside at the last measure {10}; {11:0.00} ms",
+                Moves ? "moving" : "carried", RanOnOtherCores ? "other cores" : "main thread", x.Length, 100f * mo.all, 100f * Mathf.Sqrt(most), 100f * mo.ends, 100f * mo.hang,
+                1000f * mo.shiver, 100f * mo.stretch, pushed, inside.Count, LastMs);
         }
 
         /// <summary>The whole cloth and the body's parts as drawn: SEWNPTS (each garment's points, in the file's order) and PARTFRAMES lines (Tools/Headless/sewn.py reads them).</summary>
