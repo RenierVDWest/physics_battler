@@ -337,6 +337,39 @@ lab. Nothing in the game has changed yet.
 
 Its film: https://claude.ai/artifact/GXntctLRobxVvfT1qj7scq
 
+
+## Progress, 22 November, 15:55: step 3 built (headless only; the Burst job built blind)
+
+His word at 14:37: "ok this looks fine, proceed".
+
+The draped shirt and trousers are worn in the labs and the dance (Combat Feel "The Fighters Wear" 3, the new default;
+duel lab "Clothes:" sewn (new) / tubes (old) / robe (old) / none). Each point is carried by its one or two nearest
+parts, smooth across the joints and carried round a joint at its own distance from it; the shirt below the sash rides
+the thighs too. Then the last word on the drawn body; cloth in a crease where his body is pressed into itself stays
+folded in and is counted apart. In Unity it runs on other cores (`SewnJob`, never compiled here) with the main-thread
+fallback.
+
+Measured headless (both men, every picture):
+
+- "Shake him" (24 s): points inside 2 of 27 million; thread middles 63 of 80 million; triangle centres 29 of 53
+  million; the deepest 0.1 mm; the exact mesh check 1 of 4 million. About as tight as the tubes on the same build
+  (middles 63 of 29 million).
+- The rack (1,000 random poses at the joints' limits): points 40 of 6.6 million, middles 2,829 of 19.7 million, the
+  deepest 10.5 mm: worse than the tubes there.
+- Cost: 33 ms a fighter a picture on one core without Burst. Not known in Unity.
+
+![Both men in Shake him](2026-11-22-clothes-sewn-shake.png)
+
+![The elbows in a wind-up](2026-11-22-clothes-sewn-shake-close.png)
+
+What it took: the shirt below the sash riding the thighs took the middles inside from 24,862 to 453; letting cloth in a
+crease stay folded took them to 63 and the furthest push from 14 cm (a flap at a bent elbow) to under 5 cm.
+
+Not right yet: carried, the shirt's back below the sash makes two lobes over his seat when he stands wide, and its
+front hem crumples over the crotch; a thin line of skin may show in a crease. Real cloth (step 4) is the answer.
+
+**Next: his look in Unity, then step 4** (real cloth on the moving body), its cost gated on his log.
+
 ## Sources
 
 - [Making a sweater with Marvelous Designer](https://dev.epicgames.com/documentation/en-us/uefn/making-a-sweater-with-marvelous-designer-in-unreal-editor-for-fortnite), Epic Games

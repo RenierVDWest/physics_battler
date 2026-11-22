@@ -277,3 +277,21 @@ with `FIGHT_FILM="$S/name.json,3,8.5,medium"`.
   prints the widest seams, longest threads and the hems after each stage; `DRAPE_<LEVER>=value` for any of `LEVERS`.
 - `python3 -I Tools/Cloth/garment.py [Garments.json] [out.png] [neck|armpit|waist|hem]`: the draped garments on the
   body from five sides, true depth, smooth shading (`zbuf.py`); `PX=600` bigger, `HIDE=shirt,sash` to leave things out.
+
+## 22 November, afternoon: the sewn clothes on the moving body (step 3)
+
+- `FIGHT_CLOTHES=3`: the shirt and trousers cut and sewn (`SewnOutfit`, from `Garments_Medium.json`), carried on the
+  drawn body with the last word (the game's default in the labs and the dance now; 1 is the tubes). **Headless the
+  clothes are off unless `FIGHT_CLOTHES` is given** (since 22 November, 15:55): they never touch the fight. Costly headless: about
+  23 ms a fighter a picture in a Release build (`cd Tools/CompileCheck && dotnet build Tests.csproj -c Release`, then
+  run `bin/Tests/Release/PhysicsBattler.Tests.dll`), several times that in Debug. `FIGHT_CLOTHES=0` for runs that do
+  not need clothes.
+- `FIGHT_CLOTHDUMP="6.1,12.5"` writes `SEWNPTS` (each garment's points, in the file's order), `PARTFRAMES`, `SEWNNOW`
+  and `SEWNWORST` (the points the last word moved furthest, with their parts) lines. `FIGHT_CLOTHRACK=200` puts them
+  on random poses (`RACK` lines; the first three dumped as who `rack`). The final `SEWN` line has the totals.
+- `python3 -I Tools/Headless/sewn.py name [mover|other|rack] [neck|armpit|waist|arm|hem|elbows]`: the dumps drawn on
+  the real body meshes, posed, true depth, five sides, a row a moment, into `$S/name.<who>.sewn.png`. It reads a Unity
+  log's `clothdump` lines the same way (give the log's path as the name).
+- `FIGHT_SEWNBALLS=0` (two parts' points blended straight, not carried round the joint), `FIGHT_SEWNTHIGHS=0` (the
+  shirt's hem on his hips alone), `FIGHT_SEWNROUNDS=n` (rounds of middles, 6), `FIGHT_SEWNFOLDS=0` (cloth in a crease pushed out
+  of it: flaps), `FIGHT_SEWNSMOOTH=n`, `FIGHT_SEWNKEEPMOST=1`, `FIGHT_SEWNRADIAL=1` (ways tried and left off).

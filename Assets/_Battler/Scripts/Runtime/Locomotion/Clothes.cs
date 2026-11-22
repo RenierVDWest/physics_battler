@@ -19,9 +19,10 @@ namespace PhysicsBattler.Locomotion
         /// <summary>
         /// What the fighters in the labs and the dance wear: 0 nothing; 1 a shirt and trousers that never go into the
         /// drawn body (<see cref="Outfit"/>, 22 November, after his look at the robe: "still not working"); 2 the open robe
-        /// of this morning (old).
+        /// of this morning (old); 3 the shirt and trousers cut and sewn like real clothes, draped once and carried on the
+        /// drawn body (<see cref="SewnOutfit"/>, 22 November afternoon).
         /// </summary>
-        public static int Kind = 1;
+        public static int Kind = 3;
 
         /// <summary>The robe is worn (Kind 2).</summary>
         public static bool Wear => Kind == 2;
@@ -130,21 +131,27 @@ namespace PhysicsBattler.Locomotion
         private Outfit outfit;
         private bool outfitTried;
         private Vector3 outfitFit;
+        private SewnOutfit sewn;
+        private bool sewnTried;
 
-        /// <summary>His shirt and trousers, if he wears them.</summary>
+        /// <summary>His shirt and trousers as tubes (Kind 1), if he wears them.</summary>
         public Outfit Outfit => outfit;
+
+        /// <summary>His shirt and trousers cut and sewn (Kind 3), if he wears them.</summary>
+        public SewnOutfit Sewn => sewn;
 
         /// <summary>The shirt and trousers put on the body as it is drawn this picture (Unity: LateUpdate).</summary>
         public void Place()
         {
-            if (outfit == null)
+            if (outfit == null && sewn == null)
             {
                 return;
             }
 
             using (PhysicsBattler.Diagnostics.Perf.Begin(PhysicsBattler.Diagnostics.PerfSection.Clothes))
             {
-                outfit.Place(Time.deltaTime);
+                outfit?.Place(Time.deltaTime);
+                sewn?.Place();
             }
 
             Trace();
@@ -175,7 +182,7 @@ namespace PhysicsBattler.Locomotion
             if (now >= traceNext)
             {
                 traceNext = now + 0.5f;
-                PhysicsBattler.Diagnostics.PlaytestTrace.Note(traceUnit, "cloth", outfit.Report());
+                PhysicsBattler.Diagnostics.PlaytestTrace.Note(traceUnit, "cloth", sewn != null ? sewn.Report() : outfit.Report());
             }
 
             bool asked = Outfit.DumpRequests != dumpsSeen;
@@ -185,7 +192,8 @@ namespace PhysicsBattler.Locomotion
                 dumpsSeen = Outfit.DumpRequests;
                 dumpNext = now + Mathf.Max(0.2f, Outfit.DumpEvery);
                 string who = owner.name.Replace(' ', '_');
-                foreach (var line in outfit.DumpLines(now.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture), who))
+                string when = now.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
+                foreach (var line in sewn != null ? sewn.DumpLines(when, who) : outfit.DumpLines(when, who))
                 {
                     PhysicsBattler.Diagnostics.PlaytestTrace.Note(traceUnit, "clothdump", line);
                 }
@@ -209,7 +217,7 @@ namespace PhysicsBattler.Locomotion
         }
 
         /// <summary>His robe's points (for the lab and the report).</summary>
-        public int Points => robe != null ? robe.Net.Count : outfit != null ? outfit.Points : 0;
+        public int Points => robe != null ? robe.Net.Count : outfit != null ? outfit.Points : sewn != null ? sewn.Points : 0;
 
         private Frame FrameOf(PartId p)
         {
@@ -270,9 +278,32 @@ namespace PhysicsBattler.Locomotion
                 outfitTried = false;
             }
 
+            // (The shirt and trousers cut and sewn (the plan "Clothes cut and sewn like real clothes", step 3): carried on
+            // the body as drawn, placed with the picture as the tubes are.)
+            bool wantSewn = allowed && Kind == 3;
+            if (wantSewn && sewn == null && !sewnTried)
+            {
+                sewnTried = true;
+                sewn = SewnOutfit.Make(rig, wave, size, side, owner);
+                string said = sewn != null ? sewn.Check : "no sewn clothes for this body (Garments_Medium.json not found, or no baked body)";
+                Debug.Log("[Clothes] " + said);
+                var unit = owner != null ? owner.GetComponent<PhysicsBattler.Units.UnitController>() : null;
+                if (unit != null)
+                {
+                    PhysicsBattler.Diagnostics.PlaytestTrace.Note(unit, "clothes", said);
+                }
+            }
+            else if (!wantSewn && sewn != null)
+            {
+                sewn.Release();
+                sewn = null;
+                sewnTried = false;
+            }
+
 #if HEADLESS_STUB
             // (Headless there is no LateUpdate: placed here, after the step, on the body as it stands.)
             outfit?.Place(dt);
+            sewn?.Place();
 #endif
 
             bool want = allowed && Wear;
@@ -843,6 +874,8 @@ namespace PhysicsBattler.Locomotion
             Make(false);
             outfit?.Release();
             outfit = null;
+            sewn?.Release();
+            sewn = null;
         }
 
         /// <summary>Every point of the robe, with its garment's name, for a picture drawn from the numbers.</summary>

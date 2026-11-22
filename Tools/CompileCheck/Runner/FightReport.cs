@@ -1190,12 +1190,22 @@ internal static class FightReport
             PhysicsBattler.Sandbox.Dance.Pounces = own[0].Trim() != "0";
             // (FIGHT_DANCECOMBOS=0: the dance's fighters start no combos by themselves, as before step 5 of the combos plan.)
             PhysicsBattler.Sandbox.Dance.Combos = Environment.GetEnvironmentVariable("FIGHT_DANCECOMBOS") != "0";
-        // (FIGHT_CLOTHES=0, 1 or 2: nothing, the shirt and trousers (as the game has it), the robe (old).
+        // (FIGHT_CLOTHES=0, 1, 2 or 3: nothing, the shirt and trousers as tubes, the robe (old), the shirt and trousers
+        // cut and sewn (as the game has it now). Headless they are off unless asked for (22 November, afternoon): they
+        // never touch the bodies or the fight, and the sewn ones cost 33 ms a fighter a picture here.
         // FIGHT_WAVE=0: no shock wave on a hit.)
-        if (int.TryParse(Environment.GetEnvironmentVariable("FIGHT_CLOTHES"), out int clothesEnv)) PhysicsBattler.Locomotion.Clothes.Kind = clothesEnv;
+        PhysicsBattler.Locomotion.Clothes.Kind = int.TryParse(Environment.GetEnvironmentVariable("FIGHT_CLOTHES"), out int clothesEnv) ? clothesEnv : 0;
         if (int.TryParse(Environment.GetEnvironmentVariable("FIGHT_CLOTHSMOOTH"), out int smoothEnv)) PhysicsBattler.Locomotion.Outfit.Smooth = smoothEnv;
         // (Headless the clothes are measured every picture unless FIGHT_CLOTHMEASURE=n asks for every n-th, as in a game.)
         PhysicsBattler.Locomotion.Outfit.MeasureEvery = int.TryParse(Environment.GetEnvironmentVariable("FIGHT_CLOTHMEASURE"), out int measureEnv) ? measureEnv : 1;
+        PhysicsBattler.Locomotion.SewnOutfit.MeasureEvery = PhysicsBattler.Locomotion.Outfit.MeasureEvery;
+        if (Environment.GetEnvironmentVariable("FIGHT_SEWNBALLS") == "0") PhysicsBattler.Locomotion.SewnOutfit.JointBalls = false;
+        if (Environment.GetEnvironmentVariable("FIGHT_SEWNTHIGHS") == "0") PhysicsBattler.Locomotion.SewnOutfit.ShirtRidesThighs = false;
+        if (int.TryParse(Environment.GetEnvironmentVariable("FIGHT_SEWNROUNDS"), out int sewnRounds)) PhysicsBattler.Locomotion.SewnOutfit.Rounds = sewnRounds;
+        if (Environment.GetEnvironmentVariable("FIGHT_SEWNKEEPMOST") == "1") PhysicsBattler.Locomotion.SewnOutfit.KeepMost = true;
+        if (Environment.GetEnvironmentVariable("FIGHT_SEWNRADIAL") == "1") PhysicsBattler.Locomotion.SewnOutfit.RadialOut = true;
+        if (int.TryParse(Environment.GetEnvironmentVariable("FIGHT_SEWNSMOOTH"), out int sewnSmooth)) PhysicsBattler.Locomotion.SewnOutfit.Smooths = sewnSmooth;
+        if (Environment.GetEnvironmentVariable("FIGHT_SEWNFOLDS") == "0") PhysicsBattler.Locomotion.SewnOutfit.FoldsStay = false;
         PhysicsBattler.Locomotion.ShockWave.On = Environment.GetEnvironmentVariable("FIGHT_WAVE") != "0";
         // (FIGHT_JOLT=0: the jelly wave (old) instead of the jolt.)
         PhysicsBattler.Locomotion.ShockWave.Jolt = Environment.GetEnvironmentVariable("FIGHT_JOLT") != "0";
@@ -2623,7 +2633,7 @@ internal static class FightReport
                                 if (m == 6) duel.Mover.Clip.Bash(duel.Other.Clip, true, 1, false, false);
                                 if (m == 7) duel.PutOtherAt(1.0f);
                                 if (m == 8) duel.Mover.Clip.KickAt(duel.Other.Clip, true, 2, 0f);
-                                Console.WriteLine(FormattableString.Invariant($"SHAKE {paceAt:0.00}: he {did}; {(PhysicsBattler.Locomotion.Clothes.Kind == 1 ? "the clothes so far: " + PhysicsBattler.Locomotion.Outfit.Counted() : "the cloth so far: " + PhysicsBattler.Locomotion.Clothes.Counted())}"));
+                                Console.WriteLine(FormattableString.Invariant($"SHAKE {paceAt:0.00}: he {did}; {(PhysicsBattler.Locomotion.Clothes.Kind == 3 ? "the sewn clothes so far: " + PhysicsBattler.Locomotion.SewnOutfit.Counted() : PhysicsBattler.Locomotion.Clothes.Kind == 1 ? "the clothes so far: " + PhysicsBattler.Locomotion.Outfit.Counted() : "the cloth so far: " + PhysicsBattler.Locomotion.Clothes.Counted())}"));
                             }
                         }
                     }
@@ -2631,6 +2641,38 @@ internal static class FightReport
                     // (FIGHT_CLOTHRACK=n: the torture rack (the plan "Clothes that never go into the body"): at 2 s, the other's
                     // shirt and trousers put on n bodies posed at random within every joint's limits, one after another
                     // (each a snap from the last), both checks; RACK lines; the first three poses dumped as 101, 102, 103.)
+                    // (The sewn clothes on the same rack: SEWNPTS dumps instead of OUTFITTUBE.)
+                    if (int.TryParse(Environment.GetEnvironmentVariable("FIGHT_CLOTHRACK"), out int sewnPoses) && sewnPoses > 0 && paceAt >= 2f && paceAt - dt < 2f
+                        && duel.Other.Clothes != null && duel.Other.Clothes.Sewn != null)
+                    {
+                        var sewnRack = duel.Other.Clothes.Sewn;
+                        var rng = new System.Random(seed);
+                        var rackPos = new Vector3[PartInfo.Count];
+                        var rackRot = new Quaternion[PartInfo.Count];
+                        PhysicsBattler.Locomotion.SewnOutfit.Forget();
+                        PhysicsBattler.Locomotion.SewnOutfit.ExactEvery = 10;
+                        var rackClock = System.Diagnostics.Stopwatch.StartNew();
+                        for (int pose = 0; pose < sewnPoses; pose++)
+                        {
+                            sewnRack.RandomPose(rng, new Vector3(0f, 1f, 0f), rackPos, rackRot);
+                            sewnRack.PlaceWith(rackPos, rackRot);
+                            if (pose < 3)
+                            {
+                                foreach (var line in sewnRack.DumpLines(FormattableString.Invariant($"{101 + pose}.00"), "rack"))
+                                {
+                                    Console.WriteLine(line);
+                                }
+                            }
+
+                            if ((pose + 1) % 200 == 0 || pose + 1 == sewnPoses)
+                            {
+                                Console.WriteLine(FormattableString.Invariant($"RACK {pose + 1} poses, {rackClock.Elapsed.TotalSeconds:0} s: {PhysicsBattler.Locomotion.SewnOutfit.Counted()}"));
+                            }
+                        }
+
+                        Environment.Exit(0);
+                    }
+
                     if (int.TryParse(Environment.GetEnvironmentVariable("FIGHT_CLOTHRACK"), out int rackPoses) && rackPoses > 0 && paceAt >= 2f && paceAt - dt < 2f
                         && duel.Other.Clothes != null && duel.Other.Clothes.Outfit != null)
                     {
@@ -2690,6 +2732,18 @@ internal static class FightReport
                                 }
 
                                 string whoName = who == duel.Mover ? "mover" : "other";
+                                if (who.Clothes.Sewn != null)
+                                {
+                                    foreach (var line in who.Clothes.Sewn.DumpLines(FormattableString.Invariant($"{paceAt:0.00}"), whoName))
+                                    {
+                                        Console.WriteLine(line);
+                                    }
+
+                                    Console.WriteLine(FormattableString.Invariant($"SEWNNOW {paceAt:0.00} {whoName}: {who.Clothes.Sewn.InsideNow} points inside; {who.Clothes.Sewn.Report()}; {who.Clothes.Sewn.Check}"));
+                                    Console.WriteLine(FormattableString.Invariant($"SEWNWORST {paceAt:0.00} {whoName}: {who.Clothes.Sewn.Worst(8)}"));
+                                    continue;
+                                }
+
                                 // (The shirt and trousers: each tube ring by ring, and the parts as drawn, for robe.py's
                                 // picture with the real body meshes.)
                                 if (who.Clothes.Outfit != null)
@@ -3346,6 +3400,7 @@ internal static class FightReport
             sb.AppendLine("SHOCKWAVES " + PhysicsBattler.Locomotion.ShockWave.Counted());
             sb.AppendLine("CLOTHES " + PhysicsBattler.Locomotion.Clothes.Counted());
         sb.AppendLine("OUTFIT " + PhysicsBattler.Locomotion.Outfit.Counted());
+        sb.AppendLine("SEWN " + PhysicsBattler.Locomotion.SewnOutfit.Counted());
             sb.AppendLine($"    what he holds follows its pose smoothly: {(PhysicsBattler.Locomotion.ClipFighter.HeldSettles ? $"on ({PhysicsBattler.Locomotion.ClipFighter.HeldSettleRate:0} and {PhysicsBattler.Locomotion.ClipFighter.HeldSettleQuick:0} a second)" : "off")}; the furthest a hand was behind its pose for it (cm, shield hand / sword hand): " + string.Join(", ", units.Where(u => u.Clip != null && u.Clip.HeldBehindMost[0] + u.Clip.HeldBehindMost[1] > 0f).Select(u => $"{u.name} {100f * u.Clip.HeldBehindMost[0]:0} / {100f * u.Clip.HeldBehindMost[1]:0}")));
             sb.AppendLine($"    what he holds met softly by his own body: {(PhysicsBattler.Authority.UpperBodyArticulation.HeldMetSoftly ? "on" : "off")}; steps it was against his body (shield arm / sword arm): " + string.Join(", ", units.Where(u => u.Clip != null && u.Clip.Upper != null).Select(u => $"{u.name} {u.Clip.Upper.HeldTouched[0]} / {u.Clip.Upper.HeldTouched[1]}")));
             sb.AppendLine($"    the shield gives way to his own sword: {(PhysicsBattler.Locomotion.ClipFighter.ShieldGivesWayToSword ? "on" : "off")}; steps it was asked aside / the furthest (cm): " + string.Join(", ", units.Where(u => u.Clip != null && u.Clip.GaveWayToSword > 0).Select(u => $"{u.name} {u.Clip.GaveWayToSword} / {100f * u.Clip.GaveWayToSwordMost:0}")));

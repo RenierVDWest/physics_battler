@@ -9286,3 +9286,70 @@ hems), `…-drape-stages.png`; drawn by `Tools/Cloth/garment.py` with true depth
 moving; folds 2 cm apart at the finest; the cost in Unity (step 4's gate).
 
 Its film (3b2b, made by Opus at medium effort; 6 scenes, 24 beats, about 3.3 minutes): https://claude.ai/artifact/GXntctLRobxVvfT1qj7scq
+
+### 22 November, 15:55: clothes cut and sewn, step 3: carried on the moving body (headless only; the Burst job built blind)
+
+**His word (14:37):** "ok this looks fine, proceed".
+
+**What it is** (`Locomotion/SewnOutfit.cs`; the core `OutfitSolve.Mesh1`; the job `Locomotion/SewnJob.cs`): the
+draped shirt and trousers from `Garments_Medium.json`, one welded mesh each (6,624 points), worn in the labs and the
+dance. Each point is carried by the one or two nearest parts its piece may ride (a sleeve its arm and, near the
+shoulder, the chest; the shirt's body the trunk, an upper arm only within 8 cm of its shoulder, the thighs below the
+sash; a trouser leg its hips, thigh and shin; the waistband and neck band their one part), shared smoothly over 4 cm
+where two are as near. Two parts that meet at a joint carry their shared points round the joint at the point's own
+distance from it (as the tubes' joint balls). Then the last word on the body as drawn: every point, thread middle
+and triangle centre still inside is pushed out (rounds; a later round only goes over what moved). Cloth in a crease
+where his body is pressed into itself (inside one part and within 1 cm of another: an elbow bent shut) stays folded
+in and is counted apart. Placed in `LateUpdate` like the tubes; in Unity worked out on other cores (`SewnJob`, a garment
+a worker, Burst; never compiled here), with the same fallback to the main thread and one `[Clothes]` error if the job
+fails. The start-up check now also compares his rest pose with the drape's (`restParts` in the file; headless 0.1 mm).
+
+**In the game:** Combat Feel "The Fighters Wear" (a new field, 3 by default: sewn; 1 the tubes, 2 the robe, 0 none).
+Duel lab, "Clothes": "Clothes:" sewn (new) / tubes (old) / robe (old) / none; for sewn "X-ray:", "The last word:",
+"Log the cloth:" and the readout "Cloth inside the body". The playtest log's `cloth` and `clothdump` lines carry the
+sewn clothes (`SEWNPTS`, `PARTFRAMES`); `Tools/Headless/sewn.py` draws them. Not moving by itself yet: step 4.
+
+**Measured (headless, a Release build, both men, every picture measured):**
+
+| | "Shake him" (24 s) | The rack (1,000 random poses at the joints' limits) |
+| --- | --- | --- |
+| Points inside the drawn body | 2 of 27 million | 40 of 6.6 million |
+| Thread middles inside | 63 of 80 million | 2,829 of 19.7 million |
+| Triangle centres inside | 29 of 53 million | 1,915 of 13.1 million |
+| The deepest | 0.1 mm | 10.5 mm |
+| Exact check (mesh triangles) | 1 of 4.0 million | 71 of 2.0 million |
+| In a crease of his body pressed into itself (apart) | 0.8% of point checks | 7.5% |
+| Furthest the last word moved a point | 2.7 to 4.4 cm standing, 7.9 cm lying | |
+| Cost a picture, one fighter, one core, no Burst | 33 ms | 43 ms |
+
+The tubes in the same shake on the same build: points 1 of 15 million, middles 63 of 29 million, exact 0 of 1.5 million.
+So in "Shake him" the sewn clothes are about as tight to the rules as the tubes; in the rack's extreme poses they are
+worse (a few in ten thousand middles, the deepest 1 cm).
+
+**What it took (the ways tried, each measured in "Shake him"):**
+
+| Way | Middles inside | Furthest a point moved | Kept |
+| --- | --- | --- | --- |
+| First: nearest parts blended straight | 24,862 | 15 cm | no |
+| The shirt below the sash rides the thighs too | 453 | 14 cm | yes |
+| Shared points carried round the joint | (rack: middles 2,587 → 1,825) | | yes |
+| A point keeps only its biggest push, 1 cm a round | 4,582 | 6 to 10 cm | no (`FIGHT_SEWNKEEPMOST=1`) |
+| Pushed straight out from the joint | 268 | 17 to 32 cm | no (`FIGHT_SEWNRADIAL=1`) |
+| The pushes smoothed over neighbours | 418 to 6,343 | 5 to 14 cm | no (`FIGHT_SEWNSMOOTH=n`) |
+| **Cloth in a crease stays folded in** | **63** | **2.7 to 4.4 cm** | **yes** (`FIGHT_SEWNFOLDS=0` off) |
+
+The 14 cm was a flap at a sharply bent elbow (a wind-up, the shield arm): points in the crease were pushed out of it by
+every thread and triangle round them. The later rounds of the last word now only go over what moved (68 → 34 ms a picture on the rack, the
+same result).
+
+**Pictures:** `Docs/Plans/2026-11-22-clothes-sewn-shake.png` (both men in "Shake him", five sides, standing, striking,
+lying) and `…-sewn-shake-close.png` (the elbows in a wind-up).
+
+**Not right yet, not known:**
+- The cost in Unity is not known: the job has never been compiled. Headless, one core and no Burst, 33 ms a fighter a
+  picture. His log's `ms_Clothes` and `cloth` lines will say.
+- Carried, the shirt's back below the sash rides both thighs and makes two rounded lobes over his seat when he stands
+  wide; its front hem crumples over the crotch. Real cloth (step 4) is the answer to both.
+- In a crease (an elbow bent shut, the armpit, the crotch) the cloth dips under the skin; there may be a thin line of
+  skin there.
+- Cloth through cloth (the shirt's hem through the trousers) is not checked (step 5).

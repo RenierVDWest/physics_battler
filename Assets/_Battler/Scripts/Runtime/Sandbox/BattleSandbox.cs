@@ -4393,20 +4393,20 @@ namespace PhysicsBattler.Sandbox
         // Names are matched whole, without a chosen button's square brackets; capitals do not matter.
 
         /// <summary>Names this push's list. Change it with every push that needs his eye: his "highlights off" is kept by tag, so a new list is shown again.</summary>
-        private const string LookTag = "22 November, noon: the clothes looser and swinging (the wobble), logged for me (built blind)";
+        private const string LookTag = "22 November, afternoon: the shirt and trousers cut and sewn, carried on him (step 3)";
 
         /// <summary>What he is asked to do, in order.</summary>
         private static readonly string[] LookSteps =
         {
-            "1. Go to \"Duel\", the heading \"Clothes\". The shirt and trousers now sit looser (2 cm off the skin, the shirt 3 cm, wider at the ends) and swing: \"The wobble:\" on (new) / off (old). Press \"Shake him\": do the cuffs and trouser bottoms swing and settle like cloth? Does anything come through?",
-            "2. Try \"Wobble reaches\" (how far it may swing), \"Cloth weight\" and \"Holds its shape\" (less: freer). \"Off the skin\", \"Shirt off the skin\" and \"Loose at the ends\" now cut the clothes again as you drag them.",
-            "3. \"Shake him\" writes the whole cloth into the playtest log every 1.5 s; \"Log the cloth now\" does it once. Push the log afterwards: I can draw what Unity did from it. \"Cloth inside the body\" shows what the cloth is doing now.",
+            "1. Go to \"Duel\", the heading \"Clothes\". \"Clothes:\" is \"sewn (new)\": both men wear the shirt and trousers cut from pattern pieces and draped, with the sash. Look round them: up to the neck, no dip at the waist, the folds of the drape. \"tubes (old)\" is the morning's.",
+            "2. Press \"Shake him\" and watch both men: the clothes go with every move, smooth over the elbows, knees and shoulders. Does anything of the body come through? \"X-ray:\" on draws a red cross wherever cloth is inside him.",
+            "3. The cloth does not swing yet: that is the next step. \"Cloth inside the body\" shows what was counted and the cost a picture. \"Shake him\" writes the cloth into the playtest log; push the log afterwards.",
         };
 
         /// <summary>The names of what he is to press and watch.</summary>
         private static readonly string[] LookHere =
         {
-            "Duel", "Clothes", "The wobble:", "Shake him:", "Wobble reaches", "Cloth weight", "Holds its shape", "Off the skin", "Shirt off the skin", "Loose at the ends", "Log the cloth:", "Cloth inside the body",
+            "Duel", "Clothes", "Clothes:", "Shake him:", "X-ray:", "Cloth inside the body",
         };
 
         /// <summary>For the panel check (headless): the names of <see cref="LookHere"/> that were really drawn, and every section taken as open while it looks.</summary>
@@ -5445,18 +5445,18 @@ namespace PhysicsBattler.Sandbox
         /// <summary>The duel lab's clothes (21 November): what they wear, "Shake him", the sliders, what the cloth measured.</summary>
         private void ClothesRows(CombatFeel feel)
         {
-            Heading("Clothes", "The clothes (the plan \"Clothes that never go into the body\", 22 November): a long-sleeved shirt and trousers to the ankles, with a sash, cut by code from the drawn body and carried on it. Every cloth point has a home on a body part, a set gap off its drawn skin, and moves with the part as it is drawn each picture; a last word pushes anything still inside the drawn body back out. No wobble yet. The checks measure against the drawn meshes, not the physics shapes. In the labs and the dance; not in the fight of six yet.");
+            Heading("Clothes", "The clothes (the plan \"Clothes cut and sewn like real clothes\", 22 November): a long-sleeved shirt and trousers to the feet, with a sash, cut from flat pattern pieces, sewn and draped once on the drawn body like real clothes, and carried on it: each cloth point by its one or two nearest body parts, smooth across the joints, so the drape's folds stay; a last word pushes anything still inside the drawn body back out. The cloth does not move by itself yet (the plan's step 4). The checks measure against the drawn meshes, not the physics shapes. In the labs and the dance; not in the fight of six yet.");
             if (feel == null)
             {
                 return;
             }
 
             BeginRow();
-            Words(new GUIContent("Clothes:", "What both men wear (Combat Feel \"What The Fighters Wear\"). Shirt and trousers (new). Robe (old): this morning's open robe. None: nothing."));
-            string[] names = { "none", "shirt and trousers", "robe (old)" };
-            foreach (int k in new[] { 1, 2, 0 })
+            Words(new GUIContent("Clothes:", "What both men wear (Combat Feel \"The Fighters Wear\"). Sewn (new): the shirt and trousers cut from pattern pieces, sewn and draped like real clothes, carried on the drawn body. Tubes (old): the shirt and trousers as tubes a set gap off the skin, with the wobble. Robe (old): the morning's open robe. None: nothing."));
+            string[] names = { "none", "tubes (old)", "robe (old)", "sewn (new)" };
+            foreach (int k in new[] { 3, 1, 2, 0 })
             {
-                if (Press(feel.whatTheFightersWear == k ? "[" + names[k] + "]" : names[k], "Both men wear this.")) feel.whatTheFightersWear = k;
+                if (Press(feel.theFightersWear == k ? "[" + names[k] + "]" : names[k], "Both men wear this.")) feel.theFightersWear = k;
             }
 
             EndRow();
@@ -5471,7 +5471,29 @@ namespace PhysicsBattler.Sandbox
             }
 
             EndRow();
-            if (feel.whatTheFightersWear == 1)
+            if (feel.theFightersWear == 3)
+            {
+                BeginRow();
+                Words(new GUIContent("X-ray:", "Combat Feel \"Clothes X Ray\". On: any cloth point inside the drawn body is drawn as a red cross through everything, so a fault cannot hide. Off: nothing drawn."));
+                if (Press(feel.clothesXRay ? "[on]" : "on", "Red crosses where cloth is inside the body.")) feel.clothesXRay = true;
+                if (Press(!feel.clothesXRay ? "[off]" : "off", "No crosses.")) feel.clothesXRay = false;
+                EndRow();
+                BeginRow();
+                Words(new GUIContent("The last word:", "Combat Feel \"Clothes Last Word Keeps Them Out\". On (new): every picture, any cloth point, thread middle or triangle centre still inside the drawn body is pushed back out. Off: the cloth only carried, to see where it would go in (with the x-ray on)."));
+                if (Press(feel.clothesLastWordKeepsThemOut ? "[on]" : "on", "Pushed out every picture.")) feel.clothesLastWordKeepsThemOut = true;
+                if (Press(!feel.clothesLastWordKeepsThemOut ? "[off]" : "off", "Only carried.")) feel.clothesLastWordKeepsThemOut = false;
+                EndRow();
+                BeginRow();
+                Words(new GUIContent("Log the cloth:", "Writes both men's whole cloth and their bodies as drawn into the playtest log, once (\"clothdump\" lines), so it can be drawn and checked afterwards. \"Shake him\" does it every 1.5 seconds by itself. A \"cloth\" line goes to the log twice a second all the time."));
+                if (Press("Log the cloth now", "Both men's cloth into the playtest log, once.")) { PhysicsBattler.Locomotion.Outfit.DumpRequests++; message = "The cloth is in the playtest log."; }
+                EndRow();
+                var wearer = Duel.Other != null ? Duel.Other.Clothes : null;
+                string nowSewn = wearer != null && wearer.Sewn != null ? $" This picture, the other: {wearer.Sewn.InsideNow} points inside; {wearer.Sewn.Report()}. {wearer.Sewn.Check}." : "";
+                Readout(new GUIContent("Cloth inside the body: " + PhysicsBattler.Locomotion.SewnOutfit.Counted() + "." + nowSewn, "Every picture of both men's sewn shirt and trousers since the scene began, measured against the drawn body (the baked meshes, not the physics shapes): cloth points, thread middles and triangle centres inside it (the goal is 0), the deepest, how often the last word had to push, and the cost a picture. The line at the end is the start-up check: the baked body against the meshes Unity loaded, and his rest pose against the drape's."), 4);
+                return;
+            }
+
+            if (feel.theFightersWear == 1)
             {
                 BeginRow();
                 Words(new GUIContent("X-ray:", "Combat Feel \"Clothes X Ray\". On: any cloth point inside the drawn body is drawn as a red cross through everything, so a fault cannot hide. Off: nothing drawn."));
@@ -5504,7 +5526,7 @@ namespace PhysicsBattler.Sandbox
                 return;
             }
 
-            if (feel.whatTheFightersWear != 2)
+            if (feel.theFightersWear != 2)
             {
                 return;
             }

@@ -13,6 +13,12 @@ namespace PhysicsBattler.Locomotion
     {
         public const int Parts = 16;
 
+        /// <summary>A sewn garment's point is moved at most this far by the thread middles and triangle centres in one round (metres).</summary>
+        public const float ShoveMost = 0.01f;
+
+        /// <summary>A sewn garment's point carried round a joint is pushed out straight from the joint at most this far (metres); if that is not enough, it goes back and the plain push out takes it.</summary>
+        public const float RadialMost = 0.04f;
+
         /// <summary>One body part's baked field: where its grid sits in the shared array, and its shape.</summary>
         public struct PartField
         {
@@ -69,6 +75,35 @@ namespace PhysicsBattler.Locomotion
             // the thread passes, and Reset: every point put home and stilled.)
             public int WobbleOn, Iters, Reset;
             public float Dt, Wobble, Weight, Hold, Damp;
+            // (Sewn garments (<see cref="SewnOutfit"/>): each point carried by one or two parts, the garments, and their
+            // threads (pairs of points) and triangles (triples), as places in the shared point arrays.)
+            public Skin* Skins;
+            public MeshPiece* Meshes;
+            public int* Threads, Tris;
+            public Vector3* Shove; // (a sewn garment's scratch: the biggest push each point got from a middle this round)
+            public int KeepMost, RadialOut;
+            public int* AdjStart, Adj; // (sewn: each point's neighbours along its threads, for smoothing the last word's pushes)
+            public int FoldsStay; // (sewn: cloth inside a crease of his body pressed into itself (an elbow bent shut) stays there, hidden in the fold, not pushed out of it) // (sewn: a point keeps its biggest push from a middle (1) or adds them all (0); a point shared round a joint is pushed out straight from the joint (1))
+        }
+
+        /// <summary>A sewn garment's point carried by one or two parts: its places in their spaces (scale 1) and B's share.</summary>
+        public struct Skin
+        {
+            public int A, B;
+            public float W;
+            public Vector3 HA, HB;
+            // (Shared by two parts that meet at a joint (J, the one whose place is the joint): its way from the joint in
+            // each part's space, OA and OB, turned with each and blended, at its own distance R from the joint, as the
+            // tubes' joint balls have it, so a bent elbow does not draw the cloth in. J is -1 for a plain blend.)
+            public int J;
+            public Vector3 OA, OB;
+            public float R;
+        }
+
+        /// <summary>One sewn garment: its points, its threads and triangles (where they start in Threads and Tris, and how many), the parts it is kept out of (bits).</summary>
+        public struct MeshPiece
+        {
+            public int Start, Count, ThreadStart, ThreadCount, TriStart, TriCount, Own;
         }
 
         // ---- The body's fields -------------------------------------------------------------------------------------
@@ -547,6 +582,363 @@ namespace PhysicsBattler.Locomotion
                             st->CentresIn++;
                         }
                     }
+                }
+            }
+        }
+
+        // ---- A sewn garment (the plan "Clothes cut and sewn like real clothes", step 3) ----------------------------
+
+        /// <summary>A thread's middle (c &lt; 0) or a triangle's centre pushed out of a set of parts, its two or three points with it.</summary>
+        private static void MiddleOutOf(ref Data d, int own, int a, int b, int c, Stats* st)
+        {
+            Vector3* x = d.X;
+            Vector3 m;
+            float reach;
+            if (c < 0)
+            {
+                m = 0.5f * (x[a] + x[b]);
+                reach = Mathf.Min(d.DNear[a], d.DNear[b]) - 0.5f * (x[a] - x[b]).magnitude;
+            }
+            else
+            {
+                m = (x[a] + x[b] + x[c]) * (1f / 3f);
+                reach = Mathf.Min(d.DNear[a] - (m - x[a]).magnitude, Mathf.Min(d.DNear[b] - (m - x[b]).magnitude, d.DNear[c] - (m - x[c]).magnitude));
+            }
+
+            // (Near enough to nothing that the middle cannot be in: the distance at each point less the way to the middle.)
+            if (reach >= d.MiddleMargin)
+            {
+                return;
+            }
+
+            if (d.FoldsStay != 0)
+            {
+                float dm = NearestOf(ref d, own, m, out int inPart);
+                if (dm < 0f && InAFold(ref d, own, m, inPart))
+                {
+                    return;
+                }
+            }
+
+            Vector3 way = Vector3.zero;
+            float most = 0f;
+            for (int p = 0; p < Parts; p++)
+            {
+                if ((own & (1 << p)) == 0)
+                {
+                    continue;
+                }
+
+                float dist = DistanceTo(ref d, p, m);
+                if (dist < d.MiddleMargin)
+                {
+                    way += OutOf(ref d, p, m) * (d.MiddleMargin - dist);
+                    most = Mathf.Max(most, d.MiddleMargin - dist);
+                }
+            }
+
+            if (most <= 0f)
+            {
+                return;
+            }
+
+            float wm = Mathf.Sqrt(way.x * way.x + way.y * way.y + way.z * way.z);
+            Vector3 push = (wm > 1e-6f ? way / wm : new Vector3(0f, 1f, 0f)) * (most + 0.0005f);
+            // (Kept, not added: a point shares six threads and six triangles, and in a crease every one of them pushed it
+            // its whole way out, 14 cm at a bent elbow. Each point takes the biggest push it was given, after the round.)
+            Shove(ref d, a, push);
+            Shove(ref d, b, push);
+            if (c >= 0)
+            {
+                Shove(ref d, c, push);
+            }
+
+            st->Pushed++;
+        }
+
+        private static void Shove(ref Data d, int i, Vector3 push)
+        {
+            if (d.KeepMost == 0)
+            {
+                d.X[i] += push;
+                d.Moved[i] = 1;
+                d.DNear[i] = Mathf.Min(d.DNear[i], 0f);
+                return;
+            }
+
+            // (At most a centimetre a round: the rounds otherwise went on lifting a point over a bent elbow, 8 cm out.)
+            float m2 = push.sqrMagnitude;
+            if (m2 > ShoveMost * ShoveMost)
+            {
+                push *= ShoveMost / Mathf.Sqrt(m2);
+            }
+
+            Vector3 had = d.Shove[i];
+            if (d.Moved[i] != 1 || push.sqrMagnitude > had.sqrMagnitude)
+            {
+                d.Shove[i] = push;
+            }
+
+            d.Moved[i] = 1;
+            d.DNear[i] = Mathf.Min(d.DNear[i], 0f);
+        }
+
+        private static bool MiddleInOf(ref Data d, int own, Vector3 at, float reach, Stats* st)
+        {
+            if (reach >= 0.0001f)
+            {
+                return false;
+            }
+
+            float dist = NearestOf(ref d, own, at, out int which);
+            if (dist >= 0f)
+            {
+                return false;
+            }
+
+            if (InAFold(ref d, own, at, which))
+            {
+                st->Folded++;
+                return false;
+            }
+
+            st->LastInPart = which;
+            st->LastInKind = 2;
+            return true;
+        }
+
+        /// <summary>
+        /// One sewn garment's picture: every point carried to its home (its one or two parts as drawn, blended), the
+        /// last word (each point, then rounds of thread middles and triangle centres, out of the drawn body), and the
+        /// fast measure. Writes only its own points and its own stats, so garments can run on different threads.
+        /// </summary>
+        public static void Mesh1(ref Data d, int g)
+        {
+            MeshPiece* mp = d.Meshes + g;
+            Stats* st = d.Stats + g;
+            *st = default;
+            st->LastInPart = -1;
+            int s0 = mp->Start, s1 = mp->Start + mp->Count;
+            for (int i = s0; i < s1; i++)
+            {
+                Skin* sk = d.Skins + i;
+                Frame* fa = d.Frames + sk->A;
+                Vector3 h;
+                if (sk->W > 0f && sk->J >= 0)
+                {
+                    Frame* fb = d.Frames + sk->B;
+                    Vector3 dir = Rotate(fa->R, sk->OA) * (1f - sk->W) + Rotate(fb->R, sk->OB) * sk->W;
+                    float m = Mathf.Sqrt(dir.x * dir.x + dir.y * dir.y + dir.z * dir.z);
+                    dir = m > 1e-6f ? dir / m : Rotate(fb->R, sk->OB);
+                    h = d.Frames[sk->J].P + dir * (sk->R * d.Size);
+                }
+                else
+                {
+                    h = fa->P + Rotate(fa->R, sk->HA * d.Size);
+                    if (sk->W > 0f)
+                    {
+                        Frame* fb = d.Frames + sk->B;
+                        h = h * (1f - sk->W) + (fb->P + Rotate(fb->R, sk->HB * d.Size)) * sk->W;
+                    }
+                }
+
+                d.Home[i] = h;
+                d.X[i] = h;
+            }
+
+            int* th = d.Threads + 2 * mp->ThreadStart;
+            int* tr = d.Tris + 3 * mp->TriStart;
+            if (d.LastWord != 0)
+            {
+                for (int i = s0; i < s1; i++)
+                {
+                    // (A point carried round a joint and inside: out along its own way from the joint, so the points
+                    // round a bent elbow or knee all go out the same way and do not tangle through each other.)
+                    Skin* sk = d.Skins + i;
+                    if (d.RadialOut != 0 && sk->J >= 0 && sk->W > 0f)
+                    {
+                        Vector3 jp = d.Frames[sk->J].P;
+                        Vector3 way = d.X[i] - jp;
+                        float wl = Mathf.Sqrt(way.x * way.x + way.y * way.y + way.z * way.z);
+                        if (wl > 1e-5f)
+                        {
+                            // (At most 4 cm: a point deep in the bend whose way from the joint runs along the bone would
+                            // go far through him (17 cm); the plain push out takes it from there.)
+                            way /= wl;
+                            Vector3 from = d.X[i];
+                            for (int k = 0; k < 12; k++)
+                            {
+                                float dist = NearestOf(ref d, mp->Own, d.X[i], out _);
+                                if (dist >= d.PointMargin)
+                                {
+                                    break;
+                                }
+
+                                float step = Mathf.Max(0.002f, d.PointMargin - dist);
+                                if ((d.X[i] - from).sqrMagnitude > RadialMost * RadialMost)
+                                {
+                                    d.X[i] = from;
+                                    break;
+                                }
+
+                                d.X[i] += way * step;
+                                st->Pushed++;
+                            }
+                        }
+                    }
+
+                    d.Moved[i] = 0;
+                    if (d.FoldsStay != 0)
+                    {
+                        float dh = NearestOf(ref d, mp->Own, d.X[i], out int inPart);
+                        if (dh < 0f && InAFold(ref d, mp->Own, d.X[i], inPart))
+                        {
+                            d.DNear[i] = dh;
+                            continue;
+                        }
+                    }
+
+                    d.DNear[i] = PushOutOf(ref d, mp->Own, ref d.X[i], d.PointMargin, 5, st);
+                    if (d.DNear[i] < 0f)
+                    {
+                        st->StillIn++;
+                    }
+                }
+
+                // (Smoothed, before the rounds: a point pushed far while its neighbours were not makes a flap (a bent
+                // elbow in a wind-up, 14 cm). Each pass takes every point's push halfway to the mean of its neighbours'
+                // pushes, and out again where that moved it.)
+                for (int pass = 0; pass < (d.AdjStart != null ? d.Smooth : 0); pass++)
+                {
+                    for (int i = s0; i < s1; i++)
+                    {
+                        Vector3 sum = Vector3.zero;
+                        int a0 = d.AdjStart[i], a1 = d.AdjStart[i + 1];
+                        for (int k = a0; k < a1; k++)
+                        {
+                            int j = d.Adj[k];
+                            sum += d.X[j] - d.Home[j];
+                        }
+
+                        d.Shove[i] = a1 > a0 ? sum / (a1 - a0) : d.X[i] - d.Home[i];
+                    }
+
+                    for (int i = s0; i < s1; i++)
+                    {
+                        Vector3 mine = d.X[i] - d.Home[i];
+                        Vector3 change = 0.5f * (d.Shove[i] - mine);
+                        if (change.sqrMagnitude < 1e-6f)
+                        {
+                            continue;
+                        }
+
+                        d.X[i] += change;
+                        d.DNear[i] = PushOutOf(ref d, mp->Own, ref d.X[i], d.PointMargin, 3, st);
+                    }
+                }
+
+                // (Rounds: the first goes over every thread and triangle; each later one only over those with a point
+                // that was moved, since nothing else changed. Moved: 1 pushed in this round, 2 pushed in the last.)
+                for (int round = 0; round < d.Rounds; round++)
+                {
+                    bool all = round == 0;
+                    for (int k = 0; k < mp->ThreadCount; k++)
+                    {
+                        int a = th[2 * k], b = th[2 * k + 1];
+                        if (all || d.Moved[a] != 0 || d.Moved[b] != 0)
+                        {
+                            MiddleOutOf(ref d, mp->Own, a, b, -1, st);
+                        }
+                    }
+
+                    for (int k = 0; k < mp->TriCount; k++)
+                    {
+                        int a = tr[3 * k], b = tr[3 * k + 1], c = tr[3 * k + 2];
+                        if (all || d.Moved[a] != 0 || d.Moved[b] != 0 || d.Moved[c] != 0)
+                        {
+                            MiddleOutOf(ref d, mp->Own, a, b, c, st);
+                        }
+                    }
+
+                    bool any = false;
+                    for (int i = s0; i < s1; i++)
+                    {
+                        if (d.Moved[i] == 1)
+                        {
+                            any = true;
+                            d.Moved[i] = 2;
+                            if (d.KeepMost != 0)
+                            {
+                                d.X[i] += d.Shove[i];
+                            }
+
+                            d.DNear[i] = PushOutOf(ref d, mp->Own, ref d.X[i], d.PointMargin, 3, st);
+                        }
+                        else
+                        {
+                            d.Moved[i] = 0;
+                        }
+                    }
+
+                    if (!any)
+                    {
+                        break;
+                    }
+                }
+
+                for (int i = s0; i < s1; i++)
+                {
+                    d.Moved[i] = 0;
+                }
+
+
+            }
+
+            if (d.Measure == 0)
+            {
+                return;
+            }
+
+            for (int i = s0; i < s1; i++)
+            {
+                st->PointsChecked++;
+                float dist = NearestOf(ref d, mp->Own, d.X[i], out int which);
+                d.DNear[i] = dist;
+                d.Inside[i] = 0;
+                if (dist < 0f && InAFold(ref d, mp->Own, d.X[i], which))
+                {
+                    st->Folded++;
+                }
+                else if (dist < 0f)
+                {
+                    st->PointsIn++;
+                    d.Inside[i] = 1;
+                    st->Deepest = Mathf.Max(st->Deepest, -dist);
+                    st->LastInPart = which;
+                    st->LastInKind = 1;
+                }
+            }
+
+            Vector3* x = d.X;
+            for (int k = 0; k < mp->ThreadCount; k++)
+            {
+                int a = th[2 * k], b = th[2 * k + 1];
+                st->MiddlesChecked++;
+                if (MiddleInOf(ref d, mp->Own, 0.5f * (x[a] + x[b]), Mathf.Min(d.DNear[a], d.DNear[b]) - 0.5f * (x[a] - x[b]).magnitude, st))
+                {
+                    st->MiddlesIn++;
+                }
+            }
+
+            for (int k = 0; k < mp->TriCount; k++)
+            {
+                int a = tr[3 * k], b = tr[3 * k + 1], c = tr[3 * k + 2];
+                st->CentresChecked++;
+                Vector3 m = (x[a] + x[b] + x[c]) * (1f / 3f);
+                float reach = Mathf.Min(d.DNear[a] - (m - x[a]).magnitude, Mathf.Min(d.DNear[b] - (m - x[b]).magnitude, d.DNear[c] - (m - x[c]).magnitude));
+                if (MiddleInOf(ref d, mp->Own, m, reach, st))
+                {
+                    st->CentresIn++;
                 }
             }
         }

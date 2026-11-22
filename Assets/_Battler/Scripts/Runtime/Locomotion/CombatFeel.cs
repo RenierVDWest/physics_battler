@@ -390,8 +390,8 @@ namespace PhysicsBattler.Locomotion
         [Range(0f, 1f)] public float joltKicksTheCamera = ShockWave.DefaultJoltCamera;
 
         [Header("Clothes (22 November, after his look at the robe: a shirt and trousers that never go into the body): the labs and the dance only")]
-        [Tooltip("What the fighters in the labs and the dance wear. 1 (new): a long-sleeved shirt to the wrists and trousers to the ankles, with a sash, cut by code from the drawn body and carried on it, so they never go into the body: every cloth point has a home on a body part, a set gap off its drawn skin, moved with the part as it is drawn each picture; within a fence round that home it swings and hangs (the wobble); and a last word pushes any point, thread middle or face centre still inside the drawn body back out. 2 (old): this morning's open robe. 0: nothing. Not in the fight of six yet.")]
-        [Range(0, 2)] public int whatTheFightersWear = 1;
+        [Tooltip("What the fighters in the labs and the dance wear. 3 (new, 22 November afternoon): a shirt and trousers cut from flat pattern pieces, sewn and draped once on the drawn body like real clothes (Marvelous Designer's way), with a sash; carried on the body as drawn, each cloth point by its one or two nearest parts, smooth across the joints, so it keeps the drape's folds; a last word pushes any point, thread middle or triangle centre still inside the drawn body back out. No cloth moves by itself yet. 1 (old): the shirt and trousers as tubes a set gap off the skin, with the wobble. 2 (old): the morning's open robe. 0: nothing. Not in the fight of six yet.")]
+        [Range(0, 3)] public int theFightersWear = 3;
 
         [Tooltip("The shirt and trousers: how far the trousers and sleeves are cut off the drawn skin (metres). 2 cm since his look at 11:42 (\"so tight that I cant see any cloth like deformation\"; it was 1.2 cm). They are cut again when it changes.")]
         [Range(0.004f, 0.06f)] public float clothesSitLooselyOffTheSkin = Outfit.DefaultGap;
@@ -2101,7 +2101,7 @@ namespace PhysicsBattler.Locomotion
             ShockWave.JoltBack = Mathf.Clamp01(joltKicksBack);
             ShockWave.JoltGrip = Mathf.Clamp01(joltHisGripHolds);
             ShockWave.JoltCamera = Mathf.Clamp01(joltKicksTheCamera);
-            Clothes.Kind = Mathf.Clamp(whatTheFightersWear, 0, 2);
+            Clothes.Kind = Mathf.Clamp(theFightersWear, 0, 3);
             Outfit.Gap = Mathf.Clamp(clothesSitLooselyOffTheSkin, 0.002f, 0.08f);
             Outfit.ShirtGap = Mathf.Clamp(shirtSitsLooselyOffTheSkin, 0.004f, 0.1f);
             Outfit.Loose = Mathf.Clamp(clothesLooserAtTheEnds, 0f, 3f);

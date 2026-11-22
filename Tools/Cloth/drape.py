@@ -974,6 +974,8 @@ def held_from(gm, names):
 
 doc = {"body": SIZE, "pelvisY": PELVIS_Y, "from": os.path.basename(PAT), "levers": L, "measures": M,
        "sash": {"lo": L["SASH_LO"] - PELVIS_Y, "hi": L["SASH_HI"] - PELVIS_Y, "a": float(SASH[3]), "b": float(SASH[4]), "cz": float(SASH[6])},
+       # (Where each part's joint was in the drape, in the hips' space: the game checks its own rest pose against it.)
+       "restParts": [{"name": pt["name"], "at": np.round(world(pt["name"]) - [0, PELVIS_Y, 0], 5).tolist()} for pt in rig["parts"]],
        "garments": []}
 for gm, held in ((trousers, ["waistband"]), (shirt, ["neck_band", "shoulder"])):
     uvp = np.zeros((gm.n, 2))

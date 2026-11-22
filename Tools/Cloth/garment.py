@@ -15,7 +15,7 @@ PELVIS_Y = 0.985
 COLOURS = {"shirt": (0.62, 0.66, 0.78), "trousers": (0.24, 0.27, 0.40), "sash": (0.12, 0.10, 0.09), "skin": (0.93, 0.74, 0.56)}
 VIEWS = (("front", 0), ("three-quarters", 40), ("side", 90), ("back", 180), ("behind, left", 230))
 ZOOM = {"neck": (0.0, 1.45, 0.22), "waist": (0.0, 1.05, 0.30), "arm": (0.25, 1.25, 0.30), "hem": (0.0, 0.25, 0.35),
-        "armpit": (0.2, 1.32, 0.16)}
+        "armpit": (0.2, 1.32, 0.16), "elbows": (0.0, 1.25, 0.42)}
 
 _rig = json.load(open(f"Assets/_Battler/Data/Rigs/{SIZE.lower()}_rig.json"))
 _nulls = {n["name"]: n for n in _rig["nulls"]}
@@ -74,6 +74,22 @@ def body_meshes(arm_raise=0.0):
     return out
 
 
+def body_posed(frames):
+    """The body's parts as (points, triangles) placed by a run's frames: {PartId name (UpperArmR): (place, (x, y, z, w))}."""
+    out = []
+    for (v, t, side), part in zip(body(), _rig["parts"]):
+        key = part["name"].replace("_", "")
+        if key not in frames:
+            continue
+        p, q = frames[key]
+        local = v - world(part["name"])
+        u = np.array(q[:3])
+        w = q[3]
+        rv = local + 2.0 * np.cross(u, np.cross(u, local) + w * local)
+        out.append((rv + p, t))
+    return out
+
+
 def body_tris(arm_raise=0.0):
     """The body's triangles (n, 3, 3), the arms raised by arm_raise radians out to the side."""
     sh = world("UpperArm_R")
@@ -90,15 +106,15 @@ def body_tris(arm_raise=0.0):
     return np.concatenate(out)
 
 
-def draw(out, layers, arm_raise=0.0, title="", zoom=None, sash=None, px=420, views=VIEWS):
+def draw(out, layers, arm_raise=0.0, title="", zoom=None, sash=None, px=420, views=VIEWS, body_meshes_=None, centre_at=None, facing=None):
     """layers: [(points (n, 3) world, triangles (m, 3), kind)]. Shaded smoothly: each corner takes the mean light of
     the faces round its point (lit from both sides, so a face's winding does not matter)."""
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    meshes = [(w, t, "skin") for w, t in body_meshes(arm_raise)] + [(x, t, k) for x, t, k in layers]
+    meshes = [(w, t, "skin") for w, t in (body_meshes_ if body_meshes_ is not None else body_meshes(arm_raise))] + [(x, t, k) for x, t, k in layers]
     if sash is not None:
-        lo, hi, a, b, cz = sash
+        lo, hi, a, b, cz = sash[:5]
         a += 0.006
         b += 0.006
         k = 72
@@ -108,12 +124,17 @@ def draw(out, layers, arm_raise=0.0, title="", zoom=None, sash=None, px=420, vie
         for j in range(k):
             j1 = (j + 1) % k
             tri += [(j, j1, k + j1), (j, k + j1, k + j)]
+        if len(sash) > 5:
+            # (Carried by his hips as drawn: the hips' place and turn.)
+            hp, hq = sash[5], sash[6]
+            u = np.array(hq[:3]); w = hq[3]
+            pts = pts + 2.0 * np.cross(u, np.cross(u, pts) + w * pts) + hp
         meshes.append((pts, np.array(tri), "sash"))
     light = np.array([0.35, -0.6, 0.72])
     light /= np.linalg.norm(light)
     fig = plt.figure(figsize=(3.3 * len(views) * px / 420, (5.0 if not zoom else 3.6) * px / 420))
     for vi, (label, turn) in enumerate(views):
-        a = math.radians(turn)
+        a = math.radians(turn) + (facing if facing is not None else 0.0)
         right = np.array([math.cos(a), 0, -math.sin(a)])
         ahead = np.array([math.sin(a), 0, math.cos(a)])
         if zoom:
@@ -121,6 +142,8 @@ def draw(out, layers, arm_raise=0.0, title="", zoom=None, sash=None, px=420, vie
             centre = np.array([cx, cy, 0.0])
         else:
             centre = np.array([0.0, 0.95, 0.0])
+        if centre_at is not None:
+            centre = centre + centre_at
         tris, cols = [], []
         for x, t, kind in meshes:
             d = x - centre
