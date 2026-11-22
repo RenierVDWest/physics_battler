@@ -9189,3 +9189,31 @@ runs and once on "Log the cloth now". `Tools/Headless/unitylog_outfit.sh <log fo
 them with the real meshes. A perf column `ms_Clothes` (the placing, with the wait for the job).
 
 **Not known:** how it looks or costs in Unity.
+
+### 22 November, 12:30: clothes cut and sewn like real clothes, a new plan (nothing built)
+
+**His look at 12:15 (Unity, five pictures):** "this is better", but the clothes "cant just sit over the frame like
+this ... They should behave like cloth that hang off the body ... the shirt shape itself must be modelled after actual
+shirt blueprints as the cloth is cut. Look at how it is done for characters in marvellous designer. So you cant have
+this compound shape where the sleeves are different meshes"; the shirt "should come all the way up to the neck"; the
+dip at the waist is weird, "let it come down flat like how a shirt would hang ... Cloth must always be on top of the
+body, but they do not need to always be the same distance from the body"; and of the crumpled crotch, "What's going in
+here". His answers: plan and film first; the shirt untucked over the sash; a round neck. At 12:17: "the planning phase
+is super important. Make sure to do the planning really well".
+
+**The crotch:** three overlapping tubes (waist and two legs), each pushed out of the others and smoothed, crumple into
+flaps. Every fault he showed has one cause: tubes kept a set distance off the skin copy the body's shape.
+
+**The plan** (`Docs/Plans/2026-11-22-clothes-cut-and-sewn-like-real-clothes-research-and-plan.md`, live
+https://claude.ai/artifact/XtzrHrFgNy756LuoBHAsht ): flat pieces drafted by code from real pattern rules and the
+Medium's measures (`Tools/Cloth/measure_body.py`: chest 96 cm, hips 80, neck base 34, arm 57, crotch 82 cm up; the
+arms 16 degrees out in the rest pose); a first draft drawn (`Tools/Cloth/pattern_draft.py`; shirt 6 pieces: front and
+back 60 x 66 cm straight, set-in sleeves with a 9 cm cap, a 40 x 3 cm neck band; trousers 5 pieces: loose straight legs,
+rise 25/30 cm, inseam 79 cm, drawstring waistband). Sewn and draped once headless (arrange, seam pairs pulled together,
+gravity, the baked drawn body, damping, weld, save), as Marvelous Designer, GarmentCode and NVIDIA's Bolt do. In the game
+real cloth on the drawn body: XPBD small steps with the pattern's lengths (stiff to stretch, soft to squash, so spare
+cloth folds), tethers, a sash ring, max distance (0 at the neck band, shoulders and waistband), the last word kept;
+the cloth's motion kept relative to the body so a job can run through a picture without it being late. About 6,500
+points a fighter at 2 cm. Cost is the main unknown: a gate in step 4 on his Unity numbers (`ms_Clothes`). Six steps;
+he looks after 1, 2 and 4. Five questions: our solver or Magica Cloth 2; the fabric; the fit; the budget; the detail.
+Unity Cloth is out (spheres and capsules only).

@@ -6,14 +6,12 @@ have my permission to push to that branch.
 1. Attach the repository with push access and clone it. (On 19 November the first ask for push access was refused
    and went through when asked again after I said "you may push" in the chat. If it is refused, tell me at once and
    carry on reading.) Read `CLAUDE.md` at its top first and follow it: it is the briefing, and it is up to date as
-   of 22 November 2026, 11:20 (newer than the rest of this prompt: where the two disagree, CLAUDE.md and the
-   README's last entries are right). At 08:46 on 22 November I asked for a long-sleeved shirt and trousers to the
-   feet and cloth that never goes into the body; the plan
-   `Docs/Plans/2026-11-22-clothes-that-never-go-into-the-body-research-and-plan.md` (live
-   https://claude.ai/artifact/NcFgFLd75rj2ZDECPKUVp1) has its steps 1 to 3 built (README "### 22 November, 11:20"),
-   waiting for my look. **`OutfitJob.cs` (Burst) and `BodyFields.CheckAgainst` have never been compiled: if my Unity
-   reports a compile error, mend that first. Then read my log for the `[Clothes]` start-up line and the frame rate.**
-   Next on the clothes after my look: step 4, the fenced wobble. `README.md` is
+   of 22 November 2026, 12:30 (newer than the rest of this prompt: where the two disagree, CLAUDE.md and the
+   README's last entries are right). At 12:15 on 22 November I said the clothes are tubes, not cloth: they must be
+   cut from real shirt and trouser patterns, sewn into one garment, up to the neck, and hang like cloth. The plan:
+   `Docs/Plans/2026-11-22-clothes-cut-and-sewn-like-real-clothes-research-and-plan.md` (live
+   https://claude.ai/artifact/XtzrHrFgNy756LuoBHAsht). Its five questions wait for my answer; build only after I say
+   go. The tubes (`Outfit.cs`) stay as the old way; their baked body, last word, checks and logging are kept. `README.md` is
    the build log (over 9,000 lines: search it, never read it whole, and add entries at its end, never write over
    it).
 2. Read the plan for the work in hand (the clothes, above) and its progress notes; older ones:
