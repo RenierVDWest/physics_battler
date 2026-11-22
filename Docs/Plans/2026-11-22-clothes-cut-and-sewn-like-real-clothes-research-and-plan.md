@@ -294,6 +294,47 @@ measures).
 
 Nothing is built until you say go.
 
+
+## Progress, 22 November, 14:00: steps 1 and 2 built (headless only)
+
+His answers (12:56): our own solver; cotton; the fit as drafted; the budget, but get it working on the two fighters
+first and make it fast after; points 2 cm apart. "Ok go ahead".
+
+**Step 1, the pattern** (`Tools/Cloth/pattern.py` → `Assets/_Battler/Resources/Locomotion/GarmentPattern_Medium.json`;
+the cut drawn in `2026-11-22-clothes-cut-and-sewn-pieces-cut.png`): ten pieces, 7,091 points, 24 seams with matching
+points. Changed from the first draft because the drape showed it: the shirt 75 cm from the neck point over the shoulder
+(66 hung to 0.97 m, above his hips); the sleeve 58 cm with a 28 cm cuff (longer ones caught on his fist, 33 cm round);
+the shoulder 23.5 cm and the armhole 21.5 cm deep (sleeve cap 7.9 cm); the waistband 80 cm. Seams match in length
+except the gathers on purpose (the legs into the waistband, the neck into its band) and the back inseam eased in (2%).
+
+**Step 2, sew and drape** (`Tools/Cloth/drape.py`, 75 s, the same file every run →
+`Assets/_Battler/Resources/Locomotion/Garments_Medium.json`): placed round him with the arms raised 60 degrees;
+trousers sewn, gravity, welded, settled; the shirt sewn outside the trousers, the arms lowered to rest, hung, the sash
+drawn in, welded, settled. Measured headless against the baked body:
+
+- Nothing inside the body: 0 points, 0 thread middles, 0 face centres (nearest 3 mm).
+- Seams welded: the widest gap just before the weld 2 to 3 mm, then every pair one point.
+- No waist dip: never more than 0.16 cm inside the line from chest to sash. Below the sash 107.5 cm round (his hips
+  82.7). Hem 0.87 to 0.99 m.
+- Up to the neck: the band's top at 1.59 m, 9 mm off his skin.
+- Bare skin only above the band, at the wrists below the cuffs, and in two creases.
+- Threads over 105%: 5 in the trousers (longest 113%), 26 in the shirt (longest 119%).
+- Folds 1 to 4 cm, mostly below the sash and down the sleeves.
+
+![Draped, five sides](2026-11-22-clothes-draped.png)
+
+![The drape's stages](2026-11-22-clothes-drape-stages.png)
+
+![Close: neck, under the arm, waist, hems](2026-11-22-clothes-draped-close.png)
+
+What it took: 12 solver sweeps a small step and a tied drawstring in the drape, or the trousers slid off; pieces placed
+at their own width (a wide cuff stuck on his fist); the sash gathers the shirt's body only; only different pieces kept
+apart (the shirt's own folds pushing apart lifted the hem 10 cm); the body kept 8 mm off (5 mm let his hip bones show
+through).
+
+**Next: step 3**, the draped garments carried on the moving body with the last word, a "Clothes:" switch in the duel
+lab. Nothing in the game has changed yet.
+
 ## Sources
 
 - [Making a sweater with Marvelous Designer](https://dev.epicgames.com/documentation/en-us/uefn/making-a-sweater-with-marvelous-designer-in-unreal-editor-for-fortnite), Epic Games

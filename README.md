@@ -9219,3 +9219,68 @@ he looks after 1, 2 and 4. Five questions: our solver or Magica Cloth 2; the fab
 Unity Cloth is out (spheres and capsules only).
 
 Its film (3b2b, made by Opus at medium effort; 8 scenes, 34 beats, about 5 minutes): https://claude.ai/artifact/HpZYewCLF56HgLEup9Z8eU (it found the plan said 6 shirt pieces where its picture has 5; corrected to 5)
+
+### 22 November, 14:00: clothes cut and sewn, steps 1 and 2: the pattern, and the drape (headless only; nothing in the game changes yet)
+
+**His word (12:56)** to the plan's five questions: "1) Your own solver 2)cotton 3)Yes like that 4)Sure but for now lets
+prioritize getting it to work with only the 2 fighters. we can optimize it afterwards 5)sure. Ok go ahead".
+
+**Step 1, the pattern** (`Tools/Cloth/pattern.py` → `Assets/_Battler/Resources/Locomotion/GarmentPattern_Medium.json`,
+the cut drawn in `Docs/Plans/2026-11-22-clothes-cut-and-sewn-pieces-cut.png`). Ten flat pieces drafted in code from the
+Medium's measures (shirt front and back, two set-in sleeves, a neck band; four trouser legs, a waistband), cut into
+triangles 2 cm across (7,091 points), 24 seams with the same number of points on both edges. Every seam's two edges
+match in length but four kinds, on purpose: the legs' waists gathered into the waistband (24 and 26.5 cm into 19.2 and
+20.8), the neck into the band (8% eased), and the inseam (the back's 1.6 cm longer, eased in as tailors do; 2%).
+Changed from the plan's first draft, each because the drape showed it: the shirt is 75 cm from the neck point over the
+shoulder, not 66 (66 hung to 0.97 m on him, above his hips); the sleeve 58 cm with a 28 cm cuff (60 and 59 caught on his
+fist, 33 cm round); the shoulder 23.5 cm and the armhole 21.5 cm deep (22.5 left the seam inside his shoulder ball and
+the sleeve top stretched 15% over it; the sleeve cap is now 7.9 cm); the waistband 80 cm.
+
+**Step 2, sew and drape** (`Tools/Cloth/drape.py`, about 75 s, the same file every run →
+`Assets/_Battler/Resources/Locomotion/Garments_Medium.json`, 1.1 MB). Our own cloth, in Python with numba, offline
+(the game's own solver, in C#, is step 4): XPBD in small steps (16 a picture, 12 sweeps each), threads at their flat
+length (hard to stretch, soft to squash), a soft bend (the distance across each pair of triangles, never shorter than
+laid flat; the neck band and waistband ten times stiffer), the drawn body pushing the cloth out to 8 mm with friction
+(the baked fields, the arms turned about the shoulder). The order, as Marvelous Designer does it: the pieces placed
+round him with the arms raised 60 degrees; the trousers sewn with no gravity, then gravity, welded, settled; the shirt
+the same, kept outside the trousers (still, as triangles) and its pieces off each other (a sleeve against the side);
+the arms lowered to his rest pose over 1.2 s; hung; the sash drawn in round the waist over a second; welded; settled.
+Pictures: `Docs/Plans/2026-11-22-clothes-draped.png` (five sides), `…-draped-close.png` (neck, under the arm, waist,
+hems), `…-drape-stages.png`; drawn by `Tools/Cloth/garment.py` with true depth and smooth shading (`Tools/Cloth/zbuf.py`).
+
+| Measure (headless, against the baked body) | Trousers | Shirt |
+| --- | --- | --- |
+| Points / threads / bends | 3,136 / 9,327 / 9,243 | 3,488 / 10,363 / 10,256 |
+| Points, thread middles, face centres inside the body | 0, 0, 0 | 0, 0, 0 |
+| Nearest to the body | 6 mm | 3 mm |
+| Widest seam gap just before the weld; after | 3 mm; 0 | 2 mm; 0 |
+| Threads over 105% of their flat length | 5 (the longest 113%) | 26 (the longest 119%) |
+| Fold depth (against a copy smoothed over ~6 cm), middle / 90th percentile | 1.0 / 1.8 cm; hems 1.4 / 2.3 | 1.1 / 1.8 cm; below the sash 1.1 / 2.8; under the arms 1.3 / 1.9 |
+
+- **Hangs, not hugs:** between the chest and the sash, from the front, back and both sides, the shirt is never more
+  than 0.16 cm inside the straight line from chest to sash. Below the sash it is 107.5 cm round at 0.97 m (his hips
+  82.7): it hangs wide. Its hem from 0.87 to 0.99 m (the middle 0.89).
+- **Up to the neck:** the neck band's top at 1.59 m, its front at 1.55, 9 mm off his skin.
+- **Bare skin** (a ray straight out from every vertex of the covered parts; one that meets his body before cloth is in
+  a crease and not seen): bare only above the neck band (16 points), at the wrists below the cuffs (47 and 45, 0.90 to
+  0.955 m), one under the crotch and one in the right armpit. The ankles are bare only into the feet (creases).
+- **Seams welded:** every pair one point; no edge shared by three faces.
+- **Folds:** soft, about 1 to 4 cm, mostly below the sash and down the sleeves. The fold mark of the plan (1 cm or more
+  at a bent elbow or knee) is for step 4.
+
+**What it took (for the next one):**
+- One sweep a small step let the waistband stretch 25% under the trousers' weight and they slid off his hips; 12 sweeps,
+  and a tied drawstring in the drape (the waistband kept inside his waist and no lower than 1.065 m) hold them at
+  1.085 m. In the game the waistband is fenced to his hips instead (step 4's max distance 0).
+- A cuff placed wider than itself had to shrink past his fist and stuck, inside out; pieces are now placed at their
+  own width and moved straight out from the arm (not from the body's middle) if they start in it.
+- The sash must gather the shirt's body only: it caught the sleeves hanging past it and pulled them up into the waist.
+- The shirt's own folds pushing apart (self-collision within a piece) lifted its front hem 10 cm; only two different
+  pieces are kept apart now.
+- At 5 mm the drawn body showed through the cloth at his hip bones (the 8 mm grid rounds sharp places); 8 mm in the
+  drape.
+- matplotlib's 3D cannot judge this; `garment.py` draws with a depth test.
+
+**Not done, not known:** nothing is in the game yet (step 3 carries the draped garments on the moving body, with a
+"Clothes:" switch); the drape is one body (Medium) in one pose; the shirt over the trousers only as they lie, not
+moving; folds 2 cm apart at the finest; the cost in Unity (step 4's gate).

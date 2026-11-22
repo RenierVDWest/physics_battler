@@ -264,3 +264,16 @@ with `FIGHT_FILM="$S/name.json,3,8.5,medium"`.
   `clothdump` lines ("Shake him" writes one every 1.5 s, "Log the cloth now" one) with the real meshes into
   `$S/unity_Swordsman.outfit.png`. The `cloth` lines (twice a second) say what it is doing; `ms_Clothes` in perf.csv.
   Headless the same report is in the `OUTFITNOW` line.
+
+## 22 November, afternoon: clothes cut and sewn (Tools/Cloth)
+
+- `python3 -I Tools/Cloth/pattern.py [out.json] [cut.png]`: the shirt's and trousers' flat pieces drafted from the
+  Medium's measures (every number a lever in `P`), cut into 2 cm triangles, the seams paired, each piece placed round
+  him with the arms raised 60 degrees. Writes `Assets/_Battler/Resources/Locomotion/GarmentPattern_Medium.json` and a
+  drawing of the cut, and prints every seam's two lengths.
+- `python3 -I Tools/Cloth/drape.py [pattern.json] [out.json]`: sews and drapes them on the baked body (about 75 s, the
+  same result every run) into `Garments_Medium.json`, and prints the measures (inside the body, seam gaps, stretch,
+  folds, the waist line, the neck band, bare skin by rays). `DRAPE_SNAP=folder` draws every stage; `DRAPE_DEBUG=1`
+  prints the widest seams, longest threads and the hems after each stage; `DRAPE_<LEVER>=value` for any of `LEVERS`.
+- `python3 -I Tools/Cloth/garment.py [Garments.json] [out.png] [neck|armpit|waist|hem]`: the draped garments on the
+  body from five sides, true depth, smooth shading (`zbuf.py`); `PX=600` bigger, `HIDE=shirt,sash` to leave things out.
