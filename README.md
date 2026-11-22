@@ -9521,3 +9521,46 @@ the kick: the new switches off on the left, on on the right).
 - The shoulder seam's jagged look in his second picture was not looked into.
 
 Its film (3b2b, made by Opus at medium effort; 6 scenes, 24 beats, about 3.5 minutes): https://claude.ai/artifact/Pp4t1jY2nnTjPUbG9AJ4iG
+
+## 22 November 2026, 20:20: his look at the sewn cloth, and a plan for cloth that slides (nothing built)
+
+**What he said (20:11):** "OK this is much better now. I have not seen limbs coming though the cloths anymore. And
+the spikes are much reduced, but not perfect." With seven pictures: spikes when a man falls (not on every fall); a
+head, an arm and a sword stuck inside the other man's shield; a ridge along the shoulder seam; more spikes, and the
+elbow coming through; and his ask: "reduce the friction between the body colliders inside the cloth, so that the
+cloth can slide over the colliders more easily", because as the arm lifts and turns it seems to pull and pinch the
+cloth instead of moving under it. "Before you go fixing these. Lets do another planning document."
+
+**His log of 19:55 (Unity, a dance of 228 s):** a frame 25.7 ms (median; 40.1 at 19:03, 24.7 at step 3); the
+clothes 8.2 ms of it (18.3 at 19:03): both men's cloth at once works in Unity. Each man's cloth 4.4 ms of main-thread
+time (median). The longest thread 4.7 times its length in half the moments, 10 times in one in ten, 24 times at
+worst (threads hidden inside the body counted too, so it overstates what shows). His own sword and shield crossed
+him 38 times, 0.05 to 0.45 s each: the old measure, not yet compared with earlier logs. **His frames folders could not
+be removed** (the workspace refused the delete); they are still in the repository.
+
+**Found in the code:**
+- There is no friction in the cloth's collision now: a push moves a point straight out and nothing holds it sideways.
+  The pinch is the gluing: each point turns with its part's whole rotation, twist included, so a rolling arm wrings the
+  sleeve; the 3% pull toward the drape, the swing limit and the backstop then hold it at its glued place.
+- The shoulder seam: the sleeve rides the upper arm (and the chest within 10 cm of the shoulder), the body rides the
+  chest (and the upper arm within 8 cm), so the two sides are carried differently.
+- The elbow: sleeve points are carried round the joint at a fixed distance, but a bent elbow's point sticks out
+  further; the baked forearm ball is 2.9 cm (the grey elbow ball on his model may be bigger or a mesh of its own: to
+  check).
+- The shield: the cloth never touches the physics, so this is the bodies and shields themselves. Not counted yet.
+
+**The plan** (`Docs/Plans/2026-11-22-clothes-that-slide-and-what-still-goes-wrong-research-and-plan.md`, live
+https://claude.ai/artifact/QruYXVgHVVNgukoVt3jyUs ): six steps, each behind a switch with an old/new lab row.
+1. Measures that see what he sees (visible spikes only, a body in a shield, the seam's bend, pinch and sleeve roll,
+   bare elbow).
+2. The shield: count it in his logs and headless, on today's build and this morning's, then trace and fix.
+3. Sleeves and trouser legs carried by where the limb points, not its roll (swing-twist).
+4. The cloth slides over him: a leash to where the garment is held (long-range attachments), the glued place a soft
+   guide, the backstop from his skin, a friction lever.
+5. The shoulder seam: carrying weights smoothed over the cloth.
+6. Elbows, knees and falls: the joint's real reach, the floor in the cloth's world, a softer landing, lone spikes
+   drawn back, "Kick him down" on demand.
+
+The cost must stay at or under 8.2 ms of clothes in a 25.7 ms frame. **Four questions wait for him** (the shield
+first; grip 0.1 on the limbs and 0.3 on shoulders and waist; how far it slides; the order). Nothing is built until he
+answers or says go.
