@@ -9284,3 +9284,5 @@ hems), `…-drape-stages.png`; drawn by `Tools/Cloth/garment.py` with true depth
 **Not done, not known:** nothing is in the game yet (step 3 carries the draped garments on the moving body, with a
 "Clothes:" switch); the drape is one body (Medium) in one pose; the shirt over the trousers only as they lie, not
 moving; folds 2 cm apart at the finest; the cost in Unity (step 4's gate).
+
+Its film (3b2b, made by Opus at medium effort; 6 scenes, 24 beats, about 3.3 minutes): https://claude.ai/artifact/GXntctLRobxVvfT1qj7scq

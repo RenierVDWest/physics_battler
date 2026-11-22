@@ -824,6 +824,7 @@ tell me what is up next and what is the roadmap".** (16:15; README.)
   - **Next: step 3**, the draped garments carried on the moving body (smooth across joints) with the last word, and a
     "Clothes:" switch (sewn / tubes / none) in the duel lab; then step 4, the real cloth in C# (Burst), its cost gated
     on his Unity log.
+  - Its film: https://claude.ai/artifact/GXntctLRobxVvfT1qj7scq
 - **What he was told is next (before tonight):** step 7 (more cuts, now built); combos in the six only when he says;
   then the kick at a man who is down (his kick pack), the stab at a downed man that looks odd, the spin combo's own
   sword through his own shield; then the older open things (get-up shield, stumble leftovers, absorbing a hit, the

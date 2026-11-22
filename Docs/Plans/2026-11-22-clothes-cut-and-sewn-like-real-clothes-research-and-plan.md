@@ -335,6 +335,8 @@ through).
 **Next: step 3**, the draped garments carried on the moving body with the last word, a "Clothes:" switch in the duel
 lab. Nothing in the game has changed yet.
 
+Its film: https://claude.ai/artifact/GXntctLRobxVvfT1qj7scq
+
 ## Sources
 
 - [Making a sweater with Marvelous Designer](https://dev.epicgames.com/documentation/en-us/uefn/making-a-sweater-with-marvelous-designer-in-unreal-editor-for-fortnite), Epic Games
