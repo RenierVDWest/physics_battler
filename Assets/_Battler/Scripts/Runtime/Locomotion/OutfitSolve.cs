@@ -93,6 +93,8 @@ namespace PhysicsBattler.Locomotion
             public int* Bends;
             public int Dynamic, Steps;
             public float Gravity, Keep, Inertia, Squash, BendK, HoldShape;
+            public int Backstop, Tucked, CollideEvery;
+            public float Longest;
             // (A pluck this picture: every free point thrown this way, as far as its fence allows, to see it settle.)
             public Vector3 Pluck; // (sewn: a point keeps its biggest push from a middle (1) or adds them all (0); a point shared round a joint is pushed out straight from the joint (1))
         }
@@ -112,6 +114,14 @@ namespace PhysicsBattler.Locomotion
             // (Which way was down for this point in the drape, in part A's space: the drape already hangs by its weight,
             // so the moving cloth only feels the difference between down now and down then.)
             public Vector3 GA;
+            // (Its way out of his body at rest, in part A's space, and how far in from where it is carried it may go
+            // that way before it would be at his skin (the backstop): a sleeve or trouser leg may swing, but never so far
+            // that the limb comes out through its other side.)
+            public Vector3 NA;
+            public float Back;
+            // (Trousers under the shirt: drawn this much nearer his body than the drape, along that way, so the shirt over
+            // them never meets them. The shirt over trousers: kept this much further off his body.)
+            public float Tuck, Extra;
         }
 
         /// <summary>One sewn garment: its points, its threads and triangles (where they start in Threads and Tris, and how many), the parts it is kept out of (bits).</summary>
@@ -836,6 +846,9 @@ namespace PhysicsBattler.Locomotion
                     d.Shove[i] = hs;
                     d.X[i] = hs + d.R[i];
                 }
+#if HEADLESS_STUB
+                long tickT = System.Diagnostics.Stopwatch.GetTimestamp();
+#endif
 
                 for (int it = 0; it < (d.Iters < 1 ? 1 : d.Iters); it++)
                 {
@@ -861,7 +874,9 @@ namespace PhysicsBattler.Locomotion
                         d.X[b] -= e * (c * wb);
                     }
 
-                    for (int k = 0; k < mp->BendCount; k++)
+                    // (The bends once a small step, in its first sweep: a fifth of the cost of the threads for no change
+                    // that could be seen.)
+                    for (int k = 0; k < (it == 0 ? mp->BendCount : 0); k++)
                     {
                         int a = bd[2 * k], b = bd[2 * k + 1];
                         Vector3 e = d.X[b] - d.X[a];
@@ -883,40 +898,66 @@ namespace PhysicsBattler.Locomotion
                         d.X[b] -= e * (c * wb);
                     }
                 }
+#if HEADLESS_STUB
+                long tickC = System.Diagnostics.Stopwatch.GetTimestamp();
+                TicksThreads += tickC - tickT;
+#endif
 
+                // (His body's push every other small step and the last: it is the dearest part, and the threads between
+                // carry the cloth along.)
+                bool collide = d.CollideEvery <= 1 || (s + 1) % d.CollideEvery == 0 || s == n - 1;
                 for (int i = s0; i < s1; i++)
                 {
-                    if (d.Fence[i] > 0f)
+                    if (collide && d.Fence[i] > 0f)
                     {
                         // (In a crease of his body pressed into itself (an elbow or knee bent shut) the cloth stays
                         // folded in, as the last word leaves it: pushed out of one part there, it went into or through
                         // the other and pulled its threads to three times their length.)
                         // (Most points are clear of him: one look at the nearest part tells, and nothing more is done.)
+                        Skin* sk = d.Skins + i;
+                        float margin = d.PointMargin + (d.Tucked != 0 ? sk->Extra : 0f);
                         float dh = NearestOf(ref d, mp->Own, d.X[i], out int inPart);
-                        bool folded = dh >= d.PointMargin || (d.FoldsStay != 0 && dh < 0f && InACrease(ref d, mp->Own, d.X[i], inPart));
-                        if (!folded)
+                        bool clear = dh >= margin;
+                        bool folded = !clear && d.FoldsStay != 0 && dh < 0f && (InACrease(ref d, mp->Own, d.X[i], inPart) || DistanceTo(ref d, inPart, d.Shove[i]) < 0f);
+                        Vector3 before = d.X[i];
+                        if (!clear && !folded)
                         {
-                            // (Pushed out by his body, it goes with him, but keeps only half of that push as its own
-                            // speed: kept whole, a fast arm flung the cuff 14 cm off.)
-                            Vector3 before = d.X[i];
-                            PushOutOf(ref d, mp->Own, ref d.X[i], d.PointMargin, 2, st);
-                            d.RPrev[i] += (d.X[i] - before) * PushKeep;
+                            PushOutOf(ref d, mp->Own, ref d.X[i], margin, 2, st);
                         }
+
+                        // (The backstop: never further in toward his body than his skin, along its own way out, so a
+                        // limb that moves faster than the cloth meets it from inside and cannot pass out through it.)
+                        if (!folded && d.Backstop != 0)
+                        {
+                            Vector3 nw = Rotate(d.Frames[sk->A].R, sk->NA);
+                            float dn = Vector3.Dot(d.X[i] - d.Shove[i], nw), back = sk->Back * d.Size;
+                            if (dn < -back)
+                            {
+                                d.X[i] += nw * (-back - dn);
+                            }
+                        }
+
+                        // (Pushed by his body, it goes with him, but keeps only half of that push as its own speed:
+                        // kept whole, a fast arm flung the cuff 14 cm off.)
+                        d.RPrev[i] += (d.X[i] - before) * PushKeep;
                     }
 
                     d.R[i] = d.X[i] - d.Shove[i];
                 }
+#if HEADLESS_STUB
+                TicksCollide += System.Diagnostics.Stopwatch.GetTimestamp() - tickC;
+#endif
             }
 
             for (int i = s0; i < s1; i++)
             {
-                // (However hard the threads pulled or his body pushed, no further from where it is carried than half
-                // as far again as its fence and 2 cm: a sleeve flung from an arm struck down hard went 17 cm.)
+                // (However hard the threads pulled or his body pushed, no further from where it is carried than its
+                // fence and 1 cm: a sleeve flung from an arm struck down hard went 17 cm.)
                 float f = d.Fence[i] * d.Size;
                 if (f > 0f)
                 {
                     Vector3 r = d.X[i] - d.Home[i];
-                    float most = 1.5f * f + 0.02f * d.Size, m2 = r.sqrMagnitude;
+                    float most = f + StrayPast * d.Size, m2 = r.sqrMagnitude;
                     if (m2 > most * most)
                     {
                         d.X[i] = d.Home[i] + r * (most / Mathf.Sqrt(m2));
@@ -929,7 +970,7 @@ namespace PhysicsBattler.Locomotion
                 d.Shove[i] = Vector3.zero;
             }
 
-            // (The threads' last say: any still longer than its flat length and a half is drawn in to that, a few
+            // (The threads' last say: any still longer than Longest times its flat length is drawn in to that, a few
             // passes, so no thread shows as a spike; his body has its last word after.)
             for (int pass = 0; pass < 4; pass++)
             {
@@ -938,7 +979,7 @@ namespace PhysicsBattler.Locomotion
                     int a = th[2 * k], b = th[2 * k + 1];
                     Vector3 e = d.X[b] - d.X[a];
                     float l2 = e.x * e.x + e.y * e.y + e.z * e.z;
-                    float most = tl[k] * d.Size * LongestLet;
+                    float most = tl[k] * d.Size * (d.Longest > 1f ? d.Longest : 1.2f);
                     if (l2 <= most * most)
                     {
                         continue;
@@ -964,7 +1005,11 @@ namespace PhysicsBattler.Locomotion
         }
 
         // (The moving cloth's fixed limits.)
-        private const float PushKeep = 0.5f, MostSpeed = 3f, LongestLet = 1.5f;
+        private const float PushKeep = 0.5f, MostSpeed = 3f, StrayPast = 0.01f, LastWordMost = 0.03f;
+#if HEADLESS_STUB
+        /// <summary>Headless only: time spent in the moving step and in the last word and the measure (Stopwatch ticks).</summary>
+        public static long TicksMove, TicksWord, TicksThreads, TicksCollide;
+#endif
 
         /// <summary>
         /// One sewn garment's picture: every point carried to its home (its one or two parts as drawn, blended), the
@@ -1001,16 +1046,28 @@ namespace PhysicsBattler.Locomotion
                     }
                 }
 
+                if (d.Tucked != 0 && sk->Tuck > 0f)
+                {
+                    h -= Rotate(fa->R, sk->NA) * (sk->Tuck * d.Size);
+                }
+
                 d.Home[i] = h;
                 d.X[i] = h;
             }
 
             int* th = d.Threads + 2 * mp->ThreadStart;
             int* tr = d.Tris + 3 * mp->TriStart;
+#if HEADLESS_STUB
+            long tick0 = System.Diagnostics.Stopwatch.GetTimestamp();
+#endif
             if (d.Dynamic != 0 && d.R != null)
             {
                 Move(ref d, mp, st);
             }
+#if HEADLESS_STUB
+            long tick1 = System.Diagnostics.Stopwatch.GetTimestamp();
+            TicksMove += tick1 - tick0;
+#endif
 
             if (d.LastWord != 0)
             {
@@ -1055,15 +1112,28 @@ namespace PhysicsBattler.Locomotion
                     if (d.FoldsStay != 0)
                     {
                         float dh = NearestOf(ref d, mp->Own, d.X[i], out int inPart);
-                        // (Moving, only a true crease: see InACrease.)
-                        if (dh < 0f && Folded(ref d, mp->Own, d.X[i], inPart))
+                        // (Moving, only a true crease (see InACrease), or where his body has come over the cloth's
+                        // own carried place: pushed out of it the nearest way, a sleeve point carried by the forearm and
+                        // inside the upper arm bent over it went out through the far side, 16 to 19 cm off.)
+                        if (dh < 0f && (Folded(ref d, mp->Own, d.X[i], inPart) || (d.Dynamic != 0 && DistanceTo(ref d, inPart, d.Home[i]) < 0f)))
                         {
                             d.DNear[i] = dh;
                             continue;
                         }
                     }
 
-                    d.DNear[i] = PushOutOf(ref d, mp->Own, ref d.X[i], d.PointMargin, 5, st);
+                    float lastMargin = d.PointMargin + (d.Tucked != 0 ? d.Skins[i].Extra : 0f);
+                    Vector3 wasAt = d.X[i];
+                    d.DNear[i] = PushOutOf(ref d, mp->Own, ref d.X[i], lastMargin, 5, st);
+                    // (Moving: a point the push would throw more than 3 cm is left where it was, inside him and hidden,
+                    // rather than thrown out through the far side of a limb as a spike: a trouser leg of a man lying with
+                    // his knees bent went 20 cm off and 7 cm clear of him.)
+                    if (d.Dynamic != 0 && d.Backstop != 0 && (d.X[i] - wasAt).sqrMagnitude > LastWordMost * LastWordMost)
+                    {
+                        d.X[i] = wasAt;
+                        d.DNear[i] = NearestOf(ref d, mp->Own, wasAt, out _);
+                    }
+
                     if (d.DNear[i] < 0f)
                     {
                         st->StillIn++;
@@ -1160,6 +1230,9 @@ namespace PhysicsBattler.Locomotion
             }
 
             // (The cloth remembers where the last word left it: its offset from its carried place.)
+#if HEADLESS_STUB
+            TicksWord += System.Diagnostics.Stopwatch.GetTimestamp() - tick1;
+#endif
             if (d.Dynamic != 0 && d.R != null)
             {
                 for (int i = s0; i < s1; i++)
@@ -1176,6 +1249,17 @@ namespace PhysicsBattler.Locomotion
             for (int i = s0; i < s1; i++)
             {
                 st->PointsChecked++;
+                // (Through: further in than his skin along its own way out, by more than 1 cm: on the far side of a limb
+                // from where it is carried, the limb come out through it.)
+                {
+                    Skin* skm = d.Skins + i;
+                    Vector3 nwm = Rotate(d.Frames[skm->A].R, skm->NA);
+                    if (Vector3.Dot(d.X[i] - d.Home[i], nwm) < -(skm->Back * d.Size + 0.01f))
+                    {
+                        st->Crossed++;
+                    }
+                }
+
                 float dist = NearestOf(ref d, mp->Own, d.X[i], out int which);
                 d.DNear[i] = dist;
                 d.Inside[i] = 0;

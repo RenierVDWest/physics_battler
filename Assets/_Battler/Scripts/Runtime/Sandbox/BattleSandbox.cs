@@ -4396,20 +4396,20 @@ namespace PhysicsBattler.Sandbox
         private float movingNext;
         private string movingText = "";
 
-        private const string LookTag = "22 November, evening: the sewn shirt and trousers move by themselves (step 4)";
+        private const string LookTag = "22 November, 20:00: the sewn clothes after his look: limbs kept in, trousers under the shirt, cheaper";
 
         /// <summary>What he is asked to do, in order.</summary>
         private static readonly string[] LookSteps =
         {
-            "1. Go to \"Duel\", the heading \"Clothes\". \"Clothes:\" is \"sewn (new)\" and \"Cloth:\" is \"moves (new)\". Watch both men stand: the cloth hangs and keeps still.",
-            "2. Press \"Pluck\" (\"Pluck the cloth:\"): both men's clothes are thrown forward once. They should swing a few centimetres and settle within about a second.",
-            "3. Press \"Shake him\": watch the hems in the leaps, and the elbows and knees as they bend. \"carried (old)\" is the last step's, to compare. \"The cloth moving\" gives the numbers. Push the playtest log afterwards.",
+            "1. Go to \"Duel\", the heading \"Clothes\" (\"Clothes:\" sewn (new), \"Cloth:\" moves (new)). Press \"Shake him\": do arms and legs still come out through the sleeves and trouser legs? \"Cloth at his skin:\" passes (old) is how it was.",
+            "2. Look below the sash, front and back: do the trousers still show through the shirt? \"Trousers under the shirt:\" as draped (old) is how it was.",
+            "3. Look at the bent elbows and knees for spikes. Then push the playtest log: is the frame faster? \"Both men's cloth:\" in turn (old) is the old cost, to compare.",
         };
 
         /// <summary>The names of what he is to press and watch.</summary>
         private static readonly string[] LookHere =
         {
-            "Duel", "Clothes", "Clothes:", "Cloth:", "Pluck the cloth:", "Shake him:", "The cloth moving",
+            "Duel", "Clothes", "Shake him:", "Cloth at his skin:", "Trousers under the shirt:", "Both men's cloth:", "The cloth moving",
         };
 
         /// <summary>For the panel check (headless): the names of <see cref="LookHere"/> that were really drawn, and every section taken as open while it looks.</summary>
@@ -5480,6 +5480,21 @@ namespace PhysicsBattler.Sandbox
                 Words(new GUIContent("Cloth:", "Combat Feel \"Sewn Cloth Moves\". Moves (new, step 4): the shirt and trousers move by themselves on him: they hang by their weight, swing when he leaps or turns and settle, never far from where they are carried, every thread held to its length on the flat pattern, his drawn body pushing them out. Carried (old, step 3): exactly as the drape left them, riding his body."));
                 if (Press(feel.sewnClothMoves ? "[moves (new)]" : "moves (new)", "The cloth moves by itself.")) feel.sewnClothMoves = true;
                 if (Press(!feel.sewnClothMoves ? "[carried (old)]" : "carried (old)", "Carried exactly, as in step 3.")) feel.sewnClothMoves = false;
+                EndRow();
+                BeginRow();
+                Words(new GUIContent("Cloth at his skin:", "Combat Feel \"Sewn Cloth Stops At His Skin\". Stops (new): no cloth point goes further in toward his body than his skin, along its own way out, so an arm or leg cannot come out through its sleeve or trouser leg. Passes (old): only pushed out of him the nearest way; a fast limb could pass through."));
+                if (Press(feel.sewnClothStopsAtHisSkin ? "[stops (new)]" : "stops (new)", "A limb cannot come out through the cloth.")) feel.sewnClothStopsAtHisSkin = true;
+                if (Press(!feel.sewnClothStopsAtHisSkin ? "[passes (old)]" : "passes (old)", "Only pushed out the nearest way.")) feel.sewnClothStopsAtHisSkin = false;
+                EndRow();
+                BeginRow();
+                Words(new GUIContent("Trousers under the shirt:", "Combat Feel \"Sewn Trousers Tucked Under The Shirt\". Tucked (new): the trousers under the shirt are drawn close to his body and the shirt over them kept 6 mm further off, so they never show through the shirt; near the shirt's hem the trousers are as draped. As draped (old): both where the drape left them."));
+                if (Press(feel.sewnTrousersTuckedUnderTheShirt ? "[tucked (new)]" : "tucked (new)", "The trousers kept under the shirt.")) feel.sewnTrousersTuckedUnderTheShirt = true;
+                if (Press(!feel.sewnTrousersTuckedUnderTheShirt ? "[as draped (old)]" : "as draped (old)", "Both as the drape left them.")) feel.sewnTrousersTuckedUnderTheShirt = false;
+                EndRow();
+                BeginRow();
+                Words(new GUIContent("Both men's cloth:", "Combat Feel \"Sewn Clothes Of Both Men At Once\". At once (new): both men's clothes are worked out on the other cores at the same time while the game goes on, and waited for once. In turn (old): each man's worked out and waited for in turn. \"Cloth inside the body\" ends with the cost a picture."));
+                if (Press(feel.sewnClothesOfBothMenAtOnce ? "[at once (new)]" : "at once (new)", "Both men's cloth worked out together.")) feel.sewnClothesOfBothMenAtOnce = true;
+                if (Press(!feel.sewnClothesOfBothMenAtOnce ? "[in turn (old)]" : "in turn (old)", "Each man's in turn.")) feel.sewnClothesOfBothMenAtOnce = false;
                 EndRow();
                 BeginRow();
                 Words(new GUIContent("Pluck the cloth:", "Both men's moving clothes are thrown forward once, as if each had stopped short, so you can see them swing and settle (within about a second) without waiting for a leap. Only with \"Cloth:\" on \"moves (new)\"."));

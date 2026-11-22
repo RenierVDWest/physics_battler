@@ -32,6 +32,8 @@ namespace PhysicsBattler.Locomotion
         public int LastWord, Rounds, Measure, KeepMost, RadialOut, Smooth, FoldsStay, Dynamic, Steps, Iters, Reset;
         public float Dt, Gravity, Keep, Inertia, Squash, BendK, HoldShape;
         public Vector3 Pluck;
+        public int Backstop, Tucked, CollideEvery;
+        public float Longest;
 
         public void Execute(int garment)
         {
@@ -39,7 +41,7 @@ namespace PhysicsBattler.Locomotion
             {
                 Size = Size, PointMargin = PointMargin, MiddleMargin = MiddleMargin, OtherMargin = OtherMargin,
                 LastWord = LastWord, Rounds = Rounds, Measure = Measure, KeepMost = KeepMost, RadialOut = RadialOut, Smooth = Smooth, FoldsStay = FoldsStay,
-                Dynamic = Dynamic, Steps = Steps, Iters = Iters, Reset = Reset, Dt = Dt, Gravity = Gravity, Keep = Keep, Inertia = Inertia, Squash = Squash, BendK = BendK, HoldShape = HoldShape, Pluck = Pluck,
+                Dynamic = Dynamic, Steps = Steps, Iters = Iters, Reset = Reset, Dt = Dt, Gravity = Gravity, Keep = Keep, Inertia = Inertia, Squash = Squash, BendK = BendK, HoldShape = HoldShape, Pluck = Pluck, Backstop = Backstop, Tucked = Tucked, CollideEvery = CollideEvery, Longest = Longest,
             };
             d.Grid = (short*)NativeArrayUnsafeUtility.GetUnsafeReadOnlyPtr(Grid);
             d.Fields = (OutfitSolve.PartField*)NativeArrayUnsafeUtility.GetUnsafeReadOnlyPtr(Fields);
@@ -86,9 +88,25 @@ namespace PhysicsBattler.Locomotion
         private NativeArray<OutfitSolve.Stats> stats;
         private bool made;
 
+        private JobHandle handle;
+        private bool running;
+
         /// <summary>The picture: the frames in, the garments run on the worker threads and waited for, the points and measures out.</summary>
         public void Run(SewnOutfit outfit, bool measure)
         {
+            Start(outfit, measure);
+            Finish(outfit);
+        }
+
+        /// <summary>The picture begun: the frames in and the garments given to the worker threads, not waited for (see <see cref="Finish"/>).</summary>
+        public void Start(SewnOutfit outfit, bool measure)
+        {
+            if (running)
+            {
+                handle.Complete();
+                running = false;
+            }
+
             if (!made)
             {
                 grid = new NativeArray<short>(outfit.GridArray, Allocator.Persistent);
@@ -129,9 +147,23 @@ namespace PhysicsBattler.Locomotion
                 X = x, Home = home, Shove = shove, DNear = dNear, Moved = moved, Inside = inside, Stats = stats,
                 Size = set.Size, PointMargin = set.PointMargin, MiddleMargin = set.MiddleMargin, OtherMargin = set.OtherMargin,
                 LastWord = set.LastWord, Rounds = set.Rounds, Measure = set.Measure, KeepMost = set.KeepMost, RadialOut = set.RadialOut, Smooth = set.Smooth, FoldsStay = set.FoldsStay,
-                Dynamic = set.Dynamic, Steps = set.Steps, Iters = set.Iters, Reset = set.Reset, Dt = set.Dt, Gravity = set.Gravity, Keep = set.Keep, Inertia = set.Inertia, Squash = set.Squash, BendK = set.BendK, HoldShape = set.HoldShape, Pluck = set.Pluck,
+                Dynamic = set.Dynamic, Steps = set.Steps, Iters = set.Iters, Reset = set.Reset, Dt = set.Dt, Gravity = set.Gravity, Keep = set.Keep, Inertia = set.Inertia, Squash = set.Squash, BendK = set.BendK, HoldShape = set.HoldShape, Pluck = set.Pluck, Backstop = set.Backstop, Tucked = set.Tucked, CollideEvery = set.CollideEvery, Longest = set.Longest,
             };
-            job.Schedule(meshes.Length, 1).Complete();
+            handle = job.Schedule(meshes.Length, 1);
+            running = true;
+            JobHandle.ScheduleBatchedJobs();
+        }
+
+        /// <summary>Waits for the picture begun by <see cref="Start"/> and copies the points and measures out.</summary>
+        public void Finish(SewnOutfit outfit)
+        {
+            if (!running)
+            {
+                return;
+            }
+
+            handle.Complete();
+            running = false;
             x.CopyTo(outfit.PointArray);
             home.CopyTo(outfit.HomeArray);
             inside.CopyTo(outfit.InsideArray);
@@ -141,6 +173,12 @@ namespace PhysicsBattler.Locomotion
         /// <summary>Its memory given back (the clothes are taken off).</summary>
         public void Drop()
         {
+            if (running)
+            {
+                handle.Complete();
+                running = false;
+            }
+
             if (!made)
             {
                 return;

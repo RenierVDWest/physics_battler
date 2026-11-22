@@ -151,10 +151,52 @@ namespace PhysicsBattler.Locomotion
             using (PhysicsBattler.Diagnostics.Perf.Begin(PhysicsBattler.Diagnostics.PerfSection.Clothes))
             {
                 outfit?.Place(Time.deltaTime);
+                if (sewn != null && BothAtOnce)
+                {
+                    // (Begun now, finished after every man's LateUpdate (ClothesFinisher): both men's clothes are worked
+                    // out on the other cores at once, while the game goes on.)
+                    sewn.PlaceBegin(Time.deltaTime);
+                    later.Add(this);
+                    ClothesFinisher.Ensure();
+                    return;
+                }
+
                 sewn?.Place(Time.deltaTime);
             }
 
             Trace();
+        }
+
+        /// <summary>On (new, 19:45): every man's sewn clothes are begun on the other cores in his LateUpdate and all waited for together after the last (both at once, while the game goes on). Off: each man's worked out and waited for in turn.</summary>
+        public static bool BothAtOnce = true;
+
+        private static readonly List<Clothes> later = new List<Clothes>();
+
+        /// <summary>Every man's sewn clothes begun this picture waited for, drawn and logged (after every LateUpdate).</summary>
+        public static void FinishAll()
+        {
+            if (later.Count == 0)
+            {
+                return;
+            }
+
+            using (PhysicsBattler.Diagnostics.Perf.Begin(PhysicsBattler.Diagnostics.PerfSection.Clothes))
+            {
+                foreach (var c in later)
+                {
+                    c.sewn?.PlaceEnd();
+                }
+            }
+
+            foreach (var c in later)
+            {
+                if (c.sewn != null)
+                {
+                    c.Trace();
+                }
+            }
+
+            later.Clear();
         }
 
         private PhysicsBattler.Units.UnitController traceUnit;
@@ -919,6 +961,31 @@ namespace PhysicsBattler.Locomotion
 
             return where + string.Format(System.Globalization.CultureInfo.InvariantCulture, "robe: {0} points, pinched in {1} pictures, stretched {2:0}% at most, inside {3} of {4}, the deepest {5:0.0} cm, put back {6}",
                 n.Count, n.Pinched, 100f * n.MostStretch, n.Inside, n.Checked, 100f * n.Deepest, n.Resets);
+        }
+    }
+
+    /// <summary>Runs after every other script's LateUpdate: waits for the sewn clothes begun this picture (<see cref="Clothes.FinishAll"/>).</summary>
+    [DefaultExecutionOrder(32000)]
+    public sealed class ClothesFinisher : MonoBehaviour
+    {
+        private static ClothesFinisher one;
+
+        /// <summary>Made once, hidden, kept between scenes.</summary>
+        public static void Ensure()
+        {
+            if (one != null)
+            {
+                return;
+            }
+
+            var go = new GameObject("Clothes finisher") { hideFlags = HideFlags.HideInHierarchy };
+            one = go.AddComponent<ClothesFinisher>();
+            DontDestroyOnLoad(go);
+        }
+
+        private void LateUpdate()
+        {
+            Clothes.FinishAll();
         }
     }
 }

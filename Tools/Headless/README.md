@@ -302,6 +302,11 @@ with `FIGHT_FILM="$S/name.json,3,8.5,medium"`.
   Tools/Headless/sewnsum.py log...` sums a run (standing 2 to 4 s, the leap in 6.0 to 6.8 s, the leap out 8.2 to 9.0
   s, the thread counts). **`b.sh` builds Debug; these runs use `bin/Tests/Release`: build that with `dotnet build
   Tests.csproj -c Release` first.**
+- **After his look (19:45):** `FIGHT_SEWNBACKSTOP=0` (no backstop), `FIGHT_SEWNTUCK=0` (trousers as draped under the
+  shirt), `FIGHT_SEWNLONGEST=1.2` (threads drawn in over this), `FIGHT_SEWNPUSHEVERY=2` (the body's push every n small
+  steps and the last). The `SEWN` line now ends with "points through (a limb out through the cloth)": points more than
+  1 cm past his skin along their own way out. `SEWNTIME`: headless time in the moving step (threads and bends, the
+  body's push) and in the last word.
 - `FIGHT_SEWNBALLS=0` (two parts' points blended straight, not carried round the joint), `FIGHT_SEWNTHIGHS=0` (the
   shirt's hem on his hips alone), `FIGHT_SEWNROUNDS=n` (rounds of middles, 6), `FIGHT_SEWNFOLDS=0` (cloth in a crease pushed out
   of it: flaps), `FIGHT_SEWNSMOOTH=n`, `FIGHT_SEWNKEEPMOST=1`, `FIGHT_SEWNRADIAL=1` (ways tried and left off).

@@ -1218,6 +1218,10 @@ internal static class FightReport
         PhysicsBattler.Locomotion.SewnOutfit.Steps = (int)SewnLever("FIGHT_SEWNSTEPS", PhysicsBattler.Locomotion.SewnOutfit.Steps);
         PhysicsBattler.Locomotion.SewnOutfit.Sweeps = (int)SewnLever("FIGHT_SEWNSWEEPS", PhysicsBattler.Locomotion.SewnOutfit.Sweeps);
         PhysicsBattler.Locomotion.SewnOutfit.HoldShape = SewnLever("FIGHT_SEWNHOLD", PhysicsBattler.Locomotion.SewnOutfit.HoldShape);
+        PhysicsBattler.Locomotion.SewnOutfit.LongestThread = SewnLever("FIGHT_SEWNLONGEST", PhysicsBattler.Locomotion.SewnOutfit.LongestThread);
+        if (Environment.GetEnvironmentVariable("FIGHT_SEWNBACKSTOP") == "0") PhysicsBattler.Locomotion.SewnOutfit.Backstop = false;
+        if (Environment.GetEnvironmentVariable("FIGHT_SEWNTUCK") == "0") PhysicsBattler.Locomotion.SewnOutfit.TuckUnderShirt = false;
+        PhysicsBattler.Locomotion.SewnOutfit.PushEvery = (int)SewnLever("FIGHT_SEWNPUSHEVERY", PhysicsBattler.Locomotion.SewnOutfit.PushEvery);
         if (Environment.GetEnvironmentVariable("FIGHT_LASTWORD") == "0")
         {
             PhysicsBattler.Locomotion.Outfit.LastWordOn = false;
@@ -3448,6 +3452,7 @@ internal static class FightReport
             sb.AppendLine("CLOTHES " + PhysicsBattler.Locomotion.Clothes.Counted());
         sb.AppendLine("OUTFIT " + PhysicsBattler.Locomotion.Outfit.Counted());
         sb.AppendLine("SEWN " + PhysicsBattler.Locomotion.SewnOutfit.Counted());
+        sb.AppendLine(FormattableString.Invariant($"SEWNTIME moving {1000.0 * PhysicsBattler.Locomotion.OutfitSolve.TicksMove / System.Diagnostics.Stopwatch.Frequency:0} ms, the last word and measure {1000.0 * PhysicsBattler.Locomotion.OutfitSolve.TicksWord / System.Diagnostics.Stopwatch.Frequency:0} ms in all; of the moving, the threads and bends {1000.0 * PhysicsBattler.Locomotion.OutfitSolve.TicksThreads / System.Diagnostics.Stopwatch.Frequency:0} ms, the body's push {1000.0 * PhysicsBattler.Locomotion.OutfitSolve.TicksCollide / System.Diagnostics.Stopwatch.Frequency:0} ms"));
             sb.AppendLine($"    what he holds follows its pose smoothly: {(PhysicsBattler.Locomotion.ClipFighter.HeldSettles ? $"on ({PhysicsBattler.Locomotion.ClipFighter.HeldSettleRate:0} and {PhysicsBattler.Locomotion.ClipFighter.HeldSettleQuick:0} a second)" : "off")}; the furthest a hand was behind its pose for it (cm, shield hand / sword hand): " + string.Join(", ", units.Where(u => u.Clip != null && u.Clip.HeldBehindMost[0] + u.Clip.HeldBehindMost[1] > 0f).Select(u => $"{u.name} {100f * u.Clip.HeldBehindMost[0]:0} / {100f * u.Clip.HeldBehindMost[1]:0}")));
             sb.AppendLine($"    what he holds met softly by his own body: {(PhysicsBattler.Authority.UpperBodyArticulation.HeldMetSoftly ? "on" : "off")}; steps it was against his body (shield arm / sword arm): " + string.Join(", ", units.Where(u => u.Clip != null && u.Clip.Upper != null).Select(u => $"{u.name} {u.Clip.Upper.HeldTouched[0]} / {u.Clip.Upper.HeldTouched[1]}")));
             sb.AppendLine($"    the shield gives way to his own sword: {(PhysicsBattler.Locomotion.ClipFighter.ShieldGivesWayToSword ? "on" : "off")}; steps it was asked aside / the furthest (cm): " + string.Join(", ", units.Where(u => u.Clip != null && u.Clip.GaveWayToSword > 0).Select(u => $"{u.name} {u.Clip.GaveWayToSword} / {100f * u.Clip.GaveWayToSwordMost:0}")));

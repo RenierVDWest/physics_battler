@@ -9448,3 +9448,74 @@ below).
 - One run is a direction: "Shake him" was measured once on this build.
 
 Its film (3b2b, made by Opus at medium effort; 6 scenes, 24 beats, about 3.7 minutes): https://claude.ai/artifact/Td3BUcKw15jKQTBFDVzSqE
+
+### 22 November, 19:45: the sewn clothes after his look: limbs kept in, the trousers under the shirt, fewer spikes, cheaper (headless only; the cost change built blind)
+
+**His look (19:09):** "Ok very nice! This is looking really good so far." Four things wrong, with pictures: arms and
+legs push through the cloth at times (a shin right out of its trouser leg, a forearm out of its sleeve); spikes where
+the limbs bend; the shirt and trousers through each other; "I can feel that the performance has dropped".
+
+**His log of 19:03 (Unity):** the job runs on the other cores (Burst compiled and ran in his Unity: the first time this
+is seen), 8.25 ms a fighter a picture (median; p90 9.2). The clothes took 18.3 ms of the frame (median; step 3 at 16:49:
+7.8 ms) and the frame went from 24.7 to 40.1 ms. The longest thread: median 362% of its length, p90 718%, the worst
+1,219%: the spikes he saw.
+
+**Built (headless only):**
+- **A backstop** (`Skin.NA`, `Skin.Back`; Combat Feel "Sewn Cloth Stops At His Skin"; lab "Cloth at his skin:" stops
+  (new) / passes (old); `FIGHT_SEWNBACKSTOP=0`): each point's way out of his body at rest is kept in the part that
+  carries it; in the moving step no point goes further in toward his body than his skin along that way. A limb that
+  moves faster than the cloth meets it from inside and cannot pass out through it. A new measure counts cloth points
+  more than 1 cm past his skin that way ("points through", a limb out through the cloth): "Shake him", the same
+  build, **16,815 of 14.3 million point checks with it (0.12%), 283,746 without (2.0%).**
+- **The trousers under the shirt** (`Skin.Tuck`, `Skin.Extra`, `SewnOutfit.Layers`; Combat Feel "Sewn Trousers Tucked
+  Under The Shirt"; lab "Trousers under the shirt:" tucked (new) / as draped (old); `FIGHT_SEWNTUCK=0`): a trousers
+  point is under the shirt where the nearest shirt point at rest is within 5 cm and further off his body (how many was
+  not counted). It is drawn close to his body (about 7 mm off), swings a quarter as far, and
+  the shirt over it is kept 6 mm further off his body; within 2 cm of the shirt's hem the trousers are as draped,
+  blended over 5 cm. Thread middles inside the body 1,247 to 344 of 42.5 million, triangle centres 776 to 226 (with
+  the backstop). **Not measured: shirt through trousers** (no measure of cloth through cloth yet; the pictures).
+- **Fewer spikes:** no point further from where it is carried than its fence and 1 cm (was half again and 2 cm); after
+  the moving step any thread over 120% is drawn in (was 150%; Combat Feel "Sewn Cloth Longest Thread"); cloth where
+  his body has come over its own carried place stays in (a sleeve point carried by the forearm, inside the upper arm
+  bent over it, was pushed out through the far side, 16 to 19 cm); the last word never throws a moving point more than
+  3 cm. **The longest thread over 4 times its length in 44% of the trace's samples at 18:20, 14% now; over 8 times 18%
+  to 4%.** Still: a man lying after the hard kick (17 s) has a trouser leg at 13 to 15 times for a moment; the bent
+  shield elbow about 3 to 5 times (was 10).
+- **Cheaper:** his body's push every other small step and the last (`SewnOutfit.PushEvery` 2, `FIGHT_SEWNPUSHEVERY`);
+  the bends once a small step; a clear point not pushed. Headless the moving step 50 to 34 s of a run (the threads 21.5
+  to 15.2, the push 24.2 to 14.3). **Both men at once** (`Clothes.BothAtOnce`, `ClothesFinisher`; Combat Feel "Sewn
+  Clothes Of Both Men At Once"; lab "Both men's cloth:" at once (new) / in turn (old)): each man's clothes are begun
+  on the other cores in his LateUpdate (`SewnOutfit.PlaceBegin`, `SewnRun.Start`) and all waited for together after
+  every LateUpdate (`ClothesFinisher`, execution order 32000), so the four garments run side by side. The mesh is
+  filled with one matrix a garment, not a hierarchy walk a point. **Built blind: headless cannot run Unity's job
+  system; his next log's `ms_Clothes` will say.**
+
+**Measured headless ("Shake him", both men, Release, one core, no Burst):**
+
+| | 18:20 (pushed) | Now, the new switches off | Now |
+| --- | --- | --- | --- |
+| Points through (a limb out through the cloth) | not measured | 283,746 of 14.3 million | 16,815 |
+| Points inside the body | 88 | 201 | 301 |
+| Thread middles inside | 2,002 of 42.5 million | 1,247 | 344 |
+| Triangle centres inside | 1,151 of 28.2 million | 776 | 226 |
+| The deepest | 2.8 mm | 44 mm | 24 mm |
+| Longest thread over 4 times, share of samples | 44% | 13% | 14% |
+| Threads over 105%, standing | 1,515 of 19,690 | 1,425 | 1,767 |
+| Threads over 120%, standing | about 230 | about 210 | about 350 |
+| Shiver standing | 0.23 mm | 0.33 mm | 0.30 mm |
+| The hems in the leap in | 4.9 cm | 4.8 cm | 4.6 cm |
+| A fighter a picture (incl. headless checks) | 52 ms | 39 ms | 39 ms |
+
+The points left inside are now more (cloth his body came over stays in, hidden, rather than thrown through it as a
+spike) and deeper; middles and centres fewer. The tuck stretches more threads a little (the trousers drawn in under the
+shirt).
+
+**Pictures:** `Docs/Plans/2026-11-22-clothes-moving-fixes.png` (the mover at the leap in, the leap out, the bash and
+the kick: the new switches off on the left, on on the right).
+
+**Not right yet, not known:**
+- The cost in Unity (both men at once is built blind). The main thread still fills the four meshes and works out
+  their normals.
+- A man lying with his knees bent can still throw a trouser point out as a spike for a moment.
+- Shirt through trousers is not measured; only drawn.
+- The shoulder seam's jagged look in his second picture was not looked into.

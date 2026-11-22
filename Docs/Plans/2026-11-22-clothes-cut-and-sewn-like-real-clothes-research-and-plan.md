@@ -409,6 +409,26 @@ trousers through each other (step 5); the cost in Unity.
 
 Its film: https://claude.ai/artifact/Td3BUcKw15jKQTBFDVzSqE
 
+## Progress, 22 November, 19:45: after his look at step 4 (headless only; the cost change built blind)
+
+His look at 19:09: "Ok very nice! This is looking really good so far", with four things wrong: arms and legs push
+through the cloth at times; spikes where the limbs bend; the shirt and trousers through each other; slower. His log of
+19:03: the job runs on the other cores in Unity (8.25 ms a fighter), the clothes 18.3 ms of the frame (7.8 at step 3),
+the frame 24.7 to 40.1 ms.
+
+- **A backstop** (the plan's "backstop", now built): no point goes further in than his skin along its own way out.
+  Points with a limb out through them: 2.0% of checks to 0.12% ("Cloth at his skin:").
+- **The trousers under the shirt** drawn close to him, the shirt over them 6 mm further off ("Trousers under the
+  shirt:"). Cloth through cloth is still not measured (step 5).
+- **Fewer spikes:** a thread over 4 times its length in 44% of samples to 14%; still a moment of 13 to 15 times on a
+  man lying with his knees bent.
+- **Cheaper:** the body's push every other small step, both men's clothes worked out at once while the game goes on
+  ("Both men's cloth:"; built blind). Headless 52 to 39 ms a fighter.
+
+![Before and after, the mover in Shake him](2026-11-22-clothes-moving-fixes.png)
+
+**Next: his look and his log's `ms_Clothes`; then step 5 (layers, cost).**
+
 ## Sources
 
 - [Making a sweater with Marvelous Designer](https://dev.epicgames.com/documentation/en-us/uefn/making-a-sweater-with-marvelous-designer-in-unreal-editor-for-fortnite), Epic Games

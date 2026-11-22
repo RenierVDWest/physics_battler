@@ -426,6 +426,18 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("The moving sewn cloth: sweeps over the threads each small step (see \"Sewn Cloth Small Steps\"). More holds each thread nearer its length and costs more.")]
         [Range(1, 8)] public int sewnClothSweeps = PhysicsBattler.Locomotion.SewnOutfit.DefaultSweeps;
 
+        [Tooltip("The moving sewn cloth (19:45, after his look at 19:09: arms and legs came through it). On (new): no cloth point goes further in toward his body than his skin, along its own way out (a backstop), so a sleeve or trouser leg can swing but a limb cannot come out through its far side. Off (old): only pushed out of him the nearest way, which a fast limb could pass right through.")]
+        public bool sewnClothStopsAtHisSkin = true;
+
+        [Tooltip("The sewn clothes (19:45, after his look at 19:09: the trousers showed through the shirt). On (new): the trousers under the shirt are drawn close to his body, swing little, and the shirt over them is kept 6 mm further off, so the trousers never show through the shirt; within 2 cm of the shirt's hem the trousers are as draped. Off (old): both as the drape left them.")]
+        public bool sewnTrousersTuckedUnderTheShirt = true;
+
+        [Tooltip("The moving sewn cloth: after all else, any thread longer than this share of its length on the flat pattern is drawn in, so none shows as a spike (1.2: 120%).")]
+        [Range(1.05f, 2f)] public float sewnClothLongestThread = 1.2f;
+
+        [Tooltip("The sewn clothes' cost (19:45, after his log of 19:03: 18 to 20 ms a picture for both men). On (new): every man's clothes are begun on the other cores in his own LateUpdate and all waited for together after the last, so both men's are worked out at the same time while the game goes on. Off (old): each man's worked out and waited for in turn.")]
+        public bool sewnClothesOfBothMenAtOnce = true;
+
         [Tooltip("The shirt and trousers: how far the trousers and sleeves are cut off the drawn skin (metres). 2 cm since his look at 11:42 (\"so tight that I cant see any cloth like deformation\"; it was 1.2 cm). They are cut again when it changes.")]
         [Range(0.004f, 0.06f)] public float clothesSitLooselyOffTheSkin = Outfit.DefaultGap;
 
@@ -2146,6 +2158,10 @@ namespace PhysicsBattler.Locomotion
             PhysicsBattler.Locomotion.SewnOutfit.HoldShape = Mathf.Clamp(sewnClothReturnsToItsDrape, 0f, 1f);
             PhysicsBattler.Locomotion.SewnOutfit.Steps = Mathf.Clamp(sewnClothSmallSteps, 1, 16);
             PhysicsBattler.Locomotion.SewnOutfit.Sweeps = Mathf.Clamp(sewnClothSweeps, 1, 8);
+            PhysicsBattler.Locomotion.SewnOutfit.Backstop = sewnClothStopsAtHisSkin;
+            PhysicsBattler.Locomotion.SewnOutfit.TuckUnderShirt = sewnTrousersTuckedUnderTheShirt;
+            PhysicsBattler.Locomotion.SewnOutfit.LongestThread = Mathf.Clamp(sewnClothLongestThread, 1f, 3f);
+            Clothes.BothAtOnce = sewnClothesOfBothMenAtOnce;
             Outfit.Gap = Mathf.Clamp(clothesSitLooselyOffTheSkin, 0.002f, 0.08f);
             Outfit.ShirtGap = Mathf.Clamp(shirtSitsLooselyOffTheSkin, 0.004f, 0.1f);
             Outfit.Loose = Mathf.Clamp(clothesLooserAtTheEnds, 0f, 3f);
