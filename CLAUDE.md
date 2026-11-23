@@ -947,6 +947,7 @@ tell me what is up next and what is the roadmap".** (16:15; README.)
   to 3.0%; limbs through the cloth fewer; the cost: a few thousand points left hidden inside him. **The lab button:**
   duel lab, "Clothes", "Hold his guard" (12 s in his guard, as his log, cloth logged), readout "His guard". New measures:
   the crotch, where the worst spike is, `FIGHT_PTRACE` (one point stage by stage). **Not seen in Unity.**
+  Its film: https://claude.ai/artifact/STjY8wpuUFPXHngvNFqP7b
 - **What he was told is next (before tonight):** step 7 (more cuts, now built); combos in the six only when he says;
   then the kick at a man who is down (his kick pack), the stab at a downed man that looks odd, the spin combo's own
   sword through his own shield; then the older open things (get-up shield, stumble leftovers, absorbing a hit, the

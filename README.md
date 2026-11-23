@@ -9739,3 +9739,5 @@ every 2 s (`clothdump`). Row "Thrown through a bent arm:" held back (new) / thro
 the worst spike that shows now and since the press and where, the crotch, the points held back). Built blind
 (`GuardTestScene`, `StepGuardWatch` in `BattleSandbox.cs`); the panel check draws and frames it. **Not seen in Unity;
 the Burst job's new field (`MoreSet.RoundsMost`) and the new pass are compiled only headless.**
+
+Its film (3b2b, made by Opus at medium effort; 6 scenes, 24 beats, about 3.5 minutes): https://claude.ai/artifact/STjY8wpuUFPXHngvNFqP7b
