@@ -1201,6 +1201,8 @@ internal static class FightReport
         // never touch the bodies or the fight, and the sewn ones cost 33 ms a fighter a picture here.
         // FIGHT_WAVE=0: no shock wave on a hit.)
         PhysicsBattler.Locomotion.Clothes.Kind = int.TryParse(Environment.GetEnvironmentVariable("FIGHT_CLOTHES"), out int clothesEnv) ? clothesEnv : 0;
+        // (FIGHT_CLOTHPICTURE=n: the clothes placed once every n steps, as at a slower picture rate; 2 is about his Unity's.)
+        PhysicsBattler.Locomotion.Clothes.HeadlessPictureEvery = int.TryParse(Environment.GetEnvironmentVariable("FIGHT_CLOTHPICTURE"), out int clothPic) ? clothPic : 1;
         if (int.TryParse(Environment.GetEnvironmentVariable("FIGHT_CLOTHSMOOTH"), out int smoothEnv)) PhysicsBattler.Locomotion.Outfit.Smooth = smoothEnv;
         // (Headless the clothes are measured every picture unless FIGHT_CLOTHMEASURE=n asks for every n-th, as in a game.)
         PhysicsBattler.Locomotion.Outfit.MeasureEvery = int.TryParse(Environment.GetEnvironmentVariable("FIGHT_CLOTHMEASURE"), out int measureEnv) ? measureEnv : 1;
@@ -1238,6 +1240,13 @@ internal static class FightReport
         PhysicsBattler.Locomotion.SewnOutfit.JointReach = Environment.GetEnvironmentVariable("FIGHT_SEWNJOINTREACH") == "1";
         PhysicsBattler.Locomotion.SewnOutfit.FloorStops = Environment.GetEnvironmentVariable("FIGHT_SEWNFLOOR") != "0";
         PhysicsBattler.Locomotion.SewnOutfit.LoneSpikesBack = Environment.GetEnvironmentVariable("FIGHT_SEWNLONE") != "0";
+        // (FIGHT_SEWNROUNDSMOST=metres: how far the last word's rounds may take a moving point a picture; 0: no limit, as before 23 November.)
+        if (float.TryParse(Environment.GetEnvironmentVariable("FIGHT_SEWNROUNDSMOST"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float roundsMost))
+        {
+            PhysicsBattler.Locomotion.SewnOutfit.RoundsHoldBack = roundsMost > 0f;
+            PhysicsBattler.Locomotion.SewnOutfit.RoundsMoveAtMost = roundsMost > 0f ? roundsMost : PhysicsBattler.Locomotion.SewnOutfit.RoundsMoveAtMost;
+        }
+
         PhysicsBattler.Locomotion.SewnOutfit.JoltMost = SewnLever("FIGHT_SEWNJOLT", PhysicsBattler.Locomotion.SewnOutfit.JoltMost);
         // (FIGHT_SEWNSEAMS=0: each side of the shoulder seam carried by its own rule, as before.)
         PhysicsBattler.Locomotion.SewnOutfit.SeamsSmooth = Environment.GetEnvironmentVariable("FIGHT_SEWNSEAMS") != "0";
@@ -2784,7 +2793,7 @@ internal static class FightReport
                             {
                                 var mo = who.Clothes.Sewn.Motion();
                                 var hipsAt = who.Rig.Part(PartId.Pelvis).transform.position;
-                                Console.WriteLine(FormattableString.Invariant($"SEWNTRACE {paceAt:0.00} {(who == duel.Mover ? "mover" : "other")} hips {hipsAt.x:0.000}:{hipsAt.y:0.000}:{hipsAt.z:0.000} off {100f * mo.all:0.00} ends {100f * mo.ends:0.00} hang {100f * mo.hang:0.00} shiver {1000f * mo.shiver:0.00} stretch {100f * mo.stretch:0} ms {who.Clothes.Sewn.LastMs:0.00}"));
+                                Console.WriteLine(FormattableString.Invariant($"SEWNTRACE {paceAt:0.00} {(who == duel.Mover ? "mover" : "other")} hips {hipsAt.x:0.000}:{hipsAt.y:0.000}:{hipsAt.z:0.000} off {100f * mo.all:0.00} ends {100f * mo.ends:0.00} hang {100f * mo.hang:0.00} shiver {1000f * mo.shiver:0.00} stretch {100f * mo.stretch:0} ms {who.Clothes.Sewn.LastMs:0.00} crotch {who.Clothes.Sewn.CrotchNow:0.00} spike {who.Clothes.Sewn.SpikeNow:0.0} at {who.Clothes.Sewn.SpikeWhereNow.Replace(' ', '_')}"));
                                 if (Mathf.FloorToInt(paceAt) != Mathf.FloorToInt(paceAt - dt))
                                 {
                                     Console.WriteLine($"SEWNLONG {paceAt:0.00} {(who == duel.Mover ? "mover" : "other")} {who.Clothes.Sewn.LongestThreads(5)}");

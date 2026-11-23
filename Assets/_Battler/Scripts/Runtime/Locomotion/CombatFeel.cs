@@ -468,6 +468,12 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("The sewn cloth's lone spikes (22 November). On (new): a moving point whose every thread is over twice its length (pushed out of him on its own by the last word) is put back among its neighbours, where they are outside him. Off (old): it stays out as a spike.")]
         public bool sewnClothLoneSpikesPutBack = true;
 
+        [Tooltip("Sewn cloth is not thrown through a bent arm (23 November, his log of 06:57: in his sword-and-shield guard a sleeve grew a lasting spike, a point 20 cm off). On (new): the push that keeps the cloth out of his body (the last word) may move a moving point at most \"The Last Word Moves A Point At Most\" further than the nearest way out of his body in a picture; a point it would throw further (through him, not out of him) is left where the cloth's own movement put it, inside the bend of his elbow and hidden. Off (old): pushed on its threads' middles round after round with no limit, it was thrown out through the far side of his arm, and the trousers tore open at the crotch in falls the same way.")]
+        public bool sewnClothIsNotThrownThroughABentArm = true;
+
+        [Tooltip("How much further than the nearest way out of his body the last word may move a moving sewn cloth point in one picture (metres). 3 cm.")]
+        [Range(0.005f, 0.1f)] public float theLastWordMovesAPointAtMost = 0.03f;
+
         [Tooltip("The sewn shirt's shoulder seams (22 November, his look at 20:11: a ridge along the shoulder seam). On (new): within 7 cm of a shoulder seam each point's share of the parts that carry it is smoothed over its neighbours, so both sides of the seam are carried alike as the arm lifts. Off (old): the sleeve rides the arm and the shirt's body the chest, each by its own rule, and the seam stands up as a ridge.")]
         public bool sewnSeamsCarriedSmoothly = true;
 
@@ -2205,6 +2211,8 @@ namespace PhysicsBattler.Locomotion
             SewnOutfit.FloorStops = sewnClothStopsOnTheFloor;
             SewnOutfit.JoltMost = sewnClothThrownOnByAHardStopAtMost;
             SewnOutfit.LoneSpikesBack = sewnClothLoneSpikesPutBack;
+            SewnOutfit.RoundsHoldBack = sewnClothIsNotThrownThroughABentArm;
+            SewnOutfit.RoundsMoveAtMost = theLastWordMovesAPointAtMost;
             SewnOutfit.SeamsSmooth = sewnSeamsCarriedSmoothly;
             Outfit.Gap = Mathf.Clamp(clothesSitLooselyOffTheSkin, 0.002f, 0.08f);
             Outfit.ShirtGap = Mathf.Clamp(shirtSitsLooselyOffTheSkin, 0.004f, 0.1f);

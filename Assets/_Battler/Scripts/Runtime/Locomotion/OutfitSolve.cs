@@ -74,12 +74,12 @@ namespace PhysicsBattler.Locomotion
         public struct MoreSet
         {
             public int JointReach, FloorOn, LoneSpikes;
-            public float FloorY, Jolt;
+            public float FloorY, Jolt, RoundsMost;
         }
 
         public struct Stats
         {
-            public long PointsChecked, PointsIn, MiddlesChecked, MiddlesIn, CentresChecked, CentresIn, Pushed, StillIn, Crossed, Folded;
+            public long PointsChecked, PointsIn, MiddlesChecked, MiddlesIn, CentresChecked, CentresIn, Pushed, StillIn, Crossed, Folded, Held;
             public float Deepest;
             public int LastInPart, LastInKind; // the part, and 1 a point, 2 a middle; -1 none
         }
@@ -1118,6 +1118,8 @@ namespace PhysicsBattler.Locomotion
             || part == (int)PhysicsBattler.Rig.PartId.ThighL || part == (int)PhysicsBattler.Rig.PartId.ShinL || part == (int)PhysicsBattler.Rig.PartId.ThighR || part == (int)PhysicsBattler.Rig.PartId.ShinR;
 
         // (The moving cloth's fixed limits.)
+        private const int ThrowPasses = 6;
+        private const float ThrownOver = 2f;
         private const float PushKeep = 0.5f, MostSpeed = 3f, StrayPast = 0.01f, LastWordMost = 0.03f, FloorMargin = 0.005f, LoneSpikeOver = 2f;
 #if HEADLESS_STUB
         /// <summary>Headless only: time spent in the moving step and in the last word and the measure (Stopwatch ticks).</summary>
@@ -1129,6 +1131,11 @@ namespace PhysicsBattler.Locomotion
         /// last word (each point, then rounds of thread middles and triangle centres, out of the drawn body), and the
         /// fast measure. Writes only its own points and its own stats, so garments can run on different threads.
         /// </summary>
+#if HEADLESS_STUB
+        public static int TraceP = -1; public static bool TraceNow; public static string TraceTag = "";
+        static void Tr(ref Data d, string stage) { if (TraceNow && TraceP >= 0) System.Console.WriteLine($"PTRACE {TraceTag} {stage} off {100f*(d.X[TraceP]-d.Home[TraceP]).magnitude:0.0} R {100f*d.R[TraceP].magnitude:0.0} v {100f*(d.R[TraceP]-d.RPrev[TraceP]).magnitude:0.00} dn {100f*d.DNear[TraceP]:0.0} homeIn {100f*NearestOf(ref d, d.Meshes[TraceG].Own, d.Home[TraceP], out int hp):0.0}@{(PhysicsBattler.Rig.PartId)hp} xIn {100f*NearestOf(ref d, d.Meshes[TraceG].Own, d.X[TraceP], out int xp):0.0}@{(PhysicsBattler.Rig.PartId)xp} skin {(PhysicsBattler.Rig.PartId)d.Skins[TraceP].A}/{(PhysicsBattler.Rig.PartId)d.Skins[TraceP].B} w{d.Skins[TraceP].W:0.00} J{d.Skins[TraceP].J}"); }
+        public static int TraceG;
+#endif
         public static void Mesh1(ref Data d, int g)
         {
             MeshPiece* mp = d.Meshes + g;
@@ -1198,14 +1205,31 @@ namespace PhysicsBattler.Locomotion
 #if HEADLESS_STUB
             long tick0 = System.Diagnostics.Stopwatch.GetTimestamp();
 #endif
+            bool trMine = false;
+#if HEADLESS_STUB
+            trMine = TraceP >= s0 && TraceP < s1; if (trMine) TraceG = g;
+            if (trMine) Tr(ref d, "home");
+#endif
             if (d.Dynamic != 0 && d.R != null)
             {
                 Move(ref d, mp, st);
             }
 #if HEADLESS_STUB
+            if (trMine) Tr(ref d, "moved");
             long tick1 = System.Diagnostics.Stopwatch.GetTimestamp();
             TicksMove += tick1 - tick0;
 #endif
+
+            // (Moving: where the moving step left each point, kept in Shove (free here unless KeepMost or the smoothing
+            // passes are on), so the whole last word, points and rounds together, may take it no further than RoundsMost.)
+            bool capRounds = d.Dynamic != 0 && d.LastWord != 0 && d.More.RoundsMost > 0f && d.KeepMost == 0 && d.Smooth == 0;
+            if (capRounds)
+            {
+                for (int i = s0; i < s1; i++)
+                {
+                    d.Shove[i] = d.X[i];
+                }
+            }
 
             if (d.LastWord != 0)
             {
@@ -1278,6 +1302,9 @@ namespace PhysicsBattler.Locomotion
                     }
                 }
 
+#if HEADLESS_STUB
+                if (trMine) Tr(ref d, "points");
+#endif
                 // (Smoothed, before the rounds: a point pushed far while its neighbours were not makes a flap (a bent
                 // elbow in a wind-up, 14 cm). Each pass takes every point's push halfway to the mean of its neighbours'
                 // pushes, and out again where that moved it.)
@@ -1364,7 +1391,79 @@ namespace PhysicsBattler.Locomotion
                     d.Moved[i] = 0;
                 }
 
+#if HEADLESS_STUB
+                if (trMine) Tr(ref d, "rounds");
+#endif
+                if (capRounds)
+                {
+                    // (His log of 23 November, 06:57, found headless at his picture rate: in his guard a shield-arm cuff
+                    // point, left 3 cm inside his upper arm by the moving step in the bend of his elbow, was thrown 13
+                    // cm by the rounds' pushes on its threads' middles and triangles' centres, out through the far side
+                    // of the arm, and its threads were ten times their length. A point the whole last word moved more
+                    // than RoundsMost that has a thread now over twice its length (a throw that made a spike) is put
+                    // back where the moving step put it and pushed out of him the nearest way only, as a point on its
+                    // own is (or, if that too is over 3 cm, left there, inside him and hidden); again, so a patch thrown
+                    // together is undone from its edge in. Not every push over 3 cm, and not left inside: held back from
+                    // all of them and left in, the seat of his trousers stayed inside him as he crouched to get up, and
+                    // his skin showed.)
+                    float most = d.More.RoundsMost * d.Size;
+                    for (int pass = 0; pass < ThrowPasses; pass++)
+                    {
+                        bool any = false;
+                        for (int k = 0; k < mp->ThreadCount; k++)
+                        {
+                            int a = th[2 * k], b = th[2 * k + 1];
+                            bool ma = d.Fence[a] > 0f && (d.X[a] - d.Shove[a]).sqrMagnitude > most * most;
+                            bool mb = d.Fence[b] > 0f && (d.X[b] - d.Shove[b]).sqrMagnitude > most * most;
+                            if (!ma && !mb)
+                            {
+                                continue;
+                            }
 
+                            float rest = d.ThreadRest[mp->ThreadStart + k] * d.Size * ThrownOver;
+                            if ((d.X[b] - d.X[a]).sqrMagnitude <= rest * rest)
+                            {
+                                continue;
+                            }
+
+                            if (ma) { d.Moved[a] = 3; }
+                            if (mb) { d.Moved[b] = 3; }
+                            any = true;
+                        }
+
+                        for (int i = s0; i < s1; i++)
+                        {
+                            if (d.Moved[i] == 3)
+                            {
+#if HEADLESS_STUB
+                                if (TraceNow) System.Console.WriteLine($"PHELD {TraceTag} g{g} #{i} pass {pass} moved {100f*(d.X[i]-d.Shove[i]).magnitude:0.0} depthWas {100f*NearestOf(ref d, mp->Own, d.Shove[i], out int hpw):0.0}@{(PhysicsBattler.Rig.PartId)hpw} off {100f*(d.Shove[i]-d.Home[i]).magnitude:0.0}");
+#endif
+                                // (Back where the moving step put it, then out of him the nearest way, as the pass over the
+                                // points pushes a point; if that is more than 3 cm too, left inside, hidden.)
+                                d.X[i] = d.Shove[i];
+                                d.DNear[i] = PushOutOf(ref d, mp->Own, ref d.X[i], d.PointMargin, 5, st);
+                                if ((d.X[i] - d.Shove[i]).sqrMagnitude > LastWordMost * LastWordMost * d.Size * d.Size)
+                                {
+                                    d.X[i] = d.Shove[i];
+                                    d.DNear[i] = NearestOf(ref d, mp->Own, d.X[i], out _);
+                                }
+
+                                d.Moved[i] = 0;
+                                st->Held++;
+                            }
+                        }
+
+                        if (!any)
+                        {
+                            break;
+                        }
+                    }
+
+                    for (int i = s0; i < s1; i++)
+                    {
+                        d.Shove[i] = Vector3.zero;
+                    }
+                }
             }
 
             // (A lone spike: a moving point whose every thread is over twice its flat length (the last word threw it out
@@ -1424,6 +1523,9 @@ namespace PhysicsBattler.Locomotion
                 }
             }
 
+#if HEADLESS_STUB
+            if (trMine) Tr(ref d, "lone");
+#endif
             // (The cloth remembers where the last word left it: its offset from its carried place.)
 #if HEADLESS_STUB
             TicksWord += System.Diagnostics.Stopwatch.GetTimestamp() - tick1;

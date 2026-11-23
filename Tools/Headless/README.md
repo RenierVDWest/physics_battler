@@ -333,3 +333,19 @@ with `FIGHT_FILM="$S/name.json,3,8.5,medium"`.
   `FIGHT_SEWNFLOOR=0`, `FIGHT_SEWNLONE=0`, `FIGHT_SEWNJOLT=0` (no cap on a hard stop's throw).
 - A fall test: `FIGHT_KICK=1 FIGHT_KICKED="5.2,0.25" FIGHT_BASHAT="3,11,19" FIGHT_BASHPUT="1.4"` (a hard kick that
   knocks him down, three times).
+
+## 23 November: the guard's sleeve spike, at his picture rate
+
+- `FIGHT_CLOTHPICTURE=n`: the clothes placed once every n physics steps, their time summed (`Clothes.HeadlessPictureEvery`).
+  **2 is about his Unity's picture rate (35 a second): measure cloth there.** At 1 (60 a second, as before) the guard's
+  spike his log showed did not appear.
+- The guard as in his log of 06:57: `SECS=5 Tools/Headless/stR.sh name FIGHT_AIMKIT=open FIGHT_CLOTHES=3 FIGHT_SEWNTRACE=1
+  FIGHT_CLOTHPICTURE=2` (the swordsman with sword and shield 1.5 m from a bare-handed target, standing; the run lasts about
+  15 s whatever SECS says). The falls: add `FIGHT_KICK=1 FIGHT_KICKKIND=hard FIGHT_BASHAT="3,11" FIGHT_BASHPUT="1.4"` and
+  leave out `FIGHT_AIMKIT` (both with shields; the kicked man is "other").
+- `FIGHT_SEWNROUNDSMOST=0`: the last word's rounds with no limit (the old way); or metres (default 0.03).
+- `FIGHT_PTRACE=i` (`FIGHT_PTRACESIDE=1`: the other man): `PTRACE` lines, point i stage by stage each picture (carried,
+  moved, the points' pass, the rounds, the lone spikes: how far off its place, its own offset and speed, how deep in which
+  part), `PMID` lines for each middle or centre that pushed it, and `PHELD` lines for every point held back (with
+  `FIGHT_PTRACE=-1` only those). `SEWNLONG` names each thread's points (`#a/#b`). `SEWNTRACE` lines end with the crotch's
+  longest thread and the worst spike that shows, with where.

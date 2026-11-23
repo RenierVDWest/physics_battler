@@ -9661,3 +9661,81 @@ once. The dance's own crossings and tremble over their budgets, as the dance alw
 14.8% before).
 
 Its film (3b2b, made by Opus at medium effort; 7 scenes, 28 beats, about 4 minutes): https://claude.ai/artifact/CsxNWHwbksFJax1iWgxf25
+
+## 23 November 2026, 19:00: the sleeve spike in the sword-and-shield guard, and the trousers torn at the crotch in falls
+
+**His report (18:33):** his log `PlaytestLogs/2026-11-23_06-57-33` (the aim test, a swordsman with sword and shield 1.5 m
+from a bare-handed target) shows the swordsman's sleeve growing a lasting spike about ten times its thread's length, a
+point 20 cm and more off its place, within 4 s of standing in his guard; the open-handed target stays clean. "Shake him"
+had missed it. Then the trousers tearing at the crotch in falls. A lab button to put him in the guard.
+
+**His log:** the swordsman's `cloth` lines go from "the most 5 cm" off its place and threads at 4 times their length in
+the first second to "the most 21.6 cm" and 9 to 11 times by 7 s, and stay there for 30 s until he first strikes; the
+target's stay under 2 times. His Unity drew about 35 pictures a second (median frame 26.9 ms).
+
+**Reproduced headless, once the cloth was placed at his picture rate.** Headless the clothes were placed after every
+physics step, 60 pictures a second; at that rate the same guard gave threads of 2 to 3 times. New: `FIGHT_CLOTHPICTURE=n`
+places them once every n steps with the time summed (`Clothes.HeadlessPictureEvery`; 2 is about his Unity's). At 2 the
+swordsman's shield-arm sleeve grows the spike exactly as in his log: within 4 s, 9 to 11 times, a point 15 to 23 cm off,
+the target clean. **A lesson: the cloth depends on the picture rate; measure it at his (`FIGHT_CLOTHPICTURE=2`).**
+
+**The cause (traced with `FIGHT_PTRACE`, one point's picture stage by stage).** In the guard his shield forearm stands
+up and the elbow is bent shut. A cuff point carried by the forearm is left by the moving step up to its fence (10 cm)
+from its carried place, 3 cm inside his upper arm, in the bend of the elbow. The pass over the points leaves it there (a
+crease). Then the last word's rounds push every thread middle and triangle centre that is inside him out, each pushing
+both its ends, round after round, the pushes added with no limit: they threw the point 13 cm in one picture, out
+through the far side of the upper arm, 11 cm clear of him. The next picture the moving step reins it back to its fence,
+and the rounds throw it again: a lasting spike. The pass over the points already had a rule for this (a point the push
+would throw over 3 cm is left where it was, inside him, hidden); the rounds had none. **The trousers torn at the crotch
+in falls are the same thing:** the seat and crotch cloth, folded into him as he lands and lies, thrown through his
+thighs and hips by the rounds (old: the crotch's longest thread 26 times its length).
+
+**The mend** (`OutfitSolve.Mesh1`, after the rounds; Combat Feel "Sewn Cloth Is Not Thrown Through A Bent Arm" and
+lever "The Last Word Moves A Point At Most", 3 cm; `SewnOutfit.RoundsHoldBack`, `RoundsMoveAtMost`; `MoreSet.RoundsMost`,
+so the Burst job has it; `FIGHT_SEWNROUNDSMOST=0` for the old way, or metres): a moving point the whole last word
+moved more than 3 cm that has a thread now over twice its length (a throw that made a spike) is put back where the
+moving step left it and pushed out of him the nearest way only, as a point on its own is; if that too is over 3 cm, it
+is left inside, hidden. Six passes, so a patch thrown together is undone from its edge in. `Stats.Held` counts them
+("held back from a throw by the last word" in the `SEWN` line and in his `cloth` lines).
+
+**Ways tried and not kept** (each measured at his picture rate): the last word's push kept as a move only, not a
+speed (no change in the guard, and at 60 pictures it made the guard worse: 6.3 to 8.8 times); a thread middle in the
+bend left folded as a point is (no change); every push over 3 cm undone (fewest spikes, but the seat of his trousers
+was left inside him as he crouched to get up, and his skin showed); held back only when the point ended further from
+its carried place, or further than the nearest way out (both let most spikes through: 29% and 62% of pictures over 3
+times); the rest of a push cut at 3 cm instead of undone (more spikes: 38%); the gravity off (no change: it is not the
+cuff sliding down the raised forearm).
+
+**Headless, old (the rule off) against new:**
+
+| | His guard, 15 s, his picture rate | new | His guard, 60 pictures a second | new | "Shake him", his rate | new | 2 hard-kick falls, his rate (the fallen man) | new |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Pictures with a spike over 3 times that shows | 49.8% | 1.2% | 2.9% | 0.06% | 97.9% | 3.0% | 96.9% | 5.4% |
+| The worst spike that shows | 13.7 times | 3.2 | 6.3 | 3.4 | 19.7 | 10.4 | 26.4 | 14.5 (one moment, the shirt's front) |
+| The crotch's longest thread over 3 times (pictures) | 0% | 0% | 0% | 0% | 4.6% | 0.6% | 21.2% | 3.6% |
+| The crotch's worst | 1.5 times | 1.5 | 1.5 | 1.5 | 12.4 | 3.9 | 26.4 | 3.8 |
+| Points through (a limb out through the cloth) | 4,366 | 3,070 | 2,137 | 2,279 | 31,269 | 27,177 | 33,033 | 29,398 |
+| Points inside him (hidden) | 10 | 2,492 | 49 | 118 | 213 | 13,314 | 225 | 13,178 |
+| The deepest point inside | 18.6 mm | 36.6 | 22.3 | 34.3 | 52.0 | 93.9 | 51.8 | 93.6 |
+| A picture, both men (headless, one core) | 53.0 ms | 53.9 | 51.5 | 50.9 | 56.7 | 55.0 | 55.5 | 55.5 |
+
+The guard runs: `stR.sh` with `FIGHT_AIMKIT=open FIGHT_CLOTHES=3 FIGHT_CLOTHPICTURE=2` (the swordsman with sword and
+shield, the target bare-handed, 1.5 m apart, standing). "Shake him" and the falls are the shield duel (both with
+shields). The pictures (`sewn.py`, true depth) agree: old, the shield elbow's sleeve throws slivers out at 13, 17.5 and
+20.5 s of "Shake him" and the crotch stands up in torn flaps as the kicked man lies; new, neither, and no skin through
+the seat. **The cost:** a few thousand points a run are left inside his body, where they cannot be seen (in the bend of
+an elbow, of a hip); the deepest 9 cm in. Fewer limbs come out through the cloth than before.
+
+**New measures:** the crotch (`SewnOutfit.CrotchNow`, `CrotchOver2`, `CrotchOver3`, `CrotchWorst`: the longest thread
+within 8 cm of the seam between the legs) in `SEWNLOOK`, `SEWNTRACE` and his `cloth` lines; where the worst spike is
+(`SpikeWhereNow`, e.g. "sleeve_L on the ForearmL"); `SEWNLONG` names each thread's two points (`#a/#b`).
+`FIGHT_PTRACE=i` (`FIGHT_PTRACESIDE=1` for the other man): `PTRACE` lines, point i's picture stage by stage (carried,
+moved, the points' pass, the rounds, the lone spikes) and `PMID` lines for every middle and centre that pushed it;
+`PHELD` lines for every point the new rule held back.
+
+**The lab button:** duel lab, heading "Clothes", row "His guard:" and button "Hold his guard": the lab is set out again
+with the swordsman (sword and shield) 1.5 m from a bare-handed target, standing in his guard, for 12 s, the cloth logged
+every 2 s (`clothdump`). Row "Thrown through a bent arm:" held back (new) / thrown (old); readout "His guard" (how long,
+the worst spike that shows now and since the press and where, the crotch, the points held back). Built blind
+(`GuardTestScene`, `StepGuardWatch` in `BattleSandbox.cs`); the panel check draws and frames it. **Not seen in Unity;
+the Burst job's new field (`MoreSet.RoundsMost`) and the new pass are compiled only headless.**

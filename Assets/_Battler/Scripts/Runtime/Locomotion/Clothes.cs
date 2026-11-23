@@ -249,6 +249,12 @@ namespace PhysicsBattler.Locomotion
         private bool worn;
         private float lastDt = 1f / 60f;
 
+        /// <summary>Headless only: the clothes are placed once every so many physics steps (1: every step, 60 pictures a second).</summary>
+        public static int HeadlessPictureEvery = 1;
+
+        private float headlessDt;
+        private int headlessSteps;
+
         public Clothes(UnitRig rig, ShockWave wave, float size, int side, Transform owner)
         {
             this.rig = rig;
@@ -343,9 +349,17 @@ namespace PhysicsBattler.Locomotion
             }
 
 #if HEADLESS_STUB
-            // (Headless there is no LateUpdate: placed here, after the step, on the body as it stands.)
-            outfit?.Place(dt);
-            sewn?.Place(dt);
+            // (Headless there is no LateUpdate: placed here, after the step, on the body as it stands. With
+            // HeadlessPictureEvery above 1, once every so many steps with their time summed, as at Unity's slower
+            // picture rate: his log of 23 November, 06:57, ran at about 35 pictures a second, 27 ms a picture.)
+            headlessDt += dt;
+            if (++headlessSteps >= Mathf.Max(1, HeadlessPictureEvery))
+            {
+                outfit?.Place(headlessDt);
+                sewn?.Place(headlessDt);
+                headlessSteps = 0;
+                headlessDt = 0f;
+            }
 #endif
 
             bool want = allowed && Wear;

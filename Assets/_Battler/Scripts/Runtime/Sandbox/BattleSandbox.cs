@@ -1692,6 +1692,81 @@ namespace PhysicsBattler.Sandbox
             shakeNext++;
         }
 
+        // ---- "Hold his guard" (23 November): his log of 06:57 on demand ----
+        // (The swordsman stood in his sword-and-shield guard 1.5 m from a bare-handed target, and within 4 s his shield
+        // arm's sleeve grew a lasting spike; "Shake him" never stands still in the guard long enough to show it.)
+
+        private float guardFrom = -1f, guardWorst;
+        private string guardWorstWhere = "", guardText = "";
+        private float guardTextNext;
+
+        /// <summary>How long the guard is watched (seconds), and how often the cloth is logged meanwhile.</summary>
+        private const float GuardWatchFor = 12f, GuardLogEvery = 2f;
+
+        /// <summary>The duel lab set out as in his log of 06:57: the swordsman with sword and shield 1.5 m from a target with open hands, standing in his guard; his cloth watched for 12 s and logged.</summary>
+        private void GuardTestScene()
+        {
+            shakeFrom = -1f;
+            shieldSetOutAt = Time.time;
+            shieldSetOut = true;
+            aimTargetKit = 0;
+            SetOutDuelLab();
+            guardFrom = Time.time;
+            guardWorst = 0f;
+            guardWorstWhere = "";
+            PhysicsBattler.Locomotion.Outfit.DumpEvery = GuardLogEvery;
+            message = "Hold his guard: the swordsman stands in his sword-and-shield guard 1.5 m from a target with open hands. Watch his shield arm's sleeve for 12 s.";
+        }
+
+        private void StepGuardWatch()
+        {
+            if (guardFrom < 0f || !Duel.Running)
+            {
+                return;
+            }
+
+            float t = Time.time - guardFrom;
+            if (t > 0.5f && Duel.Now != DuelLab.Order.Stand)
+            {
+                Duel.Give(DuelLab.Order.Stand);
+            }
+
+            var sewn = Duel.Mover.Clothes != null ? Duel.Mover.Clothes.Sewn : null;
+            if (sewn != null && t > 0.2f && sewn.SpikeNow > guardWorst)
+            {
+                guardWorst = sewn.SpikeNow;
+                guardWorstWhere = sewn.SpikeWhereNow;
+            }
+
+            if (t > GuardWatchFor)
+            {
+                guardFrom = -1f;
+                PhysicsBattler.Locomotion.Outfit.DumpEvery = 0f;
+                message = string.Format(System.Globalization.CultureInfo.InvariantCulture, "Hold his guard: done. The worst spike that showed on him: {0:0.0} times its thread's length{1}.", guardWorst, guardWorstWhere.Length > 0 ? " (" + guardWorstWhere + ")" : "");
+            }
+        }
+
+        /// <summary>"His guard" in words: how long he has held it, his cloth's worst spike now and so far, and how often the last word was held back.</summary>
+        private string GuardWatchText()
+        {
+            if (Time.unscaledTime < guardTextNext)
+            {
+                return guardText;
+            }
+
+            guardTextNext = Time.unscaledTime + 0.25f;
+            var sewn = Duel.Running && Duel.Mover.Clothes != null ? Duel.Mover.Clothes.Sewn : null;
+            if (sewn == null)
+            {
+                return guardText = "no sewn clothes on him (\"Clothes:\" sewn).";
+            }
+
+            string held = guardFrom >= 0f ? string.Format(System.Globalization.CultureInfo.InvariantCulture, "held {0:0.0} s of {1:0} s", Time.time - guardFrom, GuardWatchFor) : "not running (press \"Hold his guard\")";
+            return guardText = string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                "{0}; the swordsman's worst spike that shows now {1:0.0} times its thread's length{2}, the worst since the press {3:0.0}{4} (a spike: over 2; his log of 06:57: about 10 within 4 s, for good); his crotch's longest thread {5:0.0} times; points the last word was held back from throwing (Combat Feel \"Sewn Cloth Is Not Thrown Through A Bent Arm\"): {6} since the scene began",
+                held, sewn.SpikeNow, sewn.SpikeWhereNow.Length > 0 ? " (" + sewn.SpikeWhereNow + ")" : "", guardWorst, guardWorstWhere.Length > 0 ? " (" + guardWorstWhere + ")" : "", sewn.CrotchNow, PhysicsBattler.Locomotion.SewnOutfit.HeldBack);
+        }
+
         /// <summary>A bash asked for by "Stumble him" is thrown once the other has stood a moment where he was put.</summary>
         private void StepStumbleBash()
         {
@@ -3178,6 +3253,7 @@ namespace PhysicsBattler.Sandbox
                 {
                     StepStumbleBash();
                     StepShake();
+                    StepGuardWatch();
                     Duel.Step(Time.fixedDeltaTime);
                 }
 
@@ -4404,22 +4480,21 @@ namespace PhysicsBattler.Sandbox
         private float movingNext;
         private string movingText = "";
 
-        private const string LookTag = "22 November, 22:00: clothes that slide (all six steps of the plan) and a shield that lets go";
+        private const string LookTag = "23 November, 19:00: the sleeve spike in the sword-and-shield guard, and the trousers torn at the crotch in falls";
 
         /// <summary>What he is asked to do, in order.</summary>
         private static readonly string[] LookSteps =
         {
-            "1. Duel, heading \"Clothes\". Press \"Shake him\" and watch an arm lift and turn: does the cloth slide over it instead of pinching? \"Cloth on him:\" glued (old) and \"The limb's roll:\" carried (old) are how it was. Try \"Grip on his limbs\" if it slides too much or too little.",
-            "2. The shoulder seam and the bent elbows: still a ridge, still the elbow through? \"The shoulder seams:\" by side (old) to compare. \"At a bent joint:\" clear (to try) is off: headless it made more spikes.",
-            "3. Falls: \"Hard kick\" (Kick him:) a few times. Spikes as he lands and lies? \"The floor:\" and \"Lone spikes:\" (old) to compare.",
-            "4. The shield: \"Bash him close\" (A man stuck in a shield:) a few times, then fight. Does anything stay stuck in a shield? Push the playtest log: it now has shieldin and shieldletgo lines.",
+            "1. Duel, heading \"Clothes\". Press \"Hold his guard\": the swordsman stands in his sword-and-shield guard 1.5 m from the bare-handed target for 12 s. Watch his shield arm's sleeve (and the readout \"His guard\"): no spike should grow. Headless at your picture rate the worst went from 13.7 to 3.5 times a thread's length.",
+            "2. Press \"Hold his guard\" again with \"Thrown through a bent arm:\" on thrown (old): the spike should come back within about 4 s. Then set it back to held back (new).",
+            "3. Falls: \"Hard kick\" (Kick him:) a few times. Do the trousers still tear open at the crotch as he lands and lies? (Same cause; headless the crotch's worst thread went from 26 to 4 times its length.)",
+            "4. Look for cloth that stays inside his elbow: the new rule leaves a point there rather than throw it through the arm. Push the playtest log: the cloth lines now say where the worst spike is, the crotch and the points held back.",
         };
 
         /// <summary>The names of what he is to press and watch.</summary>
         private static readonly string[] LookHere =
         {
-            "Duel", "Clothes", "Shake him:", "Cloth on him:", "Grip on his limbs", "The limb's roll:", "The shoulder seams:", "At a bent joint:", "The floor:", "Lone spikes:", "The cloth moving",
-            "Kick him:", "A man stuck in a shield:",
+            "Duel", "Clothes", "His guard:", "Hold his guard", "Thrown through a bent arm:", "His guard", "Kick him:",
         };
 
         /// <summary>For the panel check (headless): the names of <see cref="LookHere"/> that were really drawn, and every section taken as open while it looks.</summary>
@@ -5484,6 +5559,20 @@ namespace PhysicsBattler.Sandbox
             }
 
             EndRow();
+            BeginRow();
+            Words(new GUIContent("His guard:", "His log of 23 November, 06:57, on demand: the lab is set out again with the swordsman (sword and shield) 1.5 m from a target with open hands, and he stands in his guard, his shield arm bent and raised, for 12 seconds. Before the mend his shield arm's sleeve grew a lasting spike within 4 seconds. The cloth goes to the playtest log every 2 seconds meanwhile. Compare with Combat Feel \"Sewn Cloth Is Not Thrown Through A Bent Arm\" off: \"Thrown through a bent arm:\" below."));
+            if (Press("Hold his guard", "Set out again and stand in the guard, 12 s, cloth logged.")) GuardTestScene();
+            EndRow();
+            if (feel.theFightersWear == 3)
+            {
+                BeginRow();
+                Words(new GUIContent("Thrown through a bent arm:", "Combat Feel \"Sewn Cloth Is Not Thrown Through A Bent Arm\" (23 November). Held back (new): the push that keeps the cloth out of his body may move a moving point at most 3 cm further than the nearest way out of his body in a picture; a point it would throw further (through him) stays where the cloth's own movement put it, in the bend of his elbow, hidden. Thrown (old): pushed on its threads' middles round after round with no limit, a cuff point in the bend of his shield arm was thrown out through the far side of the arm (the spike in his guard), and the trousers tore open at the crotch in falls the same way."));
+                if (Press(feel.sewnClothIsNotThrownThroughABentArm ? "[held back (new)]" : "held back (new)", "A point is not thrown through his body.")) feel.sewnClothIsNotThrownThroughABentArm = true;
+                if (Press(!feel.sewnClothIsNotThrownThroughABentArm ? "[thrown (old)]" : "thrown (old)", "As before: no limit.")) feel.sewnClothIsNotThrownThroughABentArm = false;
+                EndRow();
+                Readout(new GUIContent("His guard: " + GuardWatchText(), "The swordsman's sewn cloth while he holds his guard: the worst spike that shows (a thread over twice its length with both ends and its middle outside him) now and since the press, and where; the crotch's longest thread; how often the new rule held a point back."), 3);
+            }
+
             if (feel.theFightersWear == 3)
             {
                 BeginRow();

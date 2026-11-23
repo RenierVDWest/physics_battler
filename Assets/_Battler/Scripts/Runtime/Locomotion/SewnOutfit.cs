@@ -112,12 +112,17 @@ namespace PhysicsBattler.Locomotion
         public static int Steps = DefaultSteps, Sweeps = DefaultSweeps;
 
         public static string Counted() => Pictures == 0 ? "none worn" : string.Format(System.Globalization.CultureInfo.InvariantCulture,
-            "{0} pictures; points inside {1} of {2}; thread middles {3} of {4}; triangle centres {5} of {6}; deepest {7:0.0} mm; pushed {8}, still in after the push {9}; folds (body pressed into itself) {10}; exact check {11} of {12} ({13} pictures, folds {14}); points through (a limb out through the cloth) {17}; {15:0.00} ms a picture{16}",
+            "{0} pictures; points inside {1} of {2}; thread middles {3} of {4}; triangle centres {5} of {6}; deepest {7:0.0} mm; pushed {8}, still in after the push {9}; folds (body pressed into itself) {10}; exact check {11} of {12} ({13} pictures, folds {14}); points through (a limb out through the cloth) {17}; held back from a throw by the last word {18}; {15:0.00} ms a picture{16}",
             Pictures, PointsIn, PointsChecked, MiddlesIn, MiddlesChecked, CentresIn, CentresChecked, 1000f * Deepest, Pushed, StillIn, Folded,
-            ExactIn, ExactChecked, ExactPictures, ExactFolded, CostMs / Mathf.Max(1, Pictures), LastIn.Length > 0 ? "; last in: " + LastIn : "", Through);
+            ExactIn, ExactChecked, ExactPictures, ExactFolded, CostMs / Mathf.Max(1, Pictures), LastIn.Length > 0 ? "; last in: " + LastIn : "", Through, HeldBack);
 
         /// <summary>Cloth points measured further in than his skin along their own way out by more than 1 cm (a limb come out through the cloth).</summary>
         public static long Through;
+
+        /// <summary>Moving points the last word would have thrown further than <see cref="RoundsMoveAtMost"/>, left where the moving step put them.</summary>
+        public static long HeldBack;
+
+        private long heldNow;
 
         // ---- What he sees (22 November, the plan "clothes that slide", step 1) ----------------------------------------
 
@@ -152,14 +157,15 @@ namespace PhysicsBattler.Locomotion
                 pinch.Append(string.Format(c, "{0}{1} {2:0.0}%", r > 0 ? ", " : "", PinchWhere[r], PinchLooked[r] > 0 ? 100.0 * PinchIn[r] / PinchLooked[r] : 0.0));
             }
 
-            return string.Format(c, "{0} pictures looked at; a spike that shows (a thread over {1:0} times its length, both ends outside him) in {2:0.00}% of them, over 3 times in {3:0.00}%, the worst {4:0.0} times; pinched threads (under {5:0}% of their length): {6}; the shoulder seam's ridge beyond the drape's {7:0.0} cm on average (the worst a picture), {8:0.0} cm at the worst",
-                LookPictures, SpikeOver, 100.0 * SpikePictures / LookPictures, 100.0 * Spike3Pictures / LookPictures, SpikeWorst, 100f * PinchUnder, pinch, 100.0 * SeamRidgeSum / LookPictures, 100f * SeamRidgeMost);
+            return string.Format(c, "{0} pictures looked at; a spike that shows (a thread over {1:0} times its length, both ends outside him) in {2:0.00}% of them, over 3 times in {3:0.00}%, the worst {4:0.0} times; pinched threads (under {5:0}% of their length): {6}; the shoulder seam's ridge beyond the drape's {7:0.0} cm on average (the worst a picture), {8:0.0} cm at the worst; the crotch's longest thread over 2 times its length in {9:0.00}%, over 3 times in {10:0.00}%, the worst {11:0.0} times",
+                LookPictures, SpikeOver, 100.0 * SpikePictures / LookPictures, 100.0 * Spike3Pictures / LookPictures, SpikeWorst, 100f * PinchUnder, pinch, 100.0 * SeamRidgeSum / LookPictures, 100f * SeamRidgeMost,
+                100.0 * CrotchOver2 / LookPictures, 100.0 * CrotchOver3 / LookPictures, CrotchWorst);
         }
 
         public static void ForgetLooks()
         {
-            LookPictures = SpikePictures = Spike3Pictures = 0;
-            SpikeWorst = SeamRidgeMost = 0f;
+            LookPictures = SpikePictures = Spike3Pictures = CrotchOver2 = CrotchOver3 = 0;
+            SpikeWorst = SeamRidgeMost = CrotchWorst = 0f;
             SeamRidgeSum = 0;
             System.Array.Clear(PinchLooked, 0, 4);
             System.Array.Clear(PinchIn, 0, 4);
@@ -210,7 +216,62 @@ namespace PhysicsBattler.Locomotion
                 int a = threads[2 * k];
                 pinchRegion[k] = (byte)RegionOf(skins[a]);
             }
+
+            // (The crotch: the threads within CrotchBand along the cloth of the seam that joins the left leg to the right.)
+            var near = new float[x.Length];
+            for (int i = 0; i < near.Length; i++)
+            {
+                near[i] = float.MaxValue;
+            }
+
+            bool Leg(int i, char side) => pieceOf[i].StartsWith("leg_", StringComparison.Ordinal) && pieceOf[i][pieceOf[i].Length - 1] == side;
+            for (int k = 0; k < threadRest.Length; k++)
+            {
+                int a = threads[2 * k], b = threads[2 * k + 1];
+                if ((Leg(a, 'L') && Leg(b, 'R')) || (Leg(a, 'R') && Leg(b, 'L')))
+                {
+                    near[a] = near[b] = 0f;
+                }
+            }
+
+            for (int sweep = 0; sweep < 100; sweep++)
+            {
+                bool changed = false;
+                for (int k = 0; k < threadRest.Length; k++)
+                {
+                    int a = threads[2 * k], b = threads[2 * k + 1];
+                    float l = threadRest[k];
+                    if (near[a] + l < near[b] - 1e-5f && near[a] + l < CrotchBand) { near[b] = near[a] + l; changed = true; }
+                    if (near[b] + l < near[a] - 1e-5f && near[b] + l < CrotchBand) { near[a] = near[b] + l; changed = true; }
+                }
+
+                if (!changed)
+                {
+                    break;
+                }
+            }
+
+            crotchThread = new bool[threadRest.Length];
+            for (int k = 0; k < threadRest.Length; k++)
+            {
+                crotchThread[k] = near[threads[2 * k]] < CrotchBand && near[threads[2 * k + 1]] < CrotchBand;
+            }
         }
+
+        /// <summary>How far along the cloth from the seam between the legs a thread counts as the crotch's (metres).</summary>
+        public const float CrotchBand = 0.08f;
+
+        private bool[] crotchThread = new bool[0];
+
+        /// <summary>Measured pictures with the crotch's longest thread over twice and over three times its length (any man), and its worst (times its length).</summary>
+        public static long CrotchOver2, CrotchOver3;
+
+        public static float CrotchWorst;
+
+        /// <summary>This man's crotch at the last measured picture: its longest thread, times its length; and where the worst spike that shows was.</summary>
+        public float CrotchNow { get; private set; }
+
+        public string SpikeWhereNow { get; private set; } = "";
 
         private static bool IsArm(PartId p) => p == PartId.UpperArmL || p == PartId.UpperArmR;
 
@@ -274,7 +335,8 @@ namespace PhysicsBattler.Locomotion
                 PrepareLooks();
             }
 
-            float worst = 0f;
+            float worst = 0f, crotch = 0f;
+            int worstAt = -1;
             for (int k = 0; k < threadRest.Length; k++)
             {
                 float rest = threadRest[k] * size;
@@ -285,10 +347,16 @@ namespace PhysicsBattler.Locomotion
                 }
 
                 float ratio = (x[b] - x[a]).magnitude / rest;
+                if (crotchThread.Length > k && crotchThread[k])
+                {
+                    crotch = Mathf.Max(crotch, ratio);
+                }
+
                 // (A spike shows only where its middle is outside him too: one across a bent elbow lies inside the arm.)
                 if (ratio > SpikeOver && ratio > worst && BodyDistanceNow(0.5f * (x[a] + x[b])) > 0f)
                 {
                     worst = ratio;
+                    worstAt = a;
                 }
 
                 int r = pinchRegion.Length > k ? pinchRegion[k] : 3;
@@ -310,11 +378,16 @@ namespace PhysicsBattler.Locomotion
             SeamRidgeMost = Mathf.Max(SeamRidgeMost, ridge);
             SpikeNow = worst;
             SeamRidgeNow = ridge;
+            SpikeWhereNow = worstAt >= 0 ? pieceOf[worstAt] + " on the " + (PartId)skins[worstAt].A : "";
+            CrotchNow = crotch;
+            CrotchOver2 += crotch > 2f ? 1 : 0;
+            CrotchOver3 += crotch > 3f ? 1 : 0;
+            CrotchWorst = Mathf.Max(CrotchWorst, crotch);
         }
 
         public static void Forget()
         {
-            Pictures = PointsChecked = PointsIn = MiddlesChecked = MiddlesIn = CentresChecked = CentresIn = Pushed = StillIn = Folded = Through = 0;
+            Pictures = PointsChecked = PointsIn = MiddlesChecked = MiddlesIn = CentresChecked = CentresIn = Pushed = StillIn = Folded = Through = HeldBack = 0;
             ExactChecked = ExactIn = ExactFolded = ExactPictures = 0;
             Deepest = CostMs = 0f;
             LastIn = "";
@@ -1084,7 +1157,7 @@ namespace PhysicsBattler.Locomotion
             Dynamic = Moves ? 1 : 0, Steps = Mathf.Clamp(Steps, 1, 16), Iters = Mathf.Clamp(Sweeps, 1, 8), Dt = dt, Reset = resetNext ? 1 : 0,
             Gravity = 9.81f * Mathf.Max(0f, Weight), Keep = Mathf.Clamp01(Air), Inertia = Mathf.Clamp01(Inertia), Squash = Mathf.Clamp01(Squash), BendK = Mathf.Clamp01(Bend),
             HoldShape = Mathf.Clamp01(HoldShape), Pluck = pluckNext, Backstop = Backstop ? 1 : 0, Tucked = TuckUnderShirt ? 1 : 0, CollideEvery = Mathf.Clamp(PushEvery, 1, 8), Longest = Mathf.Max(1f, LongestThread),
-            More = new OutfitSolve.MoreSet { JointReach = JointReach ? 1 : 0, FloorOn = FloorStops ? 1 : 0, LoneSpikes = LoneSpikesBack ? 1 : 0, FloorY = FloorY, Jolt = Mathf.Max(0f, JoltMost) },
+            More = new OutfitSolve.MoreSet { JointReach = JointReach ? 1 : 0, FloorOn = FloorStops ? 1 : 0, LoneSpikes = LoneSpikesBack ? 1 : 0, RoundsMost = RoundsHoldBack ? Mathf.Max(0f, RoundsMoveAtMost) : 0f, FloorY = FloorY, Jolt = Mathf.Max(0f, JoltMost) },
             Slide = new OutfitSolve.SlideSet { On = Slides ? 1 : 0, By = Mathf.Clamp(SlideBy, 0f, 0.2f), HoldShare = Mathf.Clamp01(SlideHold), Grip = Mathf.Clamp01(Grip), GripTrunk = Mathf.Clamp01(GripTrunk), Slack = Mathf.Clamp(LeashSlack, 0f, 1f) },
         };
 
@@ -1146,6 +1219,22 @@ namespace PhysicsBattler.Locomotion
         /// neighbours (<see cref="LoneSpikesBack"/>).
         /// </summary>
         public static bool JointReach, FloorStops = true, LoneSpikesBack = true;
+
+        /// <summary>
+        /// The whole last word may move a moving point no more than <see cref="RoundsMoveAtMost"/> further than the nearest
+        /// way out of his body in a picture; a point it would throw further (through him, not out of him) is left where the
+        /// moving step put it, inside him and hidden (Combat Feel "Sewn Cloth Is Not
+        /// Thrown Through A Bent Arm"; 23 November, his log of 06:57; <c>FIGHT_SEWNROUNDSMOST=0</c> for the old way). Found
+        /// headless at his picture rate: in his guard a shield-arm cuff point lay 3 cm inside his upper arm in the bend of
+        /// his elbow, and the last word's rounds (pushing thread middles and triangle centres out of him, each pushing both
+        /// ends, with no limit) threw it 13 cm out through the far side of the arm: a thread ten times its length. The pass
+        /// over the points alone already had this 3 cm rule; the rounds did not.
+        /// </summary>
+        public static bool RoundsHoldBack = true;
+
+
+        /// <summary>How much further than the nearest way out of him the whole last word may move a moving point in one picture (metres at scale 1).</summary>
+        public static float RoundsMoveAtMost = 0.03f;
 
         /// <summary>The most a hard stop of his body throws a point on in one picture (metres; 0: no limit); and the floor's height (world).</summary>
         public static float JoltMost = 0.02f, FloorY = 0f;
@@ -1362,6 +1451,11 @@ namespace PhysicsBattler.Locomotion
             fixed (byte* ins = insideFlags)
             fixed (OutfitSolve.Stats* st = stats)
             {
+#if HEADLESS_STUB
+                OutfitSolve.TraceNow = side == (System.Environment.GetEnvironmentVariable("FIGHT_PTRACESIDE") == "1" ? 1 : 0) && System.Environment.GetEnvironmentVariable("FIGHT_PTRACE") != null;
+                if (OutfitSolve.TraceNow && OutfitSolve.TraceP < 0) OutfitSolve.TraceP = int.Parse(System.Environment.GetEnvironmentVariable("FIGHT_PTRACE"));
+                OutfitSolve.TraceTag = (runs).ToString();
+#endif
                 var d = Settings(measure);
                 d.Grid = g; d.Fields = pf; d.Frames = fr0; d.Skins = sk; d.Meshes = mp; d.Threads = th; d.Tris = tr; d.AdjStart = ast; d.Adj = ad;
                 d.X = xs; d.Home = hm; d.Shove = sv; d.DNear = dn;
@@ -1528,11 +1622,13 @@ namespace PhysicsBattler.Locomotion
                 Look();
             }
 
+            heldNow = 0;
             for (int k = 0; k < stats.Length; k++)
             {
                 var st = stats[k];
+                heldNow += st.Held;
                 PointsChecked += st.PointsChecked; PointsIn += st.PointsIn; MiddlesChecked += st.MiddlesChecked; MiddlesIn += st.MiddlesIn;
-                CentresChecked += st.CentresChecked; CentresIn += st.CentresIn; Pushed += st.Pushed; StillIn += st.StillIn; Folded += st.Folded; Through += st.Crossed;
+                CentresChecked += st.CentresChecked; CentresIn += st.CentresIn; Pushed += st.Pushed; StillIn += st.StillIn; Folded += st.Folded; Through += st.Crossed; HeldBack += st.Held;
                 Deepest = Mathf.Max(Deepest, st.Deepest);
                 if (st.LastInPart >= 0)
                 {
@@ -2052,7 +2148,7 @@ namespace PhysicsBattler.Locomotion
             {
                 int k = order[j].Item2, a = threads[2 * k], b = threads[2 * k + 1];
                 float rest = threadRest[k] * size;
-                sb.Append(string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0}-{1} {2:0}% (carried {3:0}%, {4:0.0} cm flat; parts {5}/{6}w{7:0.00} and {8}/{9}w{10:0.00}, reach {11:0.00}/{12:0.00}; off home {13:0.0}/{14:0.0} cm, depth {15:0.0}/{16:0.0} cm); ",
+                sb.Append(string.Format(System.Globalization.CultureInfo.InvariantCulture, "#" + a + "/#" + b + " {0}-{1} {2:0}% (carried {3:0}%, {4:0.0} cm flat; parts {5}/{6}w{7:0.00} and {8}/{9}w{10:0.00}, reach {11:0.00}/{12:0.00}; off home {13:0.0}/{14:0.0} cm, depth {15:0.0}/{16:0.0} cm); ",
                     pieceOf[a], pieceOf[b], 100f * order[j].Item1, 100f * (home[b] - home[a]).magnitude / rest, 100f * rest,
                     (PartId)skins[a].A, (PartId)skins[a].B, skins[a].W, (PartId)skins[b].A, (PartId)skins[b].B, skins[b].W, fence[a], fence[b],
                     100f * (x[a] - home[a]).magnitude, 100f * (x[b] - home[b]).magnitude, dNear.Length > a ? 100f * dNear[a] : 0f, dNear.Length > b ? 100f * dNear[b] : 0f));
@@ -2083,9 +2179,9 @@ namespace PhysicsBattler.Locomotion
 
             var mo = Motion();
             return string.Format(System.Globalization.CultureInfo.InvariantCulture,
-                "sewn, {0}; {1}; {2} points; from its places on him on average {3:0.0} cm, the most {4:0.0} cm; the hems and cuffs {5:0.0} cm, hanging {6:0.0} cm; shiver {7:0.0} mm a picture; the longest thread {8:0}% of its length; the last word pushed {9} times; inside at the last measure {10}; {11:0.00} ms; a spike that shows {12:0.0} times its length; the shoulder seam's ridge {13:0.0} cm",
+                "sewn, {0}; {1}; {2} points; from its places on him on average {3:0.0} cm, the most {4:0.0} cm; the hems and cuffs {5:0.0} cm, hanging {6:0.0} cm; shiver {7:0.0} mm a picture; the longest thread {8:0}% of its length; the last word pushed {9} times; inside at the last measure {10}; {11:0.00} ms; a spike that shows {12:0.0} times its length{14}; the shoulder seam's ridge {13:0.0} cm; the crotch's longest thread {15:0.0} times its length; held back from a throw {16} points",
                 Moves ? "moving" : "carried", RanOnOtherCores ? "other cores" : "main thread", x.Length, 100f * mo.all, 100f * Mathf.Sqrt(most), 100f * mo.ends, 100f * mo.hang,
-                1000f * mo.shiver, 100f * mo.stretch, pushed, inside.Count, LastMs, SpikeNow, 100f * SeamRidgeNow);
+                1000f * mo.shiver, 100f * mo.stretch, pushed, inside.Count, LastMs, SpikeNow, 100f * SeamRidgeNow, SpikeWhereNow.Length > 0 ? " (" + SpikeWhereNow + ")" : "", CrotchNow, heldNow);
         }
 
         /// <summary>The whole cloth and the body's parts as drawn: SEWNPTS (each garment's points, in the file's order) and PARTFRAMES lines (Tools/Headless/sewn.py reads them).</summary>

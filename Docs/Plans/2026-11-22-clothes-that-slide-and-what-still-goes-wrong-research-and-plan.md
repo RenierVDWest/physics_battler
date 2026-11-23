@@ -192,3 +192,13 @@ The README's entry of 22:40 has the tables.
   20,530. Three falls: spikes over 3 times 22.4% to 18.2%. The deepest point inside got worse (2.4 to 5.9 cm).
 - Not met: the elbow pinch halved; the falls' 1 in 1,000. Not known: how it looks or costs in Unity.
 - Its film: https://claude.ai/artifact/CsxNWHwbksFJax1iWgxf25
+
+
+## Progress, 23 November 2026, 19:00
+
+His log of 06:57 showed a lasting spike on the shield arm's sleeve in the sword-and-shield guard, and he reported the
+trousers tearing at the crotch in falls. Both were the last word's rounds throwing cloth folded into a bend (the elbow,
+the hips) out through the far side of the body, every picture; invisible headless until the cloth was placed at his
+picture rate. Mended (Combat Feel "Sewn Cloth Is Not Thrown Through A Bent Arm"); headless at his rate the guard's spikes
+over 3 times went from 49.8% of pictures to 1.2%, a fall's crotch from 21% to 3.6%. Lab: "Hold his guard". The README's
+entry of 23 November, 19:00, has the tables. Not seen in Unity.
