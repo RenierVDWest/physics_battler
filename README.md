@@ -9828,3 +9828,51 @@ spot the ground's push must come from under a foot that is down?).
   dataset's Zenodo page and its paper were used instead.
 
 Its film (3b2b, made by Opus at medium effort; 8 scenes, 34 beats, about 5 minutes): https://claude.ai/artifact/WhtYXR7EWhwfsizSQWULMo
+
+## 26 November 2026, 17:32: he said go on the free set; the search is built and runs on a bare walker (a harness check on our own relaxed recordings; the free set is not in yet)
+
+**His words:** of Epic's animations, "we should be able to use them since we only reference animations and build
+rebuild it from scratch"; answered: probably not (the licence limits where the content is used, and our baker copies
+every joint of every frame; not legal advice). Then, of 100STYLE: "Ok this sounds pretty good" and (17:23) **"OK then
+this sounds good. Proceed with the free pack".** Taken as: yes to the direction and to starting on the free set. The
+plan's other questions are open; where one comes up the recommendation is taken and he is told.
+
+**Blocked:** the workspace may not reach `zenodo.org` (the proxy answers 403; not gone around). He was asked at 17:25
+to download `100STYLE.zip` on his PC, unzip it and name the folder; the Neutral files are then staged through the
+device bridge (his PC "9950x" is linked; no folder is connected yet).
+
+**Built meanwhile (step 2's machinery, headless only):**
+
+- `Locomotion/MotionMatch.cs`. `MatchFootage`: every moment (30 a second) of a set of `LocoClip`s as 27 numbers in the
+  root's own frame: both feet's places, both feet's and the hips' speeds (15, the pose), and where the root will be and
+  face 1/3, 2/3 and 1 s on (12, the path); each kind of number shares one spread; weights `FeetWeigh`, `SpeedsWeigh`,
+  `PathWeighs`, `FacingWeighs`; a recording that ends is not gone into in its last 0.3 s; past its end its path goes on
+  as it was going. `MotionMatch`: every 0.1 s (`SearchEvery`) the footage is searched for the moment that best fits the
+  playing moment's own pose numbers and the path asked (the speed and facing asked, come round to with half-lives 0.22
+  and 0.18 s); he jumps only if it fits 15% better than playing on (`JumpsIfBetterBy`) and is not within 0.25 s of where
+  he is in the same recording; the recording plays at its own pace and **its root's going is his** (`Clip.RootMotion`),
+  pulled toward the speed asked by at most 10% of the recording's own speed (`PullsAtMost`: a man standing is never
+  slid) and turned by at most 30 degrees a second; a jump's difference in pose (and in each point's speed) and in the
+  root's speed is carried over and dies away (`PoseHalfLife` 0.07 s, `SpeedHalfLife` 0.12 s). It gives the library's 33
+  points against the root, as a clip does, so `MoveScore.Pose` (the rebuild from parts, the levers) can stand in for
+  `Clip.Pose` when it goes into the `Locomotor` (step 3; the place is `Locomotor.Step`, before `IdlePose`/`CyclePose`,
+  filling `raw`, `Position`, `Facing`, `Velocity`, `Down`/`Heel`/`Toe`, then `Inertialize`).
+- `Tools/CompileCheck/Runner/MatchReport.cs`: `dotnet …Tests.dll match [film.json] [set]`: a bare walker (no body, no
+  fight) sent round a course of wishes (stand, walk, stop, walk, turn right, stop, backward, stop, to his left, stop,
+  run, stop, turn about, stop; 39 s). `MATCHLEG` lines (asked against went, per leg), `MATCH` lines (jumps a second, a
+  search's cost, the root's speed jumps, the pose's, a down foot's slide, what was played), and a film in the
+  `FIGHT_FILM` format (`gaitfilm.py` reads it).
+- `Tools/Headless/filmstrip.py film.json out.png [from] [to] [every] [unit]`: a film as a strip of stick figures from
+  the side of the way he travels, with the feet's path from above. Looked at: the run leg reads as a start, a run and a
+  stop.
+
+**The check run (the 28 relaxed recordings of `LocoClips.json`: 0.8 minutes, 1,429 moments):** a search costs 0.14 ms
+(0.02 ms a step on average); 70 jumps in 39 s; his root's speed never jumped over 0.5 m/s in a step (worst 0.47); a
+point of his pose changed speed by over 3 m/s in one step 23 times. **It walks badly, as expected of this footage, and
+that is not a result:** asked to walk at 1.5 m/s he replays the start recordings (0.95 m/s) rather than cross to the
+other pack's walk loop; asked to go backward or sideways from a stand he does not set off (there is no start that
+way); a down foot slides 17.6 cm a footfall. Tuning on this set would be tuning to its gaps: it waits for coherent
+footage.
+
+**Not done yet:** step 0's `gait` line in the reports and his log; step 1 (the BVH baker, written when the files are
+here to be read); the walk in the `Locomotor` and the walk lab (step 3).

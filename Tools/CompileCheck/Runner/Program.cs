@@ -66,6 +66,11 @@ internal static class Program
             return FlowReport.Run(args);
         }
 
+        if (args.Length >= 1 && args[0] == "match")
+        {
+            return MatchReport.Run(args);
+        }
+
         if (args.Length >= 1 && args[0] == "parryreach")
         {
             return ParryReachReport.Run(args.Length >= 2 ? args[1] : null);
