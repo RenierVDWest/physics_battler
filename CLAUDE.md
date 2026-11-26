@@ -1022,6 +1022,7 @@ tell me what is up next and what is the roadmap".** (16:15; README.)
     - **Not right:** a straight walk wanders 10 to 20 cm over 8 m; turning on the spot is slow; a search is 1.6 ms in
       the debug build (the mark is 0.5); step 0's `gait` line is not built (figures from a scratch script,
       `LOCO_PACE=0.57` for the old walk at the same paces). `LOCO_MATCHED=1 … locolab`, `… match`: Headless README.
+    - Its film: https://claude.ai/artifact/9ERHxrdzSc5rCwjkKrAyEz
     - **Next: his look** (does the panel work, how long the file stops Unity, how the walk reads). Then step 0, the
       search's cost, and step 4, which needs footage with a guard: his answer on the packs (and the repository
       private first).

@@ -9965,3 +9965,5 @@ a search, **missed** in the debug build).
 
 **Next:** his look. Then step 0's report card properly, the search's cost (15 moments a second instead of 30 would
 halve it), and step 4 (round his man: needs a guard, which this footage has not got: his answer on the packs).
+
+Its film (3b2b, made by Opus at medium effort): https://claude.ai/artifact/9ERHxrdzSc5rCwjkKrAyEz
