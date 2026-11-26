@@ -349,3 +349,23 @@ with `FIGHT_FILM="$S/name.json,3,8.5,medium"`.
   part), `PMID` lines for each middle or centre that pushed it, and `PHELD` lines for every point held back (with
   `FIGHT_PTRACE=-1` only those). `SEWNLONG` names each thread's points (`#a/#b`). `SEWNTRACE` lines end with the crotch's
   longest thread and the worst spike that shows, with where.
+
+## 26 November: the walk read as a gait
+
+- `python3 Tools/Mocap/Locomotion/gait_survey.py [out.csv]`: every walking, jogging and running loop of both clip
+  libraries as a gait at a Medium's size: speed, steps a minute, step length, the hips' rise and fall and sway, their
+  height, how long both feet or none are "down" by the baked contacts (which under-count: do not quote those two),
+  Froude number.
+- `python3 Tools/Headless/gaitfilm.py film.json [unit name part]`: a film (`FIGHT_FILM="$S/name.json,from,to"`) read as
+  a gait for each unit: how much of the time he walks and in what spells, his body's speed against what was asked,
+  the tempo (`cad`) and the stride (`ss`) against the recording, footfalls a minute, the hips' rise and fall in a step
+  and their speed's swing within it, the feet held, which recordings lead. The runs of 26 November:
+  `SECS=28 Tools/Headless/stR.sh wc1 FIGHT_COURSE=1 FIGHT_BASHWITHIN=0.3 FIGHT_FILM="$S/wc1.json,2,27,A"` (the footwork
+  course as `course.sh` runs it, on the release build) and `SECS=60 Tools/Headless/stR.sh dance_w1 FIGHT_DANCE="Plain,Plain" FIGHT_FILM="$S/dance_w1.json,5,59"`.
+- `python3 Tools/Headless/weight.py film.json [unit]` and `weight.py --clips [tempo] [name parts]`: a rough physics
+  check (the spot on the ground the push must come from, against the feet that are down). **Not calibrated:** 0%
+  outside for the standing recording, but 14 to 72% for walking recordings as performed. Do not quote it until it
+  passes on footage known to be clean.
+- A film is written at the physics rate (60 a second). Its `p` holds the joints in `PartId` order (hips, spine, chest,
+  head, both arms' three joints, both legs' hip, knee and ankle), then the head's top, the hands' ends and the toes;
+  `d` the foot locks; `root` the carried body (x, z, facing); `cad` and `ss` the tempo and stride against the recording.

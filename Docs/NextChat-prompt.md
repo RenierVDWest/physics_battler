@@ -6,21 +6,21 @@ have my permission to push to that branch.
 1. Attach the repository with push access and clone it. (On 19 November the first ask for push access was refused
    and went through when asked again after I said "you may push" in the chat. If it is refused, tell me at once and
    carry on reading.) Read `CLAUDE.md` at its top first and follow it: it is the briefing, and it is up to date as
-   of 22 November 2026, 12:30 (newer than the rest of this prompt: where the two disagree, CLAUDE.md and the
-   README's last entries are right). At 12:15 on 22 November I said the clothes are tubes, not cloth: they must be
-   cut from real shirt and trouser patterns, sewn into one garment, up to the neck, and hang like cloth. The plan:
-   `Docs/Plans/2026-11-22-clothes-cut-and-sewn-like-real-clothes-research-and-plan.md` (live
-   https://claude.ai/artifact/XtzrHrFgNy756LuoBHAsht). Its five questions wait for my answer; build only after I say
-   go. The tubes (`Outfit.cs`) stay as the old way; their baked body, last word, checks and logging are kept. `README.md` is
-   the build log (over 9,000 lines: search it, never read it whole, and add entries at its end, never write over
-   it).
-2. Read the plan for the work in hand (the clothes, above) and its progress notes; older ones:
-   `Docs/Plans/2026-11-21-shock-waves-through-the-body-research-and-plan.md`
-   (live https://claude.ai/artifact/FED9yrpFr7tz59LvbJLnd6) and
-   `Docs/Plans/2026-11-21-cloth-that-moves-samurai-clothes-research-and-plan.md` (live
-   https://claude.ai/artifact/3Jev6uXAQk3Nsncq7GCtAh), and the progress notes at their ends. Add your own progress
-   notes there with the Docs tools (insert at the end), and to the copies in the repository. What comes after them is
-   in CLAUDE.md ("What he was told is next" and the roadmap).
+   of 26 November 2026, 16:50 (newer than the rest of this prompt: where the two disagree, CLAUDE.md and the
+   README's last entries are right). On 26 November at 16:09 I said the units' walking is not convincing: clumsy,
+   floating, no real weight, and that the Frankenstein set of Mixamo packs may be why. You measured the walk and
+   wrote a research plan: `Docs/Plans/2026-11-26-walking-that-feels-like-a-real-person-research-and-plan.md` (live
+   https://claude.ai/artifact/BgRzbPiWNQerLqk6kmdaXs). Its six questions wait for my answer; build only after I say
+   go. `README.md` is the build log (over 9,800 lines: search it, never read it whole, and add entries at its end,
+   never write over it).
+2. Read that plan and its progress notes. If I have said go: start with its step 0 (the walk's report card: the
+   measures of `Tools/Headless/gaitfilm.py` in every headless report and in my playtest log, and "Walk beside the
+   recording" in the walk lab), then step 1 (the footage in: a BVH baker for the free 100STYLE set, or the FBX baker
+   `Tools/Mocap/Locomotion/loco_sample.py` and `loco_bake.py` for a pack I bought; contact tags; what the dance card
+   lacks), then step 2 (`MotionMatch.cs`, headless, a bare walker on the footwork course against the plan's pass
+   marks). If I bought a pack, the repository must be private before its files go in: ask me. The clothes, the shock
+   wave and the combos wait as CLAUDE.md says; add progress notes to the plan with the Docs tools (insert at the
+   end) and to its copy in the repository.
 3. Set up the headless build: `dotnet --version || apt-get install -y dotnet-sdk-8.0`, then
    `cd Tools/CompileCheck && ./get-physx.sh`, then `Tools/Headless/b.sh` in a command by itself (it wants
    "0 Error(s)" four times). `export S=/tmp/pb2` for the run outputs. Read `Tools/Headless/README.md`.

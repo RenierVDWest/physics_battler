@@ -9741,3 +9741,90 @@ the worst spike that shows now and since the press and where, the crotch, the po
 the Burst job's new field (`MoreSet.RoundsMost`) and the new pass are compiled only headless.**
 
 Its film (3b2b, made by Opus at medium effort; 6 scenes, 24 beats, about 3.5 minutes): https://claude.ai/artifact/STjY8wpuUFPXHngvNFqP7b
+
+## 26 November 2026, 16:50: the walk measured as a gait, and a research plan for walking that feels like a real person (nothing built)
+
+**His words (16:09):** "the units walking around just does not feel very concincing. They walk clumsily, floating times.
+They do not seem like they have real weight. They just do not seem like real people waling. I think a big reason for
+this might be the way that we sourced the animations. It is mainly a Frankenstein set built from different animation
+packs on Mixamo." He likes the rebuild from parts and its sliders, "but its not enough to save the system". He asked for
+a deep dive: what a ground-breaking walking system takes (walking round each other, looking at each other, weighted
+steps, slow walk, strut, run, sprint without a seam), whether the animations can be sourced online, and whether Epic
+ever shared such a pack.
+
+**The document:** `Docs/Plans/2026-11-26-walking-that-feels-like-a-real-person-research-and-plan.md` (live:
+https://claude.ai/artifact/BgRzbPiWNQerLqk6kmdaXs ). Research and a plan; nothing is built; six questions wait for him.
+
+**Measured (headless, the game's own code, release build, one run each; not seen in Unity).** The swordsman on the
+footwork course (25 s) and both men of a dance (54 s), read with the new `Tools/Headless/gaitfilm.py`; every walking
+loop of both clip libraries read with the new `Tools/Mocap/Locomotion/gait_survey.py`.
+
+| | Course, swordsman | Dance, A | Dance, B | The four guard steps as performed |
+| --- | --- | --- | --- | --- |
+| Walking, share of the time | 71% | 66% | 53% | |
+| A spell of walking (median) | 1.67 s | 1.96 s | 1.65 s | |
+| Body speed while walking (median) | 0.75 m/s | 0.71 | 0.74 | 0.90 to 1.16 |
+| Tempo against the recording (`cad`) | 0.85 | 0.85 | 0.85 | 1 |
+| Stride against the recording (`ss`) | 0.79 | 0.78 | 0.78 | 1 |
+| Footfalls a minute | 86 | 90 | 90 | 82 to 106 |
+| Hips rise and fall in a step | 6.3 cm | 6.1 | 7.9 | 5.2 to 8.0 |
+| Hips' speed swing within a step (share of its mean) | 67% | 86% | 83% | 29 to 48% |
+| From 10% to 80% of a spell's pace (the carried body) | 0.34 s | 0.29 | 0.34 | |
+| Hips' velocity jumps over 0.5 m/s in one physics step | 5 a minute | 46 | 60 | |
+
+**What it says (the document's six causes):** he walks at 0.71 to 0.75 m/s, and of the 35 different walking loops only
+two (a relaxed side-walk, each way) were performed under 0.9 m/s; the guard's four steps were performed at 0.9 to 1.2
+m/s, so they are played at the tempo's floor (0.85, which reads as gravity at 72%) on strides cut to 0.78; he keeps
+the 6 to 8 cm rise and fall of those faster walks where people at 0.7 m/s rise and fall about 2.7 cm (centre of mass;
+Orendurff and others 2004); a spell is two or three steps and the guard has no recorded start or stop (the library's
+one relaxed `start_walk` and `stop_walk` are used only out of the guard); the pacer moves the body and the legs are
+fitted (the speed swing, the jumps: some of the dance's jumps are blows landing, others are joins, e.g. the carried
+body from 0.83 m/s to 0 in one step as a leap begins at 14.07 s); the loops come from nine Mixamo packs or more (hips
+at 69 to 95 cm, walking cadences 82 to 120 for one body), forward and back are an archer's legs under the
+sword-and-shield chest and arms (the Combat Feel tooltip of "one carriage" says so), every loop is one stride; and
+his hips are carried by the pose with the legs hung from them, so physics adds no weight.
+
+**The plan in one paragraph:** one coherent set of footage (one performer, in the guard, every direction, with starts,
+stops, turns and changes of speed); motion matching written in our own C# (it only picks which recorded moment comes
+next; the rebuild from parts and the levers stay on top); the recording moves the body instead of the pacer; tempo
+and stride never stretched by more than a tenth. Seven steps: 0 the walk's report card in every report and in his
+log; 1 the footage in (a baker, contact tags, a catalogue of the dance card's gaps); 2 the search, headless, on a bare
+walker; 3 one man walking in the walk lab, old against new (his first look); 4 round his man (the look layer, turns on
+the spot, "Circle him"); 5 into the fight (the guard's arms, blows on the move, the dance); 6 gaits and styles; 7,
+later and its own plan, a simulated body with working legs that follows the matched walk (as Ubisoft's DReCon).
+
+**Where the animations can come from (read on 26 November; not legal advice):** Epic's Game Animation Sample Project
+(free since June 2024, over 500 animations, updated for UE 5.5, 5.7 and 5.8) is licensed "UE-Only", so it may be
+studied and not used in a Unity game. Bought packs made for motion matching: MoCap Central's Dungeon Life ($134.99;
+a sword-and-shield set with walks and jogs in each direction, starts, pivots, stops), Core Motion ($49.99; unarmed,
+eight directions, starts, turns, stops, pivots; also on the Unity Asset Store) and Longsword Vol. 2 ($139.99); MoCap
+Online's Mobility Pro ($99.99). Free and usable: 100STYLE (CC BY 4.0, one actor, over 4 million frames at 60 a second,
+BVH); CMU's database (free, old, noisy). Free and not usable commercially: LAFAN1, Bandai Namco's sets. **The
+repository is public and holds Mixamo's raw files; bought packs forbid handing out raw files: it has to be private
+before a bought pack goes in (his call).** Recommended: he watches the previews of Dungeon Life and Core Motion; the
+system is built and proven on 100STYLE meanwhile.
+
+**New tools:** `Tools/Mocap/Locomotion/gait_survey.py [out.csv]` (each walking, jogging and running loop as a gait at a
+Medium's size: speed, steps a minute, step length, the hips' rise and fall and sway, their height, Froude number);
+`Tools/Headless/gaitfilm.py film.json [unit]` (a `FIGHT_FILM` read as a gait: the table above);
+`Tools/Headless/weight.py film.json [unit]` and `weight.py --clips [tempo] [names]` (a rough physics check: is the
+spot the ground's push must come from under a foot that is down?).
+
+**Lessons.**
+- **The physics check is not calibrated.** It reads 0% outside for the standing recording, but 14 to 72% for walking
+  recordings as performed, and 69 to 79% for the game's walk: too rough to say anything yet (the feet's "down" rule
+  under-counts the time both feet are down; the hips' and limbs' weights are a textbook's). And slowing a recording made
+  it read better, not worse: a slowed walk is easier to balance; what the eye reads in it is the slow fall, which this
+  check does not see. Do not quote it until it passes on footage known to be clean.
+- **Look in the library before writing "we have none".** The first draft said no start or stop was ever recorded;
+  `LocoClips.json` has `start_walk`, `stop_walk`, pivots and turns for the relaxed walk (used only when not in the
+  guard: `Locomotor.cs`, `StartClip`). The same for the head: `Motion/HeadLook.cs` (milestone 9) exists; whether the
+  clip fighters still run it is to be checked in step 4.
+- **The baked `contacts` are not stance.** They mean "low and nearly still" and under-count; the time both feet are
+  down cannot be read from them.
+- The films are at the physics rate (60 a second); `p` holds the joints (hips, knee, ankle), then the head's top, the
+  hands' ends and the toes.
+- Three web pages could not be opened without his approval (two about 100STYLE, one article on For Honor); the
+  dataset's Zenodo page and its paper were used instead.
+
+Its film (3b2b, made by Opus at medium effort): FILM_LINK
