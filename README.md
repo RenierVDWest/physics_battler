@@ -9827,4 +9827,4 @@ spot the ground's push must come from under a foot that is down?).
 - Three web pages could not be opened without his approval (two about 100STYLE, one article on For Honor); the
   dataset's Zenodo page and its paper were used instead.
 
-Its film (3b2b, made by Opus at medium effort): FILM_LINK
+Its film (3b2b, made by Opus at medium effort; 8 scenes, 34 beats, about 5 minutes): https://claude.ai/artifact/WhtYXR7EWhwfsizSQWULMo

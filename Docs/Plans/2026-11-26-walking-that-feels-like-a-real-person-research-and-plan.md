@@ -4,7 +4,7 @@
 here). Written after his words of 16:09: "the units walking around just does not feel very concincing. They walk clumsily,
 floating times. They do not seem like they have real weight", and his ask for a deep dive into a ground-breaking
 walking system and where its animations can come from. Nothing in it is built. Six questions wait for him.
-Its film: FILM_LINK
+Its film: https://claude.ai/artifact/WhtYXR7EWhwfsizSQWULMo
 
 ## The short answer
 

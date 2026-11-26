@@ -981,7 +981,7 @@ tell me what is up next and what is the roadmap".** (16:15; README.)
     `Tools/Headless/weight.py` (a physics check, **not calibrated: do not quote it**). The baked `contacts` are not
     stance. A head-look exists (`Motion/HeadLook.cs`); whether the clip fighters run it is not checked. The library
     has a relaxed `start_walk` and `stop_walk`, used only out of the guard.
-  - Its film: FILM_LINK
+  - Its film: https://claude.ai/artifact/WhtYXR7EWhwfsizSQWULMo
 - **What he was told is next (before tonight):** step 7 (more cuts, now built); combos in the six only when he says;
   then the kick at a man who is down (his kick pack), the stab at a downed man that looks odd, the spin combo's own
   sword through his own shield; then the older open things (get-up shield, stumble leftovers, absorbing a hit, the
