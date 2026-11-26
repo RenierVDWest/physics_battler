@@ -9876,3 +9876,92 @@ footage.
 
 **Not done yet:** step 0's `gait` line in the reports and his log; step 1 (the BVH baker, written when the files are
 here to be read); the walk in the `Locomotor` and the walk lab (step 3).
+
+## 26 November 2026, 18:50: the new walk in the walk lab: matched footage from the free set (the walk plan's steps 1 to 3; headless only, the lab's panel built blind)
+
+He gave the folder at 17:58 (`H:\Work\Physics Battler\100STYLE`, downloaded on his PC: the workspace may not reach
+Zenodo). The Neutral and StartStop styles were staged through the bridge into a folder of their own outside the
+repository and read with `python3 -I`.
+
+**What is in the game now.** In the walk lab, out of his guard, a fighter walks by matched footage (Combat Feel "He
+Walks By Matched Footage", off by default; the lab's "His walk: matched (new) / blended loops (old)" sets it while he
+is in the lab, and it is put back off on leaving). In his guard, in a blow, a turn-on-the-spot recording or a get-up
+he walks as he did: nothing in a fight has changed (the six at seed 5: crossings 0.07%, tremble 4.8%, the baseline's
+own figures; the old walk on the lab's course gives the same numbers as before, to the digit).
+
+**The pieces.**
+
+- `Tools/Mocap/Locomotion/bvh_bake.py` (step 1): reads the set's BVH files, and writes
+  `Assets/_Battler/Resources/Locomotion/WalkFootage.json` (13 recordings, 26.8 minutes, 48,199 frames at 30 a second,
+  30.6 MB; it needs a `.meta` from his Unity). `LocoLibrary.Footage` reads it the first time it is asked for.
+- `Locomotion/MotionMatch.cs` (step 2): as before, and now: the recording is played up to a tenth faster or slower to
+  go at the speed asked (`TempoAtMost`; feet and ground stay together), the pull on the root is 5% at most (was 10%),
+  a foot that is down through a jump between recordings stays where it stands (`PlantedFeetStay`), and the pose is
+  made through a `Sample` the walk sets.
+- `Locomotor.Matched`, `MatchedStep` (step 3): the matched branch of `Step`. The pose is `MoveScore.Pose` with his
+  levers (the rebuild from parts stays); the contacts are the recording's; a place to stop at (`StopAt`) is stopped
+  for half a second's going before it, because the footage's own stops carry him that far.
+- `LocoBody.ToeHold`: on the matched walk a foot with its heel up is held at the end of its toes, not at the ball.
+- `LocomotionLab`: "His walk:", "Send him: Stroll / Walk / Jog / Stop him" (to and fro over 6 m, standing a moment at
+  each end), a line saying which recording is playing, its own "Test this" box and yellow frames (the sandbox's box
+  points to "Walk lab"). On the matched walk the course and the keys ask the paces the footage has: 0.5, 0.8 and
+  1.35 m/s (the course at 0.57 of its own).
+- `Docs/Credits.md`: the set's credit and licence (CC BY 4.0).
+
+**What the footage is.** One performer in an inertial suit, in a room 4.5 m across. His walk goes at 0.77 m/s (top
+0.94), backward 0.61, sideways 0.51; his "run" is a slow jog at 1.34 m/s (top 1.69). **There is no run and no sprint
+in it, and no guard.** The StartStop style gives 148 starts forward, 62 backward, 85 sideways.
+
+**Three things the footage needed before it walked right** (each found by looking at the figures, not by the first
+numbers):
+
+1. **It is another skeleton.** The suit's ankle joint stands 14% of a leg over the floor (the library's 10%), its
+   foot is half as long again, its hips' point is level with the thighs' tops (the library's is 8% of a leg above),
+   its hips and shoulders are wider. The game puts every pose together on the library's measures
+   (`BodyMeasures.OfClips`), so baked as it was he stood with bent knees (hip to ankle 93% of the leg) on feet 3 cm in
+   the air. The baker now rebuilds the footage on the library's body (`onto_library`): every bone points as the
+   suit's does and has the library's length; the feet meet the floor as the suit's did (a stiff foot from heel to
+   toes' end, pitched as the suit's foot is); the thighs' tops come down by what the ankle stood too high, and by
+   1.2% of a leg more, which is how the library stands. Rebuilt from its parts the pose is now 3 mm from the baked
+   points on average.
+2. **A heel that comes up rolls the ankle on by 8 cm.** Held at its ankle through that, every planted foot was
+   dragged back (the locks' pull 8 cm at every step). The heel's contact now ends when the foot is pitched 5 degrees,
+   and from there the foot is held at the end of its toes.
+3. **He walked in circles** (28 degrees a second, hardly a second of straight walking in two minutes). Asked to walk
+   straight, the search passed the plain walk over for the stop-and-go style's few straight steps: a hesitant walk,
+   his speed swinging 58% within a step. The slow, steady part of his turning is now taken out of the walks' and
+   runs' root tracks at the bake (40 degrees a second at most); a curve asked for is turned back in as he goes.
+
+**Measured headless** (the lab's course, a Medium, kinematic body with the foot locks, the debug build; the old walk
+asked the same paces with `LOCO_PACE=0.57`):
+
+| On the course at about 0.8 m/s | Blended loops (old) | Matched (new) |
+|---|---|---|
+| His hips rise and fall, a step | 5.6 to 6.7 cm | 2.1 to 2.4 cm (people: about 2.7 cm at this pace) |
+| His hips' height walking, against 0.97 m standing | 0.93 m | 0.96 m |
+| A step | 0.72 s, 0.60 m | 0.70 s, 0.57 m |
+| His hips' speed swings within a step | 25 to 38% | 35 to 39% |
+| The locks pull a planted foot from the recording's (median; 95%) | 7.0 cm; 21.0 cm | 4.7 cm; 16.3 cm |
+| Locks that let go early (over-stretched) | 18 | 11 |
+| The fastest any part went | 6.7 m/s | 5.3 m/s |
+
+At its own paces (1.4 m/s) the old walk's figures are 10.9 cm, 7 and 14.2 m/s. The bare walker (`match`, no locks):
+his root's speed never jumped by over 0.5 m/s in a step (worst 0.11), no point of his pose changed speed by over 3 m/s
+in a step, 3.0 jumps between recordings a second, a search 1.6 ms (0.26 ms a step on average; the plan's mark is 0.5 ms
+a search, **missed** in the debug build).
+
+**Not right, and known:**
+
+- **Not seen in Unity.** The lab's panel rows and its "Test this" box are built blind (no headless check draws that
+  panel). The 30 MB file is read by `JsonUtility` the first time: how long that stops Unity is not known.
+- His speed's swing within a step is no better than the old walk's.
+- A straight walk wanders 10 to 20 cm to the sides over 8 m; after a stop he carries on 0.3 to 0.7 m unless the
+  steering names the place (`StopAt`); turning on the spot is slow; the side-step to his left was only partly
+  followed.
+- "Both feet up while walking" reads 1.9% and 28 "steps lifted early": the jog's flight, counted as walking.
+- The speed between the walk (0.8) and the jog (1.35) is a fast walk on the transition takes.
+- Step 0 (the `gait` line in every report and in his log, "Walk beside the recording") is still not built: the
+  figures above come from a scratch script on the lab's film.
+
+**Next:** his look. Then step 0's report card properly, the search's cost (15 moments a second instead of 30 would
+halve it), and step 4 (round his man: needs a guard, which this footage has not got: his answer on the packs).

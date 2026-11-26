@@ -341,3 +341,26 @@ One thing that would help and is optional: open Epic's sample in Unreal for an h
 - Adobe, [Mixamo FAQ](https://community.adobe.com/t5/mixamo-discussions/mixamo-faq-licensing-royalties-ownership-eula-and-tos/m-p/13234775).
 - Motorica: [Game Developer's report](https://www.gamedeveloper.com/business/genai-animation-startup-motorica-raises-5-million-pounds-in-investment) and [a September 2026 guide to AI animation tools](https://app.cinevva.com/guides/ai-animation-generators-3d).
 - Capture prices come from 2026 buyer's guides read for this document. Check them before buying.
+
+## Progress
+
+**26 November, 18:50: steps 1 to 3 on the free set (headless only; not seen in Unity).** He said "Proceed with the
+free pack" at 17:23 and gave the downloaded folder at 17:58.
+
+- **Step 1, the footage in.** The plain style and the stop-and-go style of 100STYLE are baked: 13 recordings, 26.8
+  minutes. What it holds: a walk at 0.77 m/s, backward 0.61, sideways 0.51, a slow jog at 1.34, and 148 starts and
+  stops forward, 62 backward, 85 sideways. What it lacks: a run, a sprint, and any guard. Three things it needed: it
+  is rebuilt on the game's own body (the suit's ankles stand higher and its feet are longer: as baked he stood with
+  bent knees on feet in the air); a heel's contact ends as the heel comes up; and the circling of the 4.5 m room is
+  taken out of the walks' tracks.
+- **Step 2, the search.** Runs on the footage: no jump in his root's speed, no jump in his pose, 3 jumps between
+  recordings a second. A search costs 1.6 ms in the debug build (the mark is 0.5 ms: missed).
+- **Step 3, one man walking.** In the walk lab: "His walk: matched (new) / blended loops (old)", and "Send him:
+  Stroll / Walk / Jog". Out of his guard only. Measured on the lab's course at about 0.8 m/s, old to new: his hips
+  rise and fall 5.6 to 6.7 cm a step, now 2.1 to 2.4 (people: about 2.7); the foot locks pull a planted foot 7.0 cm,
+  now 4.7; his speed's swing within a step is no better (25 to 38%, now 35 to 39%).
+- **Step 0 is not built yet** (the report card in every report and in his log): the figures are from a scratch script.
+- **Not right:** a straight walk wanders 10 to 20 cm over 8 m; turning on the spot is slow; the lab's panel and the
+  loading of the 30 MB file are untried in Unity.
+- Steps 4 and on need footage in a guard: the question on the packs is still his.
+

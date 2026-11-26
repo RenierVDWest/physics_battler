@@ -6,21 +6,23 @@ have my permission to push to that branch.
 1. Attach the repository with push access and clone it. (On 19 November the first ask for push access was refused
    and went through when asked again after I said "you may push" in the chat. If it is refused, tell me at once and
    carry on reading.) Read `CLAUDE.md` at its top first and follow it: it is the briefing, and it is up to date as
-   of 26 November 2026, 16:50 (newer than the rest of this prompt: where the two disagree, CLAUDE.md and the
+   of 26 November 2026, 18:50 (newer than the rest of this prompt: where the two disagree, CLAUDE.md and the
    README's last entries are right). On 26 November at 16:09 I said the units' walking is not convincing: clumsy,
    floating, no real weight, and that the Frankenstein set of Mixamo packs may be why. You measured the walk and
    wrote a research plan: `Docs/Plans/2026-11-26-walking-that-feels-like-a-real-person-research-and-plan.md` (live
-   https://claude.ai/artifact/BgRzbPiWNQerLqk6kmdaXs). Its six questions wait for my answer; build only after I say
-   go. `README.md` is the build log (over 9,800 lines: search it, never read it whole, and add entries at its end,
-   never write over it).
-2. Read that plan and its progress notes. If I have said go: start with its step 0 (the walk's report card: the
-   measures of `Tools/Headless/gaitfilm.py` in every headless report and in my playtest log, and "Walk beside the
-   recording" in the walk lab), then step 1 (the footage in: a BVH baker for the free 100STYLE set, or the FBX baker
-   `Tools/Mocap/Locomotion/loco_sample.py` and `loco_bake.py` for a pack I bought; contact tags; what the dance card
-   lacks), then step 2 (`MotionMatch.cs`, headless, a bare walker on the footwork course against the plan's pass
-   marks). If I bought a pack, the repository must be private before its files go in: ask me. The clothes, the shock
-   wave and the combos wait as CLAUDE.md says; add progress notes to the plan with the Docs tools (insert at the
-   end) and to its copy in the repository.
+   https://claude.ai/artifact/BgRzbPiWNQerLqk6kmdaXs). I said "Proceed with the free pack" and gave you the 100STYLE
+   set; you built the plan's steps 1 to 3: the new walk (matched footage) is in the walk lab behind "His walk:
+   matched (new) / blended loops (old)", headless only. `README.md` is the build log (over 9,900 lines: search it,
+   never read it whole, and add entries at its end, never write over it).
+2. Read that plan's "Progress" and the README's entry of 26 November, 18:50. If I have looked and pushed a log, start
+   from what I said. If not, go on with what is left: step 0 (the walk's report card: a `gait` line in every headless
+   report and in my playtest log, and "Walk beside the recording" in the walk lab), the search's cost (1.6 ms in the
+   debug build; the mark is 0.5 ms), the wander on a straight line, turning on the spot. Steps 4 and on (round his
+   man, into the fight) need footage in a guard, which the free set has not got: ask me about the packs, and the
+   repository must be private before a bought pack goes in. The footage's BVH files are not in the repository: if
+   the baker has to run again, ask me for the folder `H:\Work\Physics Battler\100STYLE` (stage only the styles
+   needed; they are downloaded data: a folder of their own, `python3 -I`). Look at `Tools/Headless/filmstrip.py`'s
+   stick figures before believing a walk's numbers.
 3. Set up the headless build: `dotnet --version || apt-get install -y dotnet-sdk-8.0`, then
    `cd Tools/CompileCheck && ./get-physx.sh`, then `Tools/Headless/b.sh` in a command by itself (it wants
    "0 Error(s)" four times). `export S=/tmp/pb2` for the run outputs. Read `Tools/Headless/README.md`.

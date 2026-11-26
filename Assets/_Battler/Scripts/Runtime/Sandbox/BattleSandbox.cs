@@ -4480,21 +4480,20 @@ namespace PhysicsBattler.Sandbox
         private float movingNext;
         private string movingText = "";
 
-        private const string LookTag = "23 November, 19:00: the sleeve spike in the sword-and-shield guard, and the trousers torn at the crotch in falls";
+        private const string LookTag = "26 November, 18:50: the new walk (matched footage), in the walk lab";
 
         /// <summary>What he is asked to do, in order.</summary>
         private static readonly string[] LookSteps =
         {
-            "1. Duel, heading \"Clothes\". Press \"Hold his guard\": the swordsman stands in his sword-and-shield guard 1.5 m from the bare-handed target for 12 s. Watch his shield arm's sleeve (and the readout \"His guard\"): no spike should grow. Headless at your picture rate the worst went from 13.7 to 3.5 times a thread's length.",
-            "2. Press \"Hold his guard\" again with \"Thrown through a bent arm:\" on thrown (old): the spike should come back within about 4 s. Then set it back to held back (new).",
-            "3. Falls: \"Hard kick\" (Kick him:) a few times. Do the trousers still tear open at the crotch as he lands and lies? (Same cause; headless the crotch's worst thread went from 26 to 4 times its length.)",
-            "4. Look for cloth that stays inside his elbow: the new rule leaves a point there rather than throw it through the arm. Push the playtest log: the cloth lines now say where the worst spike is, the crotch and the points held back.",
+            "1. Press \"Walk lab\" in the bar at the top. This push is all in there: the walk lab has its own \"Test this\" box and yellow frames.",
+            "2. In the lab he walks the course on the new walk (matched footage from one performer). \"His walk:\" switches between matched (new) and blended loops (old); \"Send him:\" walks him to and fro at a stroll, a walk or a jog. Expect a short stop the first time: the footage is a 30 MB file.",
+            "3. Nothing in the fights has changed: in his guard every fighter walks as he did.",
         };
 
         /// <summary>The names of what he is to press and watch.</summary>
         private static readonly string[] LookHere =
         {
-            "Duel", "Clothes", "His guard:", "Hold his guard", "Thrown through a bent arm:", "His guard", "Kick him:",
+            "Walk lab",
         };
 
         /// <summary>For the panel check (headless): the names of <see cref="LookHere"/> that were really drawn, and every section taken as open while it looks.</summary>
@@ -4566,7 +4565,7 @@ namespace PhysicsBattler.Sandbox
         }
 
         /// <summary>A bright frame round a place on the panel: it breathes slowly so the eye finds it, by the real clock (it goes on while the game is paused).</summary>
-        private static void Frame(Rect at)
+        internal static void Frame(Rect at)
         {
             if (Event.current == null || Event.current.type != EventType.Repaint || at.width < 2f || at.height < 2f)
             {

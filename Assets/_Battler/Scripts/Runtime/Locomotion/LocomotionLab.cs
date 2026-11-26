@@ -77,6 +77,87 @@ namespace PhysicsBattler.Locomotion
         /// <summary>A Medium's speeds, for this body: its natural pace goes with the square root of its leg.</summary>
         private float PaceScale => loco != null ? Mathf.Sqrt(loco.Leg / 0.845f) : 1f;
 
+        // ---- The matched walk (the plan "Walking that feels like a real person", step 3) ---------------------------
+
+        /// <summary>"His walk:": out of his guard he walks by matched footage (new), or on the blended loops (old).</summary>
+        public bool matchedWalk = true;
+
+        /// <summary>The paces the footage has (m/s at a Medium's size): a stroll, its walk, its slow jog. It has nothing faster.</summary>
+        public const float StrollPace = 0.5f, WalkPace = 0.8f, JogPace = 1.35f;
+
+        /// <summary>On the matched walk the course's paces are the footage's: its 1.4 m/s walk is asked at 0.8, and its run comes out as the footage's jog.</summary>
+        public const float MatchedCourse = 0.57f;
+
+        private CombatFeel feel;
+        private float sendPace, sendWait;
+        private Vector3 sendFrom, sendTo;
+        private bool sendOut;
+        private Vector3? sendStop;
+
+        private bool MatchedHere => matchedWalk && loco != null && !loco.GuardWanted;
+
+        private void SetWalk(bool matched)
+        {
+            matchedWalk = matched;
+            legs.Add($"{time:0.00} s: his walk: {(matched ? "matched footage (new)" : "blended loops (old)")}");
+            PushWalk();
+        }
+
+        private void PushWalk()
+        {
+            // (Combat Feel pushes its own switch every frame: the lab sets that, and the walk's own for a scene without one.)
+            if (feel == null)
+            {
+                feel = FindAnyObjectByType<CombatFeel>();
+            }
+
+            if (feel != null)
+            {
+                feel.heWalksByMatchedFootage = matchedWalk;
+            }
+
+            Locomotor.Matched = matchedWalk;
+            if (path != null)
+            {
+                path.SpeedScale = PaceScale * (matchedWalk && !guardUp ? MatchedCourse : 1f);
+            }
+        }
+
+        /// <summary>"Send him": he walks to and fro over 6 m at this pace by himself, standing a moment at each end (0: he is stopped, and driven again).</summary>
+        private void Send(float pace)
+        {
+            if (course && pace > 0f)
+            {
+                course = false;
+                Build();
+            }
+
+            sendPace = pace;
+            sendWait = 0f;
+            sendOut = true;
+            if (loco == null)
+            {
+                return;
+            }
+
+            sendFrom = loco.Position;
+            Vector3 ahead = Quaternion.Euler(0f, loco.Facing, 0f) * Vector3.forward;
+            sendTo = sendFrom + ahead * 6f;
+            // (Kept on the board: 5.5 m from its middle at most.)
+            Vector3 rel = sendTo - origin;
+            rel.x = Mathf.Clamp(rel.x, -5.5f, 5.5f);
+            rel.z = Mathf.Clamp(rel.z, -5.5f, 5.5f);
+            sendTo = new Vector3(origin.x + rel.x, sendFrom.y, origin.z + rel.z);
+            if (Flat(sendTo - sendFrom) < 3f)
+            {
+                sendTo = sendFrom - ahead * 6f;
+                rel = sendTo - origin;
+                sendTo = new Vector3(origin.x + Mathf.Clamp(rel.x, -5.5f, 5.5f), sendFrom.y, origin.z + Mathf.Clamp(rel.z, -5.5f, 5.5f));
+            }
+
+            legs.Add(pace > 0f ? $"{time:0.00} s: sent to and fro at {pace:0.00} m/s" : $"{time:0.00} s: stopped");
+        }
+
         private float RunSpeed => BaseRunSpeed * PaceScale;
 
         // ---- What it carries (the join's step 1: walking with weapons) -----------------------------------
@@ -351,6 +432,7 @@ namespace PhysicsBattler.Locomotion
             stepOnce = false;
             float dt = Time.fixedDeltaTime;
             time += dt;
+            PushWalk();
             Vector3 want;
             float facing;
             if (course)
@@ -363,8 +445,8 @@ namespace PhysicsBattler.Locomotion
             else
             {
                 Drive(out want, out facing);
-                loco.StopAt = null;
-                leg = "driving";
+                loco.StopAt = sendStop;
+                leg = sendPace > 0f ? "sent to and fro" : "driving";
                 if (footwork && dummy != null && walkerFeet != null)
                 {
                     // (Footwork: it steers itself against the dummy, as the fight's units steer.)
@@ -650,6 +732,14 @@ namespace PhysicsBattler.Locomotion
 
         private void Leave(BattleSandbox.Place to)
         {
+            // (The matched walk is the lab's for now: the fights go on as they were.)
+            if (feel != null)
+            {
+                feel.heWalksByMatchedFootage = false;
+            }
+
+            Locomotor.Matched = false;
+            sendPace = 0f;
             WriteLog();
             ClearPrints();
             if (walker != null)
@@ -1523,8 +1613,48 @@ namespace PhysicsBattler.Locomotion
             float camYaw = orbitCamera != null ? orbitCamera.transform.eulerAngles.y : 0f;
             Vector3 way = Quaternion.Euler(0f, camYaw, 0f) * Vector3.ClampMagnitude(input, 1f);
             float speed = SandboxInput.KeyHeld(KeyCode.LeftShift) ? RunSpeed : walkSpeed * PaceScale;
+            if (MatchedHere)
+            {
+                // (The matched walk is asked for the paces its footage has: Shift its jog, V its walk, a slower walk, its stroll.)
+                speed = (SandboxInput.KeyHeld(KeyCode.LeftShift) ? JogPace : walkSpeed > 1.2f ? WalkPace : walkSpeed > 0.9f ? 0.65f : StrollPace) * PaceScale;
+            }
+
             want = way * speed;
+            sendStop = null;
             bool hold = SandboxInput.KeyHeld(KeyCode.Space);
+            if (sendPace > 0f && (way.sqrMagnitude > 0.01f || spar || loco.GuardWanted))
+            {
+                // (Driven, sparring or in his guard: he is no longer sent.)
+                sendPace = 0f;
+            }
+
+            if (sendPace > 0f)
+            {
+                InPosition = false;
+                Vector3 goal = sendOut ? sendTo : sendFrom;
+                Vector3 to = goal - loco.Position;
+                to.y = 0f;
+                facing = loco.Facing;
+                want = Vector3.zero;
+                if (sendWait > 0f)
+                {
+                    sendWait -= Time.fixedDeltaTime;
+                    return;
+                }
+
+                if (to.magnitude < 0.35f && loco.Velocity.magnitude < 0.2f)
+                {
+                    sendOut = !sendOut;
+                    sendWait = 1.2f;
+                    return;
+                }
+
+                want = to.normalized * Mathf.Min(sendPace * PaceScale, Mathf.Sqrt(2f * 1.6f * to.magnitude));
+                facing = to.magnitude > 0.3f ? Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg : loco.Facing;
+                sendStop = goal;
+                return;
+            }
+
             if (spar && !course && dummy != null)
             {
                 // (Sparring: the guard up, facing the dummy, walked to the picked strike's reach of it.)
@@ -1928,17 +2058,84 @@ namespace PhysicsBattler.Locomotion
             return !Filtering || Matches(text);
         }
 
-        private bool LabButton(string text, params GUILayoutOption[] options) => Shown(text) && GUILayout.Button(text, options);
+        // ---- "Look here" (his rule of 19 November, here for the lab's own panel) ----------------------------------
+        // What he is asked to press and watch after the last push: the steps in a box at the panel's top, and a yellow
+        // frame round every button, label and tick named here. Change the tag with every push that needs his eye.
+
+        private const string LabLookTag = "26 November, 18:50: the new walk (matched footage)";
+
+        private static readonly string[] LabLookSteps =
+        {
+            "1. He starts on the course on the new walk: one performer's footage, searched several times a second for the moment that fits, played at its own pace. Watch a lap: starts, stops, side-steps, turns, the walk backward. The course's \"run\" is only a slow jog: this footage has nothing faster.",
+            "2. \"His walk:\" blended loops (old) puts the old walk under the same course (Restart (R) starts the lap again). Switch to and fro. What to judge: weight in the steps, the starts and stops, floating.",
+            "3. \"Send him:\" Stroll, Walk, Jog walks him to and fro over 6 m by himself, standing a moment at each end; \"Stop him\" ends it. Or Drive (C) and W A S D (Shift jogs, V the pace). Footprints on shows planted feet.",
+            "4. Guard up (T): in his guard he walks as he did (the footage has no guard). Known: turning on the spot is slow, and after a stop he may carry on half a step.",
+        };
+
+        private static readonly HashSet<string> LabLook = new HashSet<string>
+        {
+            "His walk:", "matched (new)", "> matched (new) <", "blended loops (old)", "> blended loops (old) <", "Send him:", "Stroll", "Walk", "Jog", "Stop him",
+            "Footprints", "Restart (R)", "Drive (C)", "Course (C)",
+        };
+
+        private bool labLookOn = true, labLookRead;
+
+        private static string LabLookKey => "LocomotionLab.LookOff." + LabLookTag;
+
+        private bool Framed(bool pressed, string text)
+        {
+            if (labLookOn && LabLook.Contains(text))
+            {
+                BattleSandbox.Frame(GUILayoutUtility.GetLastRect());
+            }
+
+            return pressed;
+        }
+
+        private void DrawLabLook()
+        {
+            if (!labLookRead)
+            {
+                labLookRead = true;
+                labLookOn = PlayerPrefs.GetFloat(LabLookKey, 0f) < 0.5f;
+            }
+
+            if (Filtering)
+            {
+                return;
+            }
+
+            var tone = new Color(1f, 0.82f, 0.1f);
+            Note("Test this (" + LabLookTag + ")", tone);
+            if (labLookOn)
+            {
+                foreach (string step in LabLookSteps)
+                {
+                    Note(step);
+                }
+            }
+
+            if (GUILayout.Button(labLookOn ? "Hide this and the yellow frames" : "Show what to test, and the yellow frames"))
+            {
+                labLookOn = !labLookOn;
+                PlayerPrefs.SetFloat(LabLookKey, labLookOn ? 0f : 1f);
+            }
+
+            GUILayout.Space(4f);
+        }
+
+        private bool LabButton(string text, params GUILayoutOption[] options) => Shown(text) && Framed(GUILayout.Button(text, options), text);
 
         private bool LabButton(string text, GUIStyle style, params GUILayoutOption[] options) => Shown(text) && GUILayout.Button(text, style, options);
 
-        private bool LabToggle(bool value, string text, params GUILayoutOption[] options) => Shown(text) ? GUILayout.Toggle(value, text, options) : value;
+        private bool LabToggle(bool value, string text, params GUILayoutOption[] options) => Shown(text) ? Framed(GUILayout.Toggle(value, text, options), text) : value;
 
         private void LabLabel(string text, params GUILayoutOption[] options)
         {
             if (Shown(text))
             {
                 GUILayout.Label(text, options);
+                Framed(false, text);
             }
         }
 
@@ -1978,6 +2175,7 @@ namespace PhysicsBattler.Locomotion
 
             GUILayout.EndHorizontal();
             Note("Lost the panel? M puts it back here.");
+            DrawLabLook();
             SearchBox();
 
             // ---- Body
@@ -2034,8 +2232,29 @@ namespace PhysicsBattler.Locomotion
                 if (LabButton("Hard (K)")) Shove(2.5f);
                 if (LabButton("Ball (H)")) Throw();
                 LabEndRow();
+                LabRow();
+                LabLabel("His walk:");
+                if (LabButton(matchedWalk ? "> matched (new) <" : "matched (new)") && !matchedWalk) SetWalk(true);
+                if (LabButton(!matchedWalk ? "> blended loops (old) <" : "blended loops (old)") && matchedWalk) SetWalk(false);
+                LabEndRow();
+                LabRow();
+                LabLabel("Send him:");
+                if (LabButton("Stroll")) Send(StrollPace);
+                if (LabButton("Walk")) Send(WalkPace);
+                if (LabButton("Jog")) Send(JogPace);
+                if (LabButton("Stop him")) Send(0f);
+                LabEndRow();
+                if (loco.Match != null)
+                {
+                    Note($"Matched: playing {loco.Match.Clip.Name} at {loco.Match.Time:0.0} s, {loco.Match.Tempo:0.00} of its pace; {loco.Match.Jumps} jumps between recordings; going {loco.Velocity.magnitude:0.00} m/s.");
+                }
+                else if (matchedWalk)
+                {
+                    Note(Locomotor.MatchedFootage == null ? "Matched: no footage found (Resources/Locomotion/WalkFootage.json)." : "Matched: not now (in his guard, a blow or a turn he walks as he did).", new Color(1f, 0.82f, 0.1f));
+                }
+
                 footprints = LabToggle(footprints, "Footprints");
-                Note($"Walking {walkSpeed * PaceScale:0.0} m/s, running {RunSpeed:0.0} m/s; run {loco.RunWeight:0.00}, phase {loco.Phase:0.00}, guard {loco.GuardWeight:0.0}.");
+                Note($"Walking {(MatchedHere ? WalkPace : walkSpeed) * PaceScale:0.0} m/s, running {(MatchedHere ? JogPace * PaceScale : RunSpeed):0.0} m/s; run {loco.RunWeight:0.00}, phase {loco.Phase:0.00}, guard {loco.GuardWeight:0.0}.");
                 Note($"Planted feet moved at most {measures.PlantDriftWorst * 100f:0.0} cm over {measures.PlantsDone} plants; {measures.ForcedReleases} forced steps.");
             }
 

@@ -50,6 +50,14 @@ internal static class LocoLabReport
         {
             LocoBody.Trace = text => Console.WriteLine($"    {legName}: {text}");
         }
+        // (LOCO_MATCHED=1: out of his guard he walks by matched footage, the plan "Walking that feels like a real person", step 3.)
+        Locomotor.Matched = Environment.GetEnvironmentVariable("LOCO_MATCHED") == "1";
+        float MatchLever(string name, float otherwise) => float.TryParse(Environment.GetEnvironmentVariable(name), NumberStyles.Float, CultureInfo.InvariantCulture, out float v) ? v : otherwise;
+        MotionMatch.PullsAtMost = MatchLever("MATCH_PULL", MotionMatch.PullsAtMost);
+        MotionMatch.TurnsAtMost = MatchLever("MATCH_TURN", MotionMatch.TurnsAtMost);
+        MotionMatch.TempoAtMost = MatchLever("MATCH_TEMPO", MotionMatch.TempoAtMost);
+        MotionMatch.JumpsIfBetterBy = MatchLever("MATCH_BETTER", MotionMatch.JumpsIfBetterBy);
+        MotionMatch.PlantedFeetStay = Environment.GetEnvironmentVariable("MATCH_PLANTED") != "0";
         var measures = new LocoMeasures(anim, loco, poser);
         string courseName = Environment.GetEnvironmentVariable("LOCO_COURSE");
         var course = courseName == "strafing" ? LocoCourse.Strafing() : courseName == "guard" ? LocoCourse.GuardTest() : LocoCourse.Lab();
@@ -69,10 +77,22 @@ internal static class LocoLabReport
         }
         course.Repeat = false;
         course.SpeedScale = Mathf.Sqrt(leg / 0.845f);
+        if (Locomotor.Matched && guardTimes == null && Environment.GetEnvironmentVariable("LOCO_LINE") == null)
+        {
+            // (As the lab does: on the matched walk the course is asked at the footage's paces.)
+            course.SpeedScale *= LocomotionLab.MatchedCourse;
+        }
+
+        // (LOCO_PACE=0.57: the old walk asked the same paces, to compare the two like for like.)
+        course.SpeedScale *= MatchLever("LOCO_PACE", 1f);
         course.LegStarted += (i, name) => { legName = name ?? ""; Console.WriteLine($"  {i,2}: {name}"); };
         loco.Place(course.Start, course.StartYaw);
         course.Reset();
         const float dt = 0.02f;
+        var matchedPlayed = new System.Collections.Generic.Dictionary<string, float>();
+        var matchedJumps = new System.Collections.Generic.Dictionary<string, int>();
+        var matchedTime = new System.Collections.Generic.Dictionary<string, float>();
+        int lastJumps = 0;
         var film = new LocoFilm(dt) { BladeLength = bladeLength, ShieldRadius = shieldRadius };
         int steps = (int)(seconds / dt);
         string lastMode = "";
@@ -106,6 +126,18 @@ internal static class LocoLabReport
             }
 
             loco.Step(dt, want, facing);
+            if (loco.Match != null)
+            {
+                string key = legName + "|" + loco.Match.Clip.Name;
+                matchedPlayed.TryGetValue(key, out float had);
+                matchedPlayed[key] = had + dt;
+                matchedJumps.TryGetValue(legName, out int jumped);
+                matchedJumps[legName] = jumped + (loco.Match.Jumps - lastJumps);
+                lastJumps = loco.Match.Jumps;
+                matchedTime.TryGetValue(legName, out float t0);
+                matchedTime[legName] = t0 + dt;
+            }
+
             poser.Pose(dt);
             measures.Sample(dt, i * dt, legName);
             string modeNow = loco.Current + (loco.Shot != null ? " " + loco.Shot.Name : "");
@@ -127,6 +159,21 @@ internal static class LocoLabReport
 
         File.WriteAllText(Path.Combine(dir, "locolab.json"), film.ToString());
         Console.WriteLine(measures.Report());
+        foreach (var leg1 in matchedTime.Keys)
+        {
+            var played = new System.Collections.Generic.List<string>();
+            foreach (var kv in matchedPlayed)
+            {
+                if (kv.Key.StartsWith(leg1 + "|", StringComparison.Ordinal) && kv.Value >= 0.3f)
+                {
+                    played.Add(string.Format(CultureInfo.InvariantCulture, "{0} {1:0.0} s", kv.Key.Substring(leg1.Length + 1), kv.Value));
+                }
+            }
+
+            Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "MATCHED {0,-28} {1,5:0.0} s, {2,3} jumps ({3:0.0} a second): {4}", leg1, matchedTime[leg1], matchedJumps[leg1],
+                matchedJumps[leg1] / Mathf.Max(0.1f, matchedTime[leg1]), string.Join(", ", played)));
+        }
+
         return 0;
     }
 }

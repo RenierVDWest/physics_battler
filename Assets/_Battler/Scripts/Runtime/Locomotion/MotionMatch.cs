@@ -295,6 +295,9 @@ namespace PhysicsBattler.Locomotion
         /// <summary>A found moment has to fit this much better than playing on, or he plays on (a share of playing on's own cost).</summary>
         public static float JumpsIfBetterBy = 0.15f;
 
+        /// <summary>The recording is played at most this much faster or slower than it was performed, to go at the speed asked (0.1: a tenth; the plan's mark).</summary>
+        public static float TempoAtMost = 0.1f;
+
         /// <summary>A moment of the recording that is playing, this near where it is, is not jumped to (seconds).</summary>
         public static float NotNearer = 0.25f;
 
@@ -305,10 +308,28 @@ namespace PhysicsBattler.Locomotion
         public static float WishHalfLife = 0.22f, FacingHalfLife = 0.18f;
 
         /// <summary>The recording's own travel is pulled toward the speed asked by at most this share of its own speed, and its facing by at most this many degrees a second.</summary>
-        public static float PullsAtMost = 0.1f, TurnsAtMost = 30f;
+        public static float PullsAtMost = 0.05f, TurnsAtMost = 30f;
 
         public readonly MatchFootage Footage;
         public readonly float Leg;
+
+        /// <summary>
+        /// How a recorded moment is made into a pose (every library point against the root, metres). Left unset it
+        /// is the recording's own points; the walk sets it to the rebuild from parts (<see cref="MoveScore.Pose(LocoClip, float, Vector3[], float, LocoBone[])"/>), so his levers work on it.
+        /// </summary>
+        public Action<LocoClip, float, Vector3[]> Sample;
+
+        private void PoseOf(LocoClip clip, float time, Vector3[] into)
+        {
+            if (Sample != null)
+            {
+                Sample(clip, time, into);
+            }
+            else
+            {
+                clip.Pose(time, into, Leg);
+            }
+        }
 
         /// <summary>The recording playing and where in it he is.</summary>
         public LocoClip Clip { get; private set; }
@@ -324,6 +345,9 @@ namespace PhysicsBattler.Locomotion
 
         /// <summary>Jumps made, searches made, and the last search's best cost against playing on's.</summary>
         public int Jumps { get; private set; }
+
+        /// <summary>How fast the recording is played now against its own pace (1: as performed).</summary>
+        public float Tempo { get; private set; } = 1f;
         public int Searches { get; private set; }
         public float LastBest { get; private set; }
         public float LastOn { get; private set; }
@@ -394,8 +418,26 @@ namespace PhysicsBattler.Locomotion
                 sinceSearch = 0f;
             }
 
-            // The recording plays on at its own pace, and its root's going is his.
-            float from = Time, to = Clip.Loop ? Time + dt : Mathf.Min(Time + dt, Clip.Duration);
+            // The recording plays on, and its root's going is his. Its pace is its own to within a tenth: asked to go a
+            // little faster or slower than it goes, it is played that much faster or slower (feet and ground stay
+            // together, where a pull on the root alone slides a planted foot).
+            float wantTempo = 1f;
+            if (TempoAtMost > 0f && wantVelocity.magnitude > 0.2f)
+            {
+                float ahead = Clip.Loop ? Time + 0.1f : Mathf.Min(Time + 0.1f, Clip.Duration);
+                if (ahead > Time)
+                {
+                    Clip.RootMotion(Time, ahead, out var goes, out _);
+                    Vector2 own = Turned(goes * Leg, Facing) / (ahead - Time);
+                    if (own.magnitude > 0.25f)
+                    {
+                        wantTempo = Mathf.Clamp(Vector2.Dot(wantVelocity, own) / own.sqrMagnitude, 1f - TempoAtMost, 1f + TempoAtMost);
+                    }
+                }
+            }
+
+            Tempo = Mathf.Lerp(wantTempo, Tempo, Mathf.Exp(-0.6931472f * dt / 0.2f));
+            float from = Time, to = Clip.Loop ? Time + dt * Tempo : Mathf.Min(Time + dt * Tempo, Clip.Duration);
             Vector2 moved = Vector2.zero;
             float turned = 0f;
             if (to > from)
@@ -430,10 +472,47 @@ namespace PhysicsBattler.Locomotion
 
             // The pose: the recording's, and what is left of the last jump's difference.
             Array.Copy(source, sourceWas, source.Length);
-            Clip.Pose(Time, source, Leg);
+            PoseOf(Clip, Time, source);
             for (int i = 0; i < off.Length; i++)
             {
                 Decay(ref off[i], ref offSpeed[i], PoseHalfLife, dt);
+            }
+
+            // A planted foot stays where it is planted: what a jump left between where it stands and where the new
+            // recording has it is kept while it is down (the leg reaches for it), and dies away once it is lifted.
+            for (int f = 0; f < 2; f++)
+            {
+                if (!planted[f])
+                {
+                    continue;
+                }
+
+                if (!Down(f) || !PlantedFeetStay)
+                {
+                    planted[f] = false;
+                    for (int q = 0; q < 3; q++)
+                    {
+                        int b = (int)FootBones[f][q];
+                        off[b] = new Vector3(plantedOff[3 * f + q].x, off[b].y, plantedOff[3 * f + q].z);
+                        offSpeed[b] = new Vector3(0f, offSpeed[b].y, 0f);
+                    }
+
+                    continue;
+                }
+
+                // (Not past a short step's reach: more than that is let go slowly, as a foot shuffles.)
+                float far = new Vector2(plantedOff[3 * f].x, plantedOff[3 * f].z).magnitude, reach = PlantedStaysWithin * Leg;
+                float keep = far > reach ? Mathf.Max(reach / far, Mathf.Exp(-0.6931472f * dt / 0.15f)) : 1f;
+                for (int q = 0; q < 3; q++)
+                {
+                    int b = (int)FootBones[f][q];
+                    plantedOff[3 * f + q] *= keep;
+                    off[b] = new Vector3(plantedOff[3 * f + q].x, off[b].y, plantedOff[3 * f + q].z);
+                }
+            }
+
+            for (int i = 0; i < off.Length; i++)
+            {
                 shown[i] = source[i] + off[i];
             }
 
@@ -484,8 +563,8 @@ namespace PhysicsBattler.Locomotion
             // (How the new recording's pose and root are going, against how the old one's were.)
             var next = new Vector3[LocoClip.BoneCount];
             var nextOn = new Vector3[LocoClip.BoneCount];
-            clip.Pose(time, next, Leg);
-            clip.Pose(clip.Loop ? time + h : Mathf.Min(time + h, clip.Duration), nextOn, Leg);
+            PoseOf(clip, time, next);
+            PoseOf(clip, clip.Loop ? time + h : Mathf.Min(time + h, clip.Duration), nextOn);
             MatchFootage.Travel(clip, time, time + h, out var moved, out float turned);
             Vector2 will = Turned(moved * Leg, Facing) / h;
             if (posed)
@@ -499,6 +578,25 @@ namespace PhysicsBattler.Locomotion
 
                 speedOff += ClipVelocity - will;
                 turnOff += lastTurnRate - turned / h;
+
+                // (A foot down before the jump and after it: it stays where it stands.)
+                for (int f = 0; f < 2; f++)
+                {
+                    bool stays = PlantedFeetStay && Down(f) && clip.Contact(f, time) != LocoContact.None;
+                    if (stays)
+                    {
+                        planted[f] = true;
+                        for (int k = 0; k < 3; k++)
+                        {
+                            plantedOff[3 * f + k] = off[(int)FootBones[f][k]];
+                            plantedOff[3 * f + k].y = 0f;
+                        }
+                    }
+                    else if (planted[f])
+                    {
+                        planted[f] = false;
+                    }
+                }
             }
 
             Clip = clip;
@@ -506,6 +604,19 @@ namespace PhysicsBattler.Locomotion
         }
 
         private float lastDt = 1f / 60f, lastTurnRate;
+
+        /// <summary>A foot that is down through a jump between recordings stays where it stands (the leg reaches for it), up to this far from where the new recording has it (leg lengths). Off: it slides there with the rest of the pose.</summary>
+        public static bool PlantedFeetStay = true;
+        public static float PlantedStaysWithin = 0.1f;
+
+        private static readonly LocoBone[][] FootBones =
+        {
+            new[] { LocoBone.LeftFoot, LocoBone.LeftToeBase, LocoBone.LeftToeEnd },
+            new[] { LocoBone.RightFoot, LocoBone.RightToeBase, LocoBone.RightToeEnd },
+        };
+
+        private readonly bool[] planted = new bool[2];
+        private readonly Vector3[] plantedOff = new Vector3[6];
 
         /// <summary>His pose after the last step: every library point against his root (metres; x right, y up, z forward).</summary>
         public Vector3[] Pose => shown;

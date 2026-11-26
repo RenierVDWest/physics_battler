@@ -369,3 +369,33 @@ with `FIGHT_FILM="$S/name.json,3,8.5,medium"`.
 - A film is written at the physics rate (60 a second). Its `p` holds the joints in `PartId` order (hips, spine, chest,
   head, both arms' three joints, both legs' hip, knee and ankle), then the head's top, the hands' ends and the toes;
   `d` the foot locks; `root` the carried body (x, z, facing); `cad` and `ss` the tempo and stride against the recording.
+
+## 26 November: the matched walk (the plan "Walking that feels like a real person", steps 1 to 3)
+
+- `python3 -I Tools/Mocap/Locomotion/bvh_bake.py <100STYLE folder> <out.json> Style[:KIND,KIND] ...`: bakes BVH footage
+  into the clip format. The footage in the game was baked with
+  `... Assets/_Battler/Resources/Locomotion/WalkFootage.json Neutral StartStop:FW,BW,SW,TR1,ID` (8 s). The data is
+  downloaded: keep it in a folder of its own outside the repository (here `/mnt/user-data/uploads/100STYLE/100STYLE`),
+  and run with `-I`. It reads the library's own body from `LocoClips.json` and rebuilds the footage on it.
+- `dotnet Tools/CompileCheck/bin/Tests/Debug/PhysicsBattler.Tests.dll match [film.json] [set]`: a bare walker (no
+  body, no locks) on a course of wishes, on the footage whose names begin with `set` (`s100`; `relaxed`: the 28
+  Mixamo recordings). `MATCH_WALK`, `MATCH_RUN`, `MATCH_BACK`, `MATCH_SIDE` set the course's speeds (the footage's own:
+  0.75, 1.3, 0.6, 0.5). Lines: `MATCHLEG` a leg of the course, `MATCH` the totals, and "rebuilt from its parts": how
+  far the game's rebuild is from the recording's own points (3 mm on average: the footage is on the library's body).
+- `LOCO_MATCHED=1 ... Tests.dll locolab <dir> [seconds]`: the walk lab's course on the matched walk, with the body and
+  the foot locks (the course is asked at 0.57 of its paces, as the lab does). `LOCO_PACE=0.57` asks the old walk the
+  same paces. `LOCO_LINE=0.75,0` a straight line. Its report ends with `MATCHED` lines: for each leg which recordings
+  were played and how often he jumped between them.
+- Levers for either: `MATCH_PULL`, `MATCH_TURN`, `MATCH_TEMPO`, `MATCH_BETTER`, `MATCH_PLANTED=0`.
+- `python3 Tools/Headless/filmstrip.py film.json out.png [from] [to] [every]` reads the `match` film, a `FIGHT_FILM`
+  and now `locolab.json` too: stick figures from the side and the feet from above. Look at it before he does.
+- **What cost time:** (1) the suit's skeleton is not the library's (ankle 14% of a leg over the floor against 10%, a
+  foot half as long again, the hips' point level with the thighs' tops): played as baked he stood with bent knees on
+  feet 3 cm in the air, and the game's rebuild from parts (which uses the library's measures) is what showed it. Any
+  footage from another skeleton has to be rebuilt on the library's body in its baker. (2) A foot "held at its ankle"
+  while its heel comes up is dragged back by the 8 cm the ankle rolls on: the heel's contact ends when the foot is
+  pitched 5 degrees, and with the heel up the game's stiff foot stands on the end of its toes (`LocoBody.ToeHold`).
+  (3) He walked the room in circles (28 degrees a second): the search took the stop-and-go style's few straight steps
+  for a straight walk until the circling was taken out of the root's track. (4) `b.sh` in a command line that names
+  the test dll refuses silently, again.
+

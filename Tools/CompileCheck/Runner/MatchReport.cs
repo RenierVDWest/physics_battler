@@ -53,19 +53,64 @@ public static class MatchReport
         string set = args.Length >= 3 ? args[2] : "relaxed";
         var clips = set == "relaxed"
             ? Relaxed.Select(LocoLibrary.Get).Where(c => c != null).ToList()
-            : LocoLibrary.Clips.Values.Where(c => c.Name.StartsWith(set, StringComparison.Ordinal)).ToList();
+            : LocoLibrary.Footage.Where(c => set.Split('+').Any(s => c.Name.StartsWith(s, StringComparison.Ordinal))).ToList();
         if (clips.Count == 0)
         {
             Console.WriteLine("MATCH no recordings for the set " + set);
             return 1;
         }
 
+        // (Levers to try from the command line.)
+        MotionMatch.JumpsIfBetterBy = EnvF("MATCH_BETTER", MotionMatch.JumpsIfBetterBy);
+        MotionMatch.SearchEvery = EnvF("MATCH_EVERY", MotionMatch.SearchEvery);
+        MotionMatch.PullsAtMost = EnvF("MATCH_PULL", MotionMatch.PullsAtMost);
+        MotionMatch.TurnsAtMost = EnvF("MATCH_TURN", MotionMatch.TurnsAtMost);
+        MotionMatch.NotNearer = EnvF("MATCH_NEAR", MotionMatch.NotNearer);
+        MotionMatch.PoseHalfLife = EnvF("MATCH_POSEHL", MotionMatch.PoseHalfLife);
+        MatchFootage.FeetWeigh = EnvF("MATCH_WFEET", MatchFootage.FeetWeigh);
+        MatchFootage.SpeedsWeigh = EnvF("MATCH_WSPEED", MatchFootage.SpeedsWeigh);
+        MatchFootage.PathWeighs = EnvF("MATCH_WPATH", MatchFootage.PathWeighs);
+        MatchFootage.FacingWeighs = EnvF("MATCH_WFACE", MatchFootage.FacingWeighs);
+        MotionMatch.TempoAtMost = EnvF("MATCH_TEMPO", MotionMatch.TempoAtMost);
+        MotionMatch.PlantedFeetStay = Environment.GetEnvironmentVariable("MATCH_PLANTED") != "0";
         var built = Stopwatch.StartNew();
         var footage = new MatchFootage(clips);
         built.Stop();
         float minutes = clips.Sum(c => c.Duration) / 60f;
         Console.WriteLine(string.Format(inv, "MATCH footage: {0} recordings, {1:0.0} minutes, {2} moments of {3} numbers; made ready in {4} ms",
             clips.Count, minutes, footage.Count, MatchFootage.Size, built.ElapsedMilliseconds));
+
+        // The rebuild from parts against the recording's own points: the game puts every pose together on the library's
+        // measures, so footage from another skeleton has to be baked onto them, or the rebuild is not the recording.
+        {
+            var own = new Vector3[LocoClip.BoneCount];
+            var made = new Vector3[LocoClip.BoneCount];
+            float worst = 0f, sum = 0f;
+            int count = 0;
+            string where = "";
+            foreach (var c in clips)
+            {
+                for (float at = 0f; at < c.Duration; at += Mathf.Max(0.37f, c.Duration / 60f))
+                {
+                    c.Pose(at, own, 1f);
+                    MoveScore.Pose(MoveLevers.Plain, c, at, made, 1f);
+                    for (int b = 0; b < own.Length; b++)
+                    {
+                        float d = (own[b] - made[b]).magnitude;
+                        sum += d;
+                        count++;
+                        if (d > worst)
+                        {
+                            worst = d;
+                            where = $"{(LocoBone)b} in {c.Name} at {at:0.0} s";
+                        }
+                    }
+                }
+            }
+
+            Console.WriteLine(string.Format(inv, "MATCH rebuilt from its parts, a point is {0:0.0} mm from the recording's on average, {1:0.0} mm at worst ({2}) (at a leg of 0.845 m)",
+                845f * sum / Mathf.Max(1, count), 845f * worst, where));
+        }
 
         // The course of wishes: (until, what, speed m/s, heading degrees, facing degrees). Heading and facing are turns to the right from +z.
         float walk = set == "relaxed" ? 1.5f : EnvF("MATCH_WALK", 1.3f), run = EnvF("MATCH_RUN", set == "relaxed" ? 4.2f : 3.2f), back = EnvF("MATCH_BACK", 1.1f), side = EnvF("MATCH_SIDE", 0.6f);
@@ -87,7 +132,7 @@ public static class MatchReport
             new Wish(39f, "stand", 0f, 270f, 270f),
         };
 
-        var start = clips.FirstOrDefault(c => c.Role == "idle" || c.Name.Contains("idle") || c.Name.EndsWith("_ID", StringComparison.Ordinal)) ?? clips[0];
+        var start = clips.FirstOrDefault(c => c.Role == "idle" || c.Name.Contains("idle") || c.Name.EndsWith("_id", StringComparison.Ordinal)) ?? clips[0];
         var mm = new MotionMatch(footage, Leg, start, Vector2.zero, 0f);
         const float dt = 1f / 60f;
         var film = new List<string>();
@@ -99,7 +144,6 @@ public static class MatchReport
         var footWas = new Vector3[2];
         var slid = new float[2];
         var slides = new List<float>();
-        var slideSpeeds = new List<float>();
         int speedJumps = 0, poseJumps = 0, steps = 0;
         float worstSpeedJump = 0f, worstPoseJump = 0f;
         int seg = 0;
@@ -150,25 +194,27 @@ public static class MatchReport
                 poseJumps++;
             }
 
-            // A foot the recording has down: how fast it goes over the ground, and how far it slides while down.
+            // The ball of a foot the recording has down: how far it is, as it lifts, from where it landed. (The ankle
+            // travels as the foot rolls from heel to toe; the ball of a planted foot does not.)
             for (int f = 0; f < 2; f++)
             {
-                Vector3 at = mm.World(f == 0 ? LocoBone.LeftFoot : LocoBone.RightFoot);
-                bool isDown = mm.Down(f);
-                if (isDown && down[f])
+                Vector3 at = mm.World(f == 0 ? LocoBone.LeftToeBase : LocoBone.RightToeBase);
+                bool isDown = (mm.Clip.Contact(f, mm.Time) & LocoContact.Toe) != 0;
+                if (isDown && !down[f])
                 {
-                    float d = new Vector2(at.x - footWas[f].x, at.z - footWas[f].z).magnitude;
-                    slid[f] += d;
-                    slideSpeeds.Add(d / dt);
+                    footWas[f] = at;
                 }
-                else if (!isDown && down[f])
+                else if (isDown)
+                {
+                    slid[f] = new Vector2(at.x - footWas[f].x, at.z - footWas[f].z).magnitude;
+                }
+                else if (down[f])
                 {
                     slides.Add(slid[f]);
                     slid[f] = 0f;
                 }
 
                 down[f] = isDown;
-                footWas[f] = at;
             }
 
             segTime += dt;
@@ -212,15 +258,14 @@ public static class MatchReport
 
         float total = steps * dt;
         slides.Sort();
-        slideSpeeds.Sort();
         Console.WriteLine(string.Format(inv, "MATCH {0:0} s: {1} jumps between recordings ({2:0.0} a second), {3} searches at {4:0.000} ms each ({5:0.000} ms a step on average)",
             total, mm.Jumps, mm.Jumps / total, mm.Searches, search.Elapsed.TotalMilliseconds / Mathf.Max(1, mm.Searches), search.Elapsed.TotalMilliseconds / steps));
         Console.WriteLine(string.Format(inv, "MATCH his root's speed jumped over 0.5 m/s in one step {0} times (worst {1:0.00} m/s); a point of his pose changed speed by over 3 m/s in one step {2} times (worst {3:0.0} m/s)",
             speedJumps, worstSpeedJump, poseJumps, worstPoseJump));
         if (slides.Count > 0)
         {
-            Console.WriteLine(string.Format(inv, "MATCH a foot the recording has down slid {0:0.0} cm a footfall (median; the worst tenth over {1:0.0} cm; {2} footfalls), going {3:0.00} m/s over the ground (median) while down",
-                100f * slides[slides.Count / 2], 100f * slides[Mathf.Min(slides.Count - 1, slides.Count * 9 / 10)], slides.Count, slideSpeeds[slideSpeeds.Count / 2]));
+            Console.WriteLine(string.Format(inv, "MATCH the ball of a foot the recording has down ends {0:0.0} cm from where it landed (median; the worst tenth over {1:0.0} cm; {2} footfalls)",
+                100f * slides[slides.Count / 2], 100f * slides[Mathf.Min(slides.Count - 1, slides.Count * 9 / 10)], slides.Count));
         }
 
         Console.WriteLine("MATCH played: " + string.Join(", ", playing.OrderByDescending(p => p.Value).Take(14).Select(p => string.Format(inv, "{0} {1:0.0} s", p.Key, p.Value))));

@@ -565,6 +565,7 @@ namespace PhysicsBattler.Locomotion
             Acceleration = Vector3.zero;
             FacingSpeed = 0f;
             Current = Mode.Idle;
+            Match = null;
             Phase = 0f;
             idleTime = 0f;
             hasLast = false;
@@ -778,6 +779,118 @@ namespace PhysicsBattler.Locomotion
             return levers;
         }
 
+        // ---- The matched walk (the plan "Walking that feels like a real person", step 3) --------------------------
+
+        /// <summary>
+        /// Out of his guard he walks by matched footage (Combat Feel "He Walks By Matched Footage"): several times a
+        /// second the footage is searched for the recorded moment that fits his pose and where he is asked to go, the
+        /// recording plays on from there at its own pace, and its root's going is his (<see cref="MotionMatch"/>).
+        /// The pose is still rebuilt from its parts with his levers. Off: the blended loops, as it was. In his
+        /// guard, and through a blow or any other one-off motion, it is as it was either way.
+        /// </summary>
+        public static bool Matched;
+
+        /// <summary>The footage a matched walk is chosen from: the recordings whose names begin so (the free 100STYLE set's plain style and its starts and stops).</summary>
+        public static string MatchedSet = "s100_";
+
+        /// <summary>A matched walk stops for a place: how long the footage's stops carry him on (seconds of his going), how near counts as there, and how near he stays rather than step again (metres).</summary>
+        public static float MatchedStopsOver = 0.55f, MatchedStopsWithin = 0.05f, MatchedStaysWithin = 0.2f;
+
+        private static MatchFootage matchedFootage;
+        private static string matchedFootageSet;
+
+        /// <summary>The matched walk's footage, made ready once (null: none in the library).</summary>
+        public static MatchFootage MatchedFootage
+        {
+            get
+            {
+                if (matchedFootage == null || matchedFootageSet != MatchedSet)
+                {
+                    matchedFootageSet = MatchedSet;
+                    var clips = new List<LocoClip>();
+                    foreach (var c in LocoLibrary.Footage)
+                    {
+                        if (c.Name.StartsWith(MatchedSet, System.StringComparison.Ordinal))
+                        {
+                            clips.Add(c);
+                        }
+                    }
+
+                    matchedFootage = clips.Count > 0 ? new MatchFootage(clips) : null;
+                }
+
+                return matchedFootage;
+            }
+        }
+
+        /// <summary>The matched walk, while he walks by it (null: he does not).</summary>
+        public MotionMatch Match { get; private set; }
+
+        /// <summary>Whether this step is the matched walk's: asked for, out of his guard, in no one-off motion, with footage to walk on.</summary>
+        private bool MatchedNow => Matched && Guard == null && !GuardWanted && Current != Mode.OneShot && shoved <= 0f && MatchedFootage != null;
+
+        private void MatchedStep(float dt, Vector3 wantVelocity, float wantFacing)
+        {
+            if (Match == null)
+            {
+                // (Taken up where he is: he goes on from the standing take, and what he was doing fades as any switch does.)
+                LocoClip stand = null;
+                foreach (var c in MatchedFootage.Clips)
+                {
+                    if (c.Name.EndsWith("_id", System.StringComparison.Ordinal))
+                    {
+                        stand = c;
+                        break;
+                    }
+                }
+
+                Match = new MotionMatch(MatchedFootage, Leg, stand, new Vector2(Position.x, Position.z), Facing)
+                {
+                    Sample = (clip, time, into) => MoveScore.Pose(LeversNow(), clip, time, into, Leg),
+                };
+                pendingSwitch = hasLast;
+            }
+
+            // (A place he is to stop at: the footage's own stops carry him on for about half a second's going, so he is
+            // asked to stand that far before it; and standing within a short step of it he stays, where a recorded
+            // start and stop would carry him past.)
+            if (StopAt.HasValue)
+            {
+                Vector3 to = StopAt.Value - Position;
+                to.y = 0f;
+                float d = to.magnitude, v = Velocity.magnitude;
+                if (d < v * MatchedStopsOver + MatchedStopsWithin && (v > StandBelow || d < MatchedStaysWithin))
+                {
+                    wantVelocity = Vector3.zero;
+                }
+            }
+
+            // (Whatever moved him since the last step, a push or being placed, is where he goes on from.)
+            Match.Place = new Vector2(Position.x, Position.z);
+            Match.Facing = Facing;
+            Match.Step(dt, new Vector2(wantVelocity.x, wantVelocity.z), wantFacing);
+            Vector3 was = Velocity;
+            Position = new Vector3(Match.Place.x, Position.y, Match.Place.y);
+            FacingSpeed = Mathf.DeltaAngle(Facing, Match.Facing) / dt;
+            Facing = Match.Facing;
+            Velocity = new Vector3(Match.Velocity.x, 0f, Match.Velocity.y);
+            Acceleration = (Velocity - was) / dt;
+            System.Array.Copy(Match.Pose, raw, raw.Length);
+            Contacts(Match.Clip, Match.Time, 1f, true);
+            Current = Velocity.magnitude > StandBelow ? Mode.Cycle : Mode.Idle;
+            Blend.Clear();
+            Blend.Add((Match.Clip, 1f));
+            StrideScale = 1f;
+            Cadence = 1f;
+            PhaseRate = 1f;
+            Running = Velocity.magnitude > RunSpeed;
+            RunWeight = Running ? 1f : 0f;
+            goingKnown = false;
+            Going = Vector3.zero;
+            Inertialize(dt);
+            Facing = Mathf.DeltaAngle(0f, Facing);
+        }
+
         public void Step(float dt, Vector3 wantVelocity, float wantFacing)
         {
             SnappedThisStep = Vector3.zero;
@@ -825,6 +938,20 @@ namespace PhysicsBattler.Locomotion
             {
                 // (He has left his stand: the next time he stands, its pattern is laid out about him again.)
                 Guard.Pattern.End();
+            }
+
+            if (MatchedNow)
+            {
+                shoved = 0f;
+                MatchedStep(dt, wantVelocity, wantFacing);
+                return;
+            }
+
+            if (Match != null)
+            {
+                // (Out of the matched walk, into his guard, a one-off motion or the old walk: a switch like any other.)
+                Match = null;
+                pendingSwitch = hasLast;
             }
 
             bool over = Current == Mode.OneShot && shotOver;

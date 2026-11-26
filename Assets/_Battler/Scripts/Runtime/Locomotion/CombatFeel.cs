@@ -1041,6 +1041,9 @@ namespace PhysicsBattler.Locomotion
         [Tooltip("The guard walks in one carriage (the plan \"Convincing walking in the dance\", step 2). On: he steps forward and back on an archer's legs, which keep his turned stance (the sword and shield pack's own walk forward and back is 9 cm taller, narrow and square), under his own chest and arms; and each of his four steps is carried as his stand is: his hips at the stand's height, his feet's places toward the stand's. Off: each recording as it is, as it was. His jogs and runs are as recorded either way.")]
         public bool theGuardWalksInOneCarriage = true;
 
+        [Tooltip("The new walk (the plan \"Walking that feels like a real person\", step 3): out of his guard he walks by matched footage. Several times a second the footage (one performer, the free 100STYLE set: 27 minutes of walking, starts, stops and turns) is searched for the recorded moment that fits his pose and where he is asked to go; the recording plays on from there at its own pace, never more than a tenth faster or slower, and its own going moves him. His pose is still rebuilt from its parts, so the movement levers work on it. Off: the blended loops, as it was. In his guard, and through a blow or a get-up, it is as it was either way: the footage has no guard. The walk lab's \"His walk:\" sets this while you are in it. The footage is a 30 MB file read the first time it is needed: expect a short stop then.")]
+        public bool heWalksByMatchedFootage = false;
+
         [Tooltip("One carriage: how much of his stand's own stance his feet keep while he steps. 0: each recording's own places (his feet nearer each other than he stands). 1: the stand's: as wide, and his left foot as far ahead. More keeps his stance but asks his legs to reach further.")]
         [Range(0f, 1f)] public float guardKeepsItsStance = 0.5f;
 
@@ -2357,6 +2360,7 @@ namespace PhysicsBattler.Locomotion
             Locomotor.WalksOn = aWalkKeptUpIsWalkedNotStepped;
             Locomotor.SlowSide = slowCircleOn;
             MoveStyle.OneCarriage = theGuardWalksInOneCarriage;
+            Locomotor.Matched = heWalksByMatchedFootage;
             MoveScore.StanceKept = guardKeepsItsStance;
             Locomotor.WholeSteps = aStepOnceBegunIsFinished;
             Locomotor.LegsTurned = aDiagonalTurnsTheLegs;

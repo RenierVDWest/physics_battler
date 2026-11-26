@@ -61,10 +61,21 @@ namespace PhysicsBattler.Locomotion
         public Vector3 ContactPoint(int f)
         {
             var foot = anim.Part(f == 0 ? PartId.FootL : PartId.FootR);
-            return Feet[f].OnToe ? foot.position + foot.rotation * restToe : foot.position;
+            return Feet[f].OnToe ? foot.position + foot.rotation * ToeHold : foot.position;
         }
 
         private readonly Vector3 restToe;
+
+        /// <summary>The end of the toes against the ankle with the foot flat (the foot's own frame, metres).</summary>
+        private readonly Vector3 restTip;
+
+        /// <summary>
+        /// The point of the foot that holds the ground while its heel is up. The blended loops' feet are held at the
+        /// ball of the foot, as ever. The matched walk's footage is baked onto the game's stiff foot, which with its
+        /// heel up stands on the end of its toes (`bvh_bake.py`): held at the ball, a foot that pivots there is
+        /// dragged back by the 2 to 5 cm its ball swings forward over its toes.
+        /// </summary>
+        private Vector3 ToeHold => loco.Match != null ? restTip : restToe;
 
         /// <summary>Debugging: each lock's release is printed (the runner sets it).</summary>
         public static System.Action<string> Trace;
@@ -106,6 +117,7 @@ namespace PhysicsBattler.Locomotion
             restFootDir = new Vector3(0f, d.y, new Vector2(d.x, d.z).magnitude).normalized;
             Vector3 t = idle != null ? idle.Point(LocoBone.LeftToeBase, 0f) - idle.Point(LocoBone.LeftFoot, 0f) : new Vector3(0f, -0.08f, 0.12f);
             restToe = new Vector3(0f, t.y, new Vector2(t.x, t.z).magnitude) * loco.Leg;
+            restTip = new Vector3(0f, d.y, new Vector2(d.x, d.z).magnitude) * loco.Leg;
             // (The heel's underside: under the ankle, a little behind it.)
             restHeel = new Vector3(0f, restToe.y, -0.2f * restToe.z);
             soleToe = restToe;
@@ -2163,7 +2175,7 @@ namespace PhysicsBattler.Locomotion
                 foot.YawHold = hold;
             }
 
-            Vector3 posedToe = posed + Quaternion.Euler(0f, foot.YawHold, 0f) * clipTurn * restToe;
+            Vector3 posedToe = posed + Quaternion.Euler(0f, foot.YawHold, 0f) * clipTurn * ToeHold;
 
             if (landing)
             {

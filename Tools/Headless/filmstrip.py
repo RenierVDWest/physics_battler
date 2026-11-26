@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""A film (FIGHT_FILM, or the "match" command's) drawn as a strip of stick figures, to look at a walk before he does.
+"""A film (FIGHT_FILM, the "match" command's, or the walk lab's `locolab.json`) drawn as a strip of stick figures, to look at a walk before he does.
 
     python3 Tools/Headless/filmstrip.py film.json out.png [from] [to] [every] [unit name part]
 
@@ -28,6 +28,12 @@ def main():
     every = float(sys.argv[5]) if len(sys.argv) > 5 else 0.1
     who = sys.argv[6] if len(sys.argv) > 6 else None
     fr = json.load(open(film))
+    if isinstance(fr, dict):
+        # The walk lab's film (`locolab`): one man, his parts by name, the feet his locks hold.
+        alias = {'HeadTop': 'Head', 'HandEndL': 'HandTipL', 'HandEndR': 'HandTipR'}
+        fr = [{'u': 'walk lab', 't': f['t'], 'p': [c for n in N for c in f['pose'][alias.get(n, n) if n not in f['pose'] else n]],
+               'd': [1 if f['locks'][0] else 0, 1 if f['locks'][1] else 0], 'root': [f['root'][0], f['root'][2], f['facing']],
+               'blend': f['leg']} for f in fr['frames']]
     names = sorted(set(f['u'] for f in fr))
     name = next((n for n in names if who and who.lower() in n.lower()), names[0])
     fr = [f for f in fr if f['u'] == name and (t0 is None or f['t'] >= t0) and (t1 is None or f['t'] <= t1)]

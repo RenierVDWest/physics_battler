@@ -391,6 +391,43 @@ namespace PhysicsBattler.Locomotion
             LoadFile(CombatResourcePath, CombatAssetPath);
         }
 
+        // ---- Footage for the matched walk (the plan "Walking that feels like a real person") ----------------
+
+        public const string FootageResourcePath = "Locomotion/WalkFootage";
+        public const string FootageAssetPath = "_Battler/Resources/Locomotion/WalkFootage.json";
+
+        private static List<LocoClip> footage;
+
+        /// <summary>
+        /// The long takes a matched walk is chosen from (Tools/Mocap/Locomotion/bvh_bake.py: the 100STYLE set), read
+        /// the first time they are asked for: they are many times the size of the clips' own files. Empty if the
+        /// file is not there. They are also to be had by name (<see cref="Get"/>).
+        /// </summary>
+        public static IReadOnlyList<LocoClip> Footage
+        {
+            get
+            {
+                if (footage == null)
+                {
+                    footage = new List<LocoClip>();
+                    _ = Clips;
+                    string text = ReadText(FootageResourcePath, FootageAssetPath);
+                    if (!string.IsNullOrEmpty(text))
+                    {
+                        var file = JsonUtility.FromJson<LocoClipFile>(text);
+                        foreach (var d in file.clips)
+                        {
+                            var clip = new LocoClip(d);
+                            footage.Add(clip);
+                            clips[d.name] = clip;
+                        }
+                    }
+                }
+
+                return footage;
+            }
+        }
+
         public const string CombatResourcePath = "Locomotion/CombatClips";
         public const string CombatAssetPath = "_Battler/Resources/Locomotion/CombatClips.json";
 
